@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using DV.Logic.Job;
+using DV.ThingTypes;
 
 namespace PersistentJobsMod {
     class CarTypesPerCargoType {

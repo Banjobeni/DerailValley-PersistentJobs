@@ -4,6 +4,8 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using DV.Logic.Job;
+using DV.ThingTypes;
+using DV.Utils;
 
 namespace PersistentJobsMod {
     class ShuntingUnloadJobProceduralGenerator {

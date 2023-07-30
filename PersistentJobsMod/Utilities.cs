@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DV.Damage;
 using Harmony12;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ServicePenalty;
+using DV.ThingTypes;
 
 namespace PersistentJobsMod {
     class Utilities {

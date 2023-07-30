@@ -8,7 +8,8 @@ using UnityEngine;
 using UnityModManagerNet;
 using DV.Logic.Job;
 using DV.ServicePenalty;
-using System.IO;
+using DV.ThingTypes;
+using DV.Utils;
 
 namespace PersistentJobsMod {
     static class Main {
@@ -25,6 +26,9 @@ namespace PersistentJobsMod {
         private static readonly string SAVE_DATA_VERSION_KEY = "Version";
         private static readonly string SAVE_DATA_SPAWN_BLOCK_KEY = "SpawnBlockList";
         private static readonly string SAVE_DATA_PASSENGER_BLOCK_KEY = "PassengerBlockList";
+
+        // see private field CarsSaveManager.TRACK_HASH_SAVE_KEY
+        private const string TRACK_HASH_SAVE_KEY = "trackHash";
 
 #if DEBUG
         private static float PERIOD = 60f;
@@ -145,10 +149,10 @@ namespace PersistentJobsMod {
 
                     JObject saveData = new JObject(
                         new JProperty(SAVE_DATA_VERSION_KEY, new JValue(modEntry.Version.ToString())),
-                        new JProperty($"{SAVE_DATA_SPAWN_BLOCK_KEY}#{SingletonBehaviour<CarsSaveManager>.Instance.TracksHash}", spawnBlockSaveData),
-                        new JProperty($"{SAVE_DATA_PASSENGER_BLOCK_KEY}#{SingletonBehaviour<CarsSaveManager>.Instance.TracksHash}", passengerBlockSaveData));
+                        new JProperty($"{SAVE_DATA_SPAWN_BLOCK_KEY}#{TRACK_HASH_SAVE_KEY}", spawnBlockSaveData),
+                        new JProperty($"{SAVE_DATA_PASSENGER_BLOCK_KEY}#{TRACK_HASH_SAVE_KEY}", passengerBlockSaveData));
 
-                    SaveGameManager.data.SetJObject(SAVE_DATA_PRIMARY_KEY, saveData);
+                    __instance.data.SetJObject(SAVE_DATA_PRIMARY_KEY, saveData);
                 } catch (Exception e) {
                     // TODO: what to do if saving fails?
                     modEntry.Logger.Warning(string.Format("Saving mod data failed with exception:\n{0}", e));
@@ -161,14 +165,14 @@ namespace PersistentJobsMod {
         class SaveGameManager_Load_Patch {
             static void Postfix(SaveGameManager __instance) {
                 try {
-                    JObject saveData = SaveGameManager.data.GetJObject(SAVE_DATA_PRIMARY_KEY);
+                    JObject saveData = __instance.data.GetJObject(SAVE_DATA_PRIMARY_KEY);
 
                     if (saveData == null) {
                         modEntry.Logger.Log("Not loading save data: primary object is null.");
                         return;
                     }
 
-                    JArray spawnBlockSaveData = (JArray)saveData[$"{SAVE_DATA_SPAWN_BLOCK_KEY}#{SingletonBehaviour<CarsSaveManager>.Instance.TracksHash}"];
+                    JArray spawnBlockSaveData = (JArray)saveData[$"{SAVE_DATA_SPAWN_BLOCK_KEY}#{TRACK_HASH_SAVE_KEY}"];
                     if (spawnBlockSaveData == null) {
                         modEntry.Logger.Log("Not loading spawn block list: data is null.");
                     } else {
@@ -176,7 +180,7 @@ namespace PersistentJobsMod {
                         modEntry.Logger.Log($"Loaded station spawn block list: [ {string.Join(", ", stationIdSpawnBlockList)} ]");
                     }
 
-                    JArray passengerBlockSaveData = (JArray)saveData[$"{SAVE_DATA_PASSENGER_BLOCK_KEY}#{SingletonBehaviour<CarsSaveManager>.Instance.TracksHash}"];
+                    JArray passengerBlockSaveData = (JArray)saveData[$"{SAVE_DATA_PASSENGER_BLOCK_KEY}#{TRACK_HASH_SAVE_KEY}"];
                     if (passengerBlockSaveData == null) {
                         modEntry.Logger.Log("Not loading passenger spawn block list: data is null.");
                     } else {
