@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DV;
 using Harmony12;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -9,6 +10,7 @@ using UnityModManagerNet;
 using DV.Logic.Job;
 using DV.ServicePenalty;
 using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 
 namespace PersistentJobsMod {
@@ -726,8 +728,8 @@ namespace PersistentJobsMod {
                                 // check if there is any cargoGroup that satisfies all the cars
                                 if (availableCargoGroups.Any(
                                     cg => cpt.cars.All(
-                                        c => Utilities.GetCargoTypesForCarType(c.carType)
-                                            .Intersect(cg.cargoTypes)
+                                        c => Globals.G.Types.CarTypeToLoadableCargo[c.carType.parentType]
+                                            .Intersect(cg.cargoTypes.Select(ct => ct.ToV2()))
                                             .Any()))) {
                                     // registering the cars as jobless & removing them from carsPerDestinationTrack
                                     // prevents base method from generating an EmptyHaul job for them
