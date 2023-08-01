@@ -6,7 +6,7 @@ namespace PersistentJobsMod {
     static class PJModSettings_PurgeData_Patch {
         static void Postfix() {
             Debug.Log("Clearing passenger spawning block list...");
-            Main.stationIdPassengerBlockList.Clear();
+            Main.StationIdPassengerBlockList.Clear();
         }
     }
 
@@ -15,7 +15,7 @@ namespace PersistentJobsMod {
             if (Main.modEntry.Active) {
                 StationController controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
                 string stationId = controller?.logicStation?.ID;
-                return stationId == null || !Main.stationIdPassengerBlockList.Contains(controller.logicStation.ID);
+                return stationId == null || !Main.StationIdPassengerBlockList.Contains(controller.logicStation.ID);
             }
             return true;
         }
@@ -23,8 +23,8 @@ namespace PersistentJobsMod {
         static void Postfix(object __instance) {
             StationController controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
             string stationId = controller?.logicStation?.ID;
-            if (stationId != null && !Main.stationIdPassengerBlockList.Contains(stationId)) {
-                Main.stationIdPassengerBlockList.Add(stationId);
+            if (stationId != null && !Main.StationIdPassengerBlockList.Contains(stationId)) {
+                Main.StationIdPassengerBlockList.Add(stationId);
             }
         }
     }
