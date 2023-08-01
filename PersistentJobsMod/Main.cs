@@ -162,7 +162,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists
+        /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
         [HarmonyPatch(typeof(CarsSaveManager), "Load")]
         class SaveGameManager_Load_Patch {
             static void Postfix(SaveGameManager __instance) {
@@ -196,7 +196,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // reserves tracks for taken jobs when loading save file
+        /// <summary>reserves tracks for taken jobs when loading save file</summary>
         [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
         class JobSaveManager_LoadJobChain_Patch {
             static void Postfix(JobChainSaveData chainSaveData) {
@@ -235,7 +235,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // prevents jobs from expiring due to the player's distance from the station
+        /// <summary>prevents jobs from expiring due to the player's distance from the station</summary>
         [HarmonyPatch(typeof(StationController), "ExpireAllAvailableJobsInStation")]
         class StationController_ExpireAllAvailableJobsInStation_Patch {
             static bool Prefix() {
@@ -244,7 +244,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // expands the distance at which the job generation trigger is rearmed
+        /// <summary>expands the distance at which the job generation trigger is rearmed</summary>
         [HarmonyPatch(typeof(StationJobGenerationRange))]
         [HarmonyPatchAll]
         class StationJobGenerationRange_AllMethods_Patch {
@@ -279,7 +279,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // expires a job if none of its cars are in range of the starting station on job start attempt
+        /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
         [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
         class JobValidator_ProcessJobOverview_Patch {
             static bool Prefix(DV.Printers.PrinterController ___bookletPrinter,
@@ -626,7 +626,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // generates shunting unload jobs
+        /// <summary>generates shunting unload jobs</summary>
         [HarmonyPatch(typeof(StationProceduralJobGenerator), "GenerateInChainJob")]
         class StationProceduralJobGenerator_GenerateInChainJob_Patch {
             static bool Prefix(ref JobChainController __result) {
@@ -640,7 +640,7 @@ namespace PersistentJobsMod {
             }
         }
 
-        // generates shunting load jobs & freight haul jobs
+        /// <summary>generates shunting load jobs & freight haul jobs</summary>
         [HarmonyPatch(typeof(StationProceduralJobGenerator), "GenerateOutChainJob")]
         class StationProceduralJobGenerator_GenerateOutChainJob_Patch {
             static bool Prefix(ref JobChainController __result,
@@ -694,9 +694,11 @@ namespace PersistentJobsMod {
             }
         }
 
-        // unload: divert cars that can be loaded at the current station for later generation of ShuntingLoad jobs
-        // load: generates a corresponding transport job
-        // transport: generates a corresponding unload job
+        /// <summary>
+        /// unload: divert cars that can be loaded at the current station for later generation of ShuntingLoad jobs
+        /// load: generates a corresponding transport job
+        /// transport: generates a corresponding unload job
+        /// </summary>
         [HarmonyPatch(typeof(JobChainControllerWithEmptyHaulGeneration), "OnLastJobInChainCompleted")]
         class JobChainControllerWithEmptyHaulGeneration_OnLastJobInChainCompleted_Patch {
             static void Prefix(JobChainControllerWithEmptyHaulGeneration __instance,
