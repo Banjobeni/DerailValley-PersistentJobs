@@ -79,16 +79,29 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CarTypesPerCargoType.cs" />
+    <Compile Include="HarmonyPatches\JobChainControllerWithEmptyHaulGeneration_OnLastJobInChainCompleted_Patch.cs" />
+    <Compile Include="HarmonyPatches\JobChainController_ReserveRequiredTracks_Patch.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
+    <Compile Include="HarmonyPatches\JobSaveManager_LoadJobChain_Patch.cs" />
+    <Compile Include="HarmonyPatches\JobValidator_ProcessJobOverview_Patch.cs" />
     <Compile Include="Main.cs" />
-    <Compile Include="Patches_PassengerJobsMod.cs" />
+    <Compile Include="HarmonyPatches\Patches_PassengerJobsMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SaveDataConstants.cs" />
+    <Compile Include="HarmonyPatches\SaveGameManager_Load_Patch.cs" />
+    <Compile Include="HarmonyPatches\SaveGameManager_Save_Patch.cs" />
     <Compile Include="ShuntingLoadJobProceduralGenerator.cs" />
     <Compile Include="ShuntingUnloadJobProceduralGenerator.cs" />
+    <Compile Include="HarmonyPatches\StationController_ExpireAllAvailableJobsInStation_Patch.cs" />
+    <Compile Include="HarmonyPatches\StationJobGenerationRange_AllMethods_Patch.cs" />
+    <Compile Include="HarmonyPatches\StationProceduralJobGenerator_GenerateInChainJob_Patch.cs" />
+    <Compile Include="HarmonyPatches\StationProceduralJobGenerator_GenerateOutChainJob_Patch.cs" />
+    <Compile Include="HarmonyPatches\StationProceduralJobsController_TryToGenerateJobs_Patch.cs" />
     <Compile Include="TransportJobProceduralGenerator.cs" />
     <Compile Include="UnusedTrainCarDeleterPatch.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>mkdir "$(DVInstallPath)Mods\$(SolutionName)"

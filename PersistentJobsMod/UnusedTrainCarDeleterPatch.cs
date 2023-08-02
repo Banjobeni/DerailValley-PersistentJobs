@@ -6,10 +6,12 @@ using Harmony12;
 using UnityEngine;
 using DV;
 using DV.Logic.Job;
+using DV.ThingTypes;
+using DV.Utils;
 
 namespace PersistentJobsMod {
     class UnusedTrainCarDeleterPatch {
-        // tries to generate new jobs for the train cars marked for deletion
+        /// <summary>tries to generate new jobs for the train cars marked for deletion</summary>
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), "InstantConditionalDeleteOfUnusedCars")]
         class UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch {
             static bool Prefix(UnusedTrainCarDeleter __instance,
@@ -50,7 +52,7 @@ namespace PersistentJobsMod {
                             .Where(tc => Utilities.IsPassengerCar(tc.carType))
                             .ToList();
                         List<TrainCar> nonLocoOrPaxTrainCars = trainCarsToDelete
-                            .Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carType) && !Utilities.IsPassengerCar(tc.carType))
+                            .Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery) && !Utilities.IsPassengerCar(tc.carType))
                             .ToList();
                         List<TrainCar> emptyFreightCars = nonLocoOrPaxTrainCars
                             .Where(tc => tc.logicCar.CurrentCargoTypeInCar == CargoType.None
@@ -214,7 +216,7 @@ namespace PersistentJobsMod {
                         // preserve all trainCars that are not locos
                         Debug.Log("[PersistentJobs] preserving cars...");
                         foreach (TrainCar tc in new List<TrainCar>(trainCarsToDelete)) {
-                            if (tc.playerSpawnedCar || !CarTypes.IsAnyLocomotiveOrTender(tc.carType)) {
+                            if (tc.playerSpawnedCar || !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery)) {
                                 trainCarsToDelete.Remove(tc);
                                 ___unusedTrainCarsMarkedForDelete.Add(tc);
                                 totalCarsPreserved += 1;
@@ -325,7 +327,7 @@ namespace PersistentJobsMod {
                         .Where(tc => Utilities.IsPassengerCar(tc.carType))
                         .ToList();
                     List<TrainCar> nonLocoOrPaxTrainCars = trainCarCandidatesForDelete
-                        .Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carType) && !Utilities.IsPassengerCar(tc.carType))
+                        .Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery) && !Utilities.IsPassengerCar(tc.carType))
                         .ToList();
                     List<TrainCar> emptyFreightCars = nonLocoOrPaxTrainCars
                         .Where(tc => tc.logicCar.CurrentCargoTypeInCar == CargoType.None
@@ -558,7 +560,7 @@ namespace PersistentJobsMod {
                 Debug.Log("[PersistentJobs] preserving cars... (coroutine)");
                 try {
                     foreach (TrainCar tc in new List<TrainCar>(trainCarCandidatesForDelete)) {
-                        if (tc.playerSpawnedCar || !CarTypes.IsAnyLocomotiveOrTender(tc.carType)) {
+                        if (tc.playerSpawnedCar || !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery)) {
                             trainCarCandidatesForDelete.Remove(tc);
                             unusedTrainCarsMarkedForDelete.Add(tc);
                             totalCarsPreserved += 1;

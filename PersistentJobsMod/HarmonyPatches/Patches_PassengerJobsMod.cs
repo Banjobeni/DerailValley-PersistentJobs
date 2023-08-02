@@ -1,8 +1,8 @@
-﻿using Harmony12;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Harmony12;
 using UnityEngine;
 
-namespace PersistentJobsMod {
+namespace PersistentJobsMod.HarmonyPatches {
     static class PJModSettings_PurgeData_Patch {
         static void Postfix() {
             Debug.Log("Clearing passenger spawning block list...");
