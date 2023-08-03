@@ -177,10 +177,6 @@ namespace PersistentJobsMod {
                 bool forceCorrectCargoStateOnCars = false) {
             Debug.Log("[PersistentJobs] load: generating with pre-spawned cars");
             YardTracksOrganizer yto = YardTracksOrganizer.Instance;
-            HashSet<TrainCarLivery> carContainerTypes = new HashSet<TrainCarLivery>();
-            foreach (TrainCar trainCar in trainCars) {
-                carContainerTypes.Add(trainCar.carType.ToV2());
-            }
             float approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
 
             // choose warehosue machine
@@ -237,9 +233,9 @@ namespace PersistentJobsMod {
                 out bonusTimeLimit,
                 out initialWage
             );
-            JobLicenses requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.ShuntingLoad)
-                .Concat(LicenseManager.Instance.GetRequiredLicensesForCargoTypes(transportedCargoPerCar))
-                .Concat(new[] { LicenseManager.Instance.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count) }));
+            JobLicenses requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.ShuntingLoad))
+                | JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForCargoTypes(transportedCargoPerCar))
+                | (LicenseManager.Instance.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count)?.v1 ?? JobLicenses.Basic);
             return GenerateShuntingLoadChainController(
                 startingStation,
                 carsPerStartingTrack,

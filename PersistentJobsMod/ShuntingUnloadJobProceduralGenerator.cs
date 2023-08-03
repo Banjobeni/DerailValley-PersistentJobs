@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using DV;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 
 namespace PersistentJobsMod {
@@ -21,17 +22,17 @@ namespace PersistentJobsMod {
 
             if (forceLicenseReqs) {
                 Debug.Log("[PersistentJobs] unload: forcing license requirements");
-                if (!LicenseManager.IsJobLicenseAcquired(JobLicenses.Shunting)) {
+                if (!LicenseManager.Instance.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
                     Debug.LogError("[PersistentJobs] unload: Trying to generate a ShuntingUnload job with " +
                         "forceLicenseReqs=true should never happen if player doesn't have Shunting license!");
                     return null;
                 }
                 availableCargoGroups
                     = (from cg in availableCargoGroups
-                        where LicenseManager.IsLicensedForJob(cg.CargoRequiredLicenses)
+                        where LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))
                         select cg).ToList();
                 countTrainCars
-                    = Math.Min(countTrainCars, LicenseManager.GetMaxNumberOfCarsPerJobWithAcquiredJobLicenses());
+                    = Math.Min(countTrainCars, LicenseManager.Instance.GetMaxNumberOfCarsPerJobWithAcquiredJobLicenses());
             }
             if (availableCargoGroups.Count == 0) {
                 Debug.LogWarning("[PersistentJobs] unload: no available cargo groups");
@@ -44,20 +45,22 @@ namespace PersistentJobsMod {
             Debug.Log("[PersistentJobs] unload: choosing cargo & trainCar types");
             List<CargoType> availableCargoTypes = chosenCargoGroup.cargoTypes;
             List<CargoType> orderedCargoTypes = new List<CargoType>();
-            List<TrainCarType> orderedTrainCarTypes = new List<TrainCarType>();
+            List<TrainCarLivery> orderedTrainCarLiveries = new List<TrainCarLivery>();
             for (int i = 0; i < countTrainCars; i++) {
                 CargoType chosenCargoType = Utilities.GetRandomFromEnumerable(availableCargoTypes, rng);
-                List<CargoContainerType> availableContainers
-                    = CargoTypes.GetCarContainerTypesThatSupportCargoType(chosenCargoType);
-                CargoContainerType chosenContainerType = Utilities.GetRandomFromEnumerable(availableContainers, rng);
-                List<TrainCarType> availableTrainCarTypes
-                    = CargoTypes.GetTrainCarTypesThatAreSpecificContainerType(chosenContainerType);
-                TrainCarType chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
+                var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[chosenCargoType.ToV2()];
+                TrainCarType_v2 chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
+                var chosenTrainCarLivery = Utilities.GetRandomFromEnumerable(chosenTrainCarType.liveries, rng);
+                //List<CargoContainerType> availableContainers
+                //    = CargoTypes.GetCarContainerTypesThatSupportCargoType(chosenCargoType);
+                //CargoContainerType chosenContainerType = Utilities.GetRandomFromEnumerable(availableContainers, rng);
+                //List<TrainCarType> availableTrainCarTypes
+                //    = CargoTypes.GetTrainCarTypesThatAreSpecificContainerType(chosenContainerType);
+                //TrainCarType chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
                 orderedCargoTypes.Add(chosenCargoType);
-                orderedTrainCarTypes.Add(chosenTrainCarType);
+                orderedTrainCarLiveries.Add(chosenTrainCarLivery);
             }
-            float approxTrainLength = yto.GetTotalCarTypesLength(orderedTrainCarTypes)
-                + yto.GetSeparationLengthBetweenCars(countTrainCars);
+            float approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(orderedTrainCarLiveries, true);
 
             // choose starting track
             Debug.Log("[PersistentJobs] unload: choosing starting track");
@@ -77,9 +80,12 @@ namespace PersistentJobsMod {
             // spawn trainCars
             Debug.Log("[PersistentJobs] unload: spawning trainCars");
             RailTrack railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
-            List<TrainCar> orderedTrainCars = CarSpawner.SpawnCarTypesOnTrack(
-                orderedTrainCarTypes,
+            var carOrientations = Enumerable.Range(0, orderedTrainCarLiveries.Count).Select(_ => rng.Next(2) > 0).ToList();
+            List<TrainCar> orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrack(
+                orderedTrainCarLiveries,
+                carOrientations,
                 railTrack,
+                true,
                 true,
                 0.0,
                 false,
@@ -116,12 +122,7 @@ namespace PersistentJobsMod {
             bool forceCorrectCargoStateOnCars = false) {
             Debug.Log("[PersistentJobs] unload: generating with pre-spawned cars");
             YardTracksOrganizer yto = YardTracksOrganizer.Instance;
-            HashSet<CargoContainerType> carContainerTypes = new HashSet<CargoContainerType>();
-            foreach (TrainCar trainCar in trainCars) {
-                carContainerTypes.Add(CargoTypes.CarTypeToContainerType[trainCar.carType]);
-            }
-            float approxTrainLength = yto.GetTotalTrainCarsLength(trainCars)
-                + yto.GetSeparationLengthBetweenCars(trainCars.Count);
+            float approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
 
             // choose warehouse machine
             Debug.Log("[PersistentJobs] unload: choosing warehouse machine");
@@ -201,9 +202,9 @@ namespace PersistentJobsMod {
                 out bonusTimeLimit,
                 out initialWage
             );
-            JobLicenses requiredLicenses = LicenseManager.GetRequiredLicensesForJobType(JobType.ShuntingUnload)
-                | LicenseManager.GetRequiredLicensesForCargoTypes(transportedCargoPerCar)
-                | LicenseManager.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count);
+            JobLicenses requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.ShuntingUnload))
+                | JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForCargoTypes(transportedCargoPerCar))
+                | (LicenseManager.Instance.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count)?.v1 ?? JobLicenses.Basic);
             return GenerateShuntingUnloadChainController(
                 startingStation,
                 startingTrack,

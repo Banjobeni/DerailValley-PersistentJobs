@@ -104,11 +104,7 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>mkdir "$(DVInstallPath)Mods\$(SolutionName)"
-copy $(TargetPath) "$(DVInstallPath)Mods\$(SolutionName)\"
-copy $(SolutionDir)Info.json "$(DVInstallPath)Mods\$(SolutionName)\"
-if $(Configuration) == Release (
-  powershell Compress-Archive -DestinationPath '$(SolutionDir)$(SolutionName).zip' -Path '"$(DVInstallPath)Mods\$(SolutionName)\' -Force
-)</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>
