@@ -7,9 +7,9 @@ namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
     [HarmonyPatch(typeof(CarsSaveManager), "Load")]
     class SaveGameManager_Load_Patch {
-        static void Postfix(SaveGameManager __instance) {
+        static void Postfix() {
             try {
-                JObject saveData = __instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);
+                JObject saveData = SaveGameManager.Instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);
 
                 if (saveData == null) {
                     Main.modEntry.Logger.Log("Not loading save data: primary object is null.");

@@ -32,7 +32,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                             jobChainController.currentJobInChain.ID));
                     } else {
                         Main.overrideTrackReservation = true;
-                        Traverse.Create(jobChainController).Method("ReserveRequiredTracks", new Type[] { }).GetValue();
+                        Traverse.Create(jobChainController).Method("ReserveRequiredTracks", new[] { typeof(bool) }).GetValue(true);
                         Main.overrideTrackReservation = false;
                     }
                 }
