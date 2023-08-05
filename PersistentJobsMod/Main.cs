@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
-using Harmony12;
 using UnityEngine;
 using UnityModManagerNet;
 using DV.Utils;
+using HarmonyLib;
 
 namespace PersistentJobsMod {
     static class Main {
@@ -30,7 +30,7 @@ namespace PersistentJobsMod {
         static void Load(UnityModManager.ModEntry modEntry) {
             Main.modEntry = modEntry;
 
-            var harmony = HarmonyInstance.Create(modEntry.Info.Id);
+            var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             ////paxEntry = UnityModManager.FindMod("PassengerJobs");

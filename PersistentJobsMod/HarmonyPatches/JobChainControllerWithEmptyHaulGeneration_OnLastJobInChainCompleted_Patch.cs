@@ -7,7 +7,7 @@ using DV.ServicePenalty;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
-using Harmony12;
+using HarmonyLib;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {

@@ -4,7 +4,7 @@ using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
-using Harmony12;
+using HarmonyLib;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {

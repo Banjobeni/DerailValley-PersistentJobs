@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Harmony12;
+using HarmonyLib;
 using Newtonsoft.Json.Linq;
 
 namespace PersistentJobsMod.HarmonyPatches {

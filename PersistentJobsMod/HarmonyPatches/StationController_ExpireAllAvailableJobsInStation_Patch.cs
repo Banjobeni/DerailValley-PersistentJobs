@@ -1,4 +1,4 @@
-﻿using Harmony12;
+﻿using HarmonyLib;
 
 namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>prevents jobs from expiring due to the player's distance from the station</summary>

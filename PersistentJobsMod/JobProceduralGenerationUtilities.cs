@@ -5,7 +5,7 @@ using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
-using Harmony12;
+using HarmonyLib;
 
 namespace PersistentJobsMod {
     class JobProceduralGenerationUtilities {

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using DV;
 using DV.Damage;
-using Harmony12;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ServicePenalty;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
+using HarmonyLib;
 
 namespace PersistentJobsMod {
     class Utilities {

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Harmony12;
+using HarmonyLib;
 
 namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>expands the distance at which the job generation trigger is rearmed</summary>

@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Harmony12;
+using HarmonyLib;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {

@@ -1,4 +1,4 @@
-﻿using Harmony12;
+﻿using HarmonyLib;
 
 namespace PersistentJobsMod.HarmonyPatches {
     [HarmonyPatch(typeof(StationProceduralJobsController), "TryToGenerateJobs")]
