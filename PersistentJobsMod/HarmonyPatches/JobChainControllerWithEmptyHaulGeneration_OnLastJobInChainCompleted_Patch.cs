@@ -23,7 +23,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             Job lastJobInChain) {
             Debug.Log("[PersistentJobs] last job chain empty haul gen");
             try {
-                StaticJobDefinition lastJobDef = ___jobChain[___jobChain.Count - 1];
+                var lastJobDef = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDef.job != lastJobInChain) {
                     Debug.LogError(string.Format(
                         "[PersistentJobs] lastJobInChain ({0}) does not match lastJobDef.job ({1})",
@@ -31,18 +31,18 @@ namespace PersistentJobsMod.HarmonyPatches {
                         lastJobDef.job.ID));
                 } else if (lastJobInChain.jobType == JobType.ShuntingUnload) {
                     Debug.Log("[PersistentJobs] checking static definition type");
-                    StaticShuntingUnloadJobDefinition unloadJobDef = lastJobDef as StaticShuntingUnloadJobDefinition;
+                    var unloadJobDef = lastJobDef as StaticShuntingUnloadJobDefinition;
                     if (unloadJobDef != null) {
-                        StationController station = SingletonBehaviour<LogicController>.Instance
+                        var station = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[lastJobInChain.chainData.chainDestinationYardId];
-                        List<CargoGroup> availableCargoGroups = station.proceduralJobsRuleset.outputCargoGroups;
+                        var availableCargoGroups = station.proceduralJobsRuleset.outputCargoGroups;
 
                         Debug.Log("[PersistentJobs] diverting trainCars");
-                        int countCarsDiverted = 0;
+                        var countCarsDiverted = 0;
 
                         // if a trainCar set can be reused at the current station, keep them there
-                        for (int i = unloadJobDef.carsPerDestinationTrack.Count - 1; i >= 0; i--) {
-                            CarsPerTrack cpt = unloadJobDef.carsPerDestinationTrack[i];
+                        for (var i = unloadJobDef.carsPerDestinationTrack.Count - 1; i >= 0; i--) {
+                            var cpt = unloadJobDef.carsPerDestinationTrack[i];
 
                             // check if there is any cargoGroup that satisfies all the cars
                             if (availableCargoGroups.Any(
@@ -53,8 +53,8 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 // registering the cars as jobless & removing them from carsPerDestinationTrack
                                 // prevents base method from generating an EmptyHaul job for them
                                 // they will be candidates for new jobs once the player leaves the area
-                                List<TrainCar> tcsToDivert = new List<TrainCar>();
-                                foreach (Car c in cpt.cars) {
+                                var tcsToDivert = new List<TrainCar>();
+                                foreach (var c in cpt.cars) {
                                     tcsToDivert.Add(SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c]);
                                     tcsToDivert[tcsToDivert.Count - 1].UpdateJobIdOnCarPlates(string.Empty);
                                 }
@@ -69,15 +69,15 @@ namespace PersistentJobsMod.HarmonyPatches {
                             "StaticShuntingUnloadJobDefinition. EmptyHaul jobs won't be generated.");
                     }
                 } else if (lastJobInChain.jobType == JobType.ShuntingLoad) {
-                    StaticShuntingLoadJobDefinition loadJobDef = lastJobDef as StaticShuntingLoadJobDefinition;
+                    var loadJobDef = lastJobDef as StaticShuntingLoadJobDefinition;
                     if (loadJobDef != null) {
-                        StationController startingStation = SingletonBehaviour<LogicController>.Instance
+                        var startingStation = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[loadJobDef.logicStation.ID];
-                        StationController destStation = SingletonBehaviour<LogicController>.Instance
+                        var destStation = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[loadJobDef.chainData.chainDestinationYardId];
-                        Track startingTrack = loadJobDef.destinationTrack;
-                        List<TrainCar> trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
-                        System.Random rng = new System.Random(Environment.TickCount);
+                        var startingTrack = loadJobDef.destinationTrack;
+                        var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
+                        var rng = new System.Random(Environment.TickCount);
                         JobChainController jobChainController
                             = TransportJobProceduralGenerator.GenerateTransportJobWithExistingCars(
                                 startingStation,
@@ -89,7 +89,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 rng
                             );
                         if (jobChainController != null) {
-                            foreach (TrainCar tc in jobChainController.trainCarsForJobChain) {
+                            foreach (var tc in jobChainController.trainCarsForJobChain) {
                                 __instance.trainCarsForJobChain.Remove(tc);
                             }
                             jobChainController.FinalizeSetupAndGenerateFirstJob();
@@ -105,15 +105,15 @@ namespace PersistentJobsMod.HarmonyPatches {
                         );
                     }
                 } else if (lastJobInChain.jobType == JobType.Transport) {
-                    StaticTransportJobDefinition loadJobDef = lastJobDef as StaticTransportJobDefinition;
+                    var loadJobDef = lastJobDef as StaticTransportJobDefinition;
                     if (loadJobDef != null) {
-                        StationController startingStation = SingletonBehaviour<LogicController>.Instance
+                        var startingStation = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[loadJobDef.logicStation.ID];
-                        StationController destStation = SingletonBehaviour<LogicController>.Instance
+                        var destStation = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[loadJobDef.chainData.chainDestinationYardId];
-                        Track startingTrack = loadJobDef.destinationTrack;
-                        List<TrainCar> trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
-                        System.Random rng = new System.Random(Environment.TickCount);
+                        var startingTrack = loadJobDef.destinationTrack;
+                        var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
+                        var rng = new System.Random(Environment.TickCount);
                         JobChainController jobChainController
                             = ShuntingUnloadJobProceduralGenerator.GenerateShuntingUnloadJobWithExistingCars(
                                 startingStation,
@@ -125,7 +125,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 rng
                             );
                         if (jobChainController != null) {
-                            foreach (TrainCar tc in jobChainController.trainCarsForJobChain) {
+                            foreach (var tc in jobChainController.trainCarsForJobChain) {
                                 __instance.trainCarsForJobChain.Remove(tc);
                             }
                             jobChainController.FinalizeSetupAndGenerateFirstJob();

@@ -28,13 +28,13 @@ namespace PersistentJobsMod {
 
             trainCar.playerSpawnedCar = false;
 
-            CarStateSave carStateSave = Traverse.Create(trainCar).Field("carStateSave").GetValue<CarStateSave>();
+            var carStateSave = Traverse.Create(trainCar).Field("carStateSave").GetValue<CarStateSave>();
             if (Traverse.Create(carStateSave).Field("debtTrackerCar").GetValue<DebtTrackerCar>() != null) return;
 
-            TrainCarPlatesController trainPlatesCtrl
+            var trainPlatesCtrl
                 = Traverse.Create(trainCar).Field("trainPlatesCtrl").GetValue<TrainCarPlatesController>();
 
-            CarDamageModel carDamage = Traverse.Create(trainCar).Field("carDmg").GetValue<CarDamageModel>();
+            var carDamage = Traverse.Create(trainCar).Field("carDmg").GetValue<CarDamageModel>();
             if (carDamage == null) {
                 Debug.Log(string.Format(
                     "[PersistentJobs] Creating CarDamageModel for TrainCar[{0}]...",
@@ -50,7 +50,7 @@ namespace PersistentJobsMod {
                     .GetValue(carHealthPercentage);
             }
 
-            CargoDamageModel cargoDamage = trainCar.CargoDamage;
+            var cargoDamage = trainCar.CargoDamage;
             if (cargoDamage == null && !trainCar.IsLoco) {
                 Debug.Log(string.Format(
                     "[PersistentJobs] Creating CargoDamageModel for TrainCar[{0}]...",
@@ -66,7 +66,7 @@ namespace PersistentJobsMod {
                     .GetValue(cargoHealthPercentage);
             }
 
-            CarDebtController carDebtController
+            var carDebtController
                 = Traverse.Create(trainCar).Field("carDebtController").GetValue<CarDebtController>();
             carDebtController.SetDebtTracker(carDamage, cargoDamage);
 
@@ -81,9 +81,9 @@ namespace PersistentJobsMod {
             if (logicCars == null || logicCars.Count == 0) {
                 return null;
             }
-            List<TrainCar> list = new List<TrainCar>();
-            for (int i = 0; i < logicCars.Count; i++) {
-                for (int j = 0; j < context.trainCarsForJobChain.Count; j++) {
+            var list = new List<TrainCar>();
+            for (var i = 0; i < logicCars.Count; i++) {
+                for (var j = 0; j < context.trainCarsForJobChain.Count; j++) {
                     if (context.trainCarsForJobChain[j].logicCar == logicCars[i]) {
                         list.Add(context.trainCarsForJobChain[j]);
                         break;
@@ -104,7 +104,7 @@ namespace PersistentJobsMod {
             List<CargoType> transportedCargoTypes,
             out float bonusTimeLimit,
             out float initialWage) {
-            float distanceBetweenStations
+            var distanceBetweenStations
                 = JobPaymentCalculator.GetDistanceBetweenStations(startingStation, destStation);
             bonusTimeLimit = JobPaymentCalculator.CalculateHaulBonusTimeLimit(distanceBetweenStations, false);
             initialWage = JobPaymentCalculator.CalculateJobPayment(
@@ -121,7 +121,7 @@ namespace PersistentJobsMod {
             out float bonusTimeLimit,
             out float initialWage) {
             // scalar value 500 taken from StationProceduralJobGenerator
-            float distance = (float)numberOfTracks * 500f;
+            var distance = (float)numberOfTracks * 500f;
             bonusTimeLimit = JobPaymentCalculator.CalculateShuntingBonusTimeLimit(numberOfTracks);
             initialWage = JobPaymentCalculator.CalculateJobPayment(
                 jobType,
@@ -136,16 +136,16 @@ namespace PersistentJobsMod {
             if (orderedCarTypes == null) {
                 return null;
             }
-            Dictionary<TrainCarLivery, int> trainCarTypeToCount = new Dictionary<TrainCarLivery, int>();
-            foreach (TrainCarType trainCarType in orderedCarTypes) {
+            var trainCarTypeToCount = new Dictionary<TrainCarLivery, int>();
+            foreach (var trainCarType in orderedCarTypes) {
                 var trainCarLivery = trainCarType.ToV2();
                 if (!trainCarTypeToCount.ContainsKey(trainCarLivery)) {
                     trainCarTypeToCount[trainCarLivery] = 0;
                 }
                 trainCarTypeToCount[trainCarLivery] += 1;
             }
-            Dictionary<CargoType, int> cargoTypeToCount = new Dictionary<CargoType, int>();
-            foreach (CargoType cargoType in orderedCargoTypes) {
+            var cargoTypeToCount = new Dictionary<CargoType, int>();
+            foreach (var cargoType in orderedCargoTypes) {
                 if (!cargoTypeToCount.ContainsKey(cargoType)) {
                     cargoTypeToCount[cargoType] = 0;
                 }
@@ -264,14 +264,14 @@ namespace PersistentJobsMod {
 
         // taken from StationProcedurationJobGenerator.GetMultipleRandomsFromList
         public static List<T> GetMultipleRandomsFromList<T>(List<T> list, int countToGet, System.Random rng) {
-            List<T> list2 = new List<T>(list);
+            var list2 = new List<T>(list);
             if (countToGet > list2.Count) {
                 Debug.LogError("Trying to get more random items from list than it contains. Returning all items from list.");
                 return list2;
             }
-            List<T> list3 = new List<T>();
-            for (int i = 0; i < countToGet; i++) {
-                int index = rng.Next(0, list2.Count);
+            var list3 = new List<T>();
+            for (var i = 0; i < countToGet; i++) {
+                var index = rng.Next(0, list2.Count);
                 list3.Add(list2[index]);
                 list2.RemoveAt(index);
             }
@@ -280,7 +280,7 @@ namespace PersistentJobsMod {
 
         public static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength) {
             Debug.Log("[PersistentJobs] getting random track with free space");
-            List<Track> tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);
+            var tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);
             Debug.Log(string.Format(
                 "[PersistentJobs] {0}/{1} tracks have at least {2}m available",
                 tracksWithFreeSpace.Count,

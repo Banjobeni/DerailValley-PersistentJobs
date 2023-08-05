@@ -42,7 +42,7 @@ namespace PersistentJobsMod {
         }
 
         static bool OnToggle(UnityModManager.ModEntry modEntry, bool isTogglingOn) {
-            bool isTogglingOff = !isTogglingOn;
+            var isTogglingOff = !isTogglingOn;
 
             if (SingletonBehaviour<UnusedTrainCarDeleter>.Instance == null) {
                 // delay initialization

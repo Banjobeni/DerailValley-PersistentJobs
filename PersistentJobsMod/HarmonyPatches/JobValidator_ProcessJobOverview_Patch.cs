@@ -18,9 +18,9 @@ namespace PersistentJobsMod.HarmonyPatches {
                     return true;
                 }
 
-                Job job = jobOverview.job;
-                StationController[] allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
-                StationController stationController = allStations.FirstOrDefault(
+                var job = jobOverview.job;
+                var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
+                var stationController = allStations.FirstOrDefault(
                     (StationController st) => st.logicStation.availableJobs.Contains(job)
                 );
 
@@ -30,12 +30,12 @@ namespace PersistentJobsMod.HarmonyPatches {
 
                 // for shunting (un)load jobs, require cars to not already be on the warehouse track
                 if (job.jobType == JobType.ShuntingLoad || job.jobType == JobType.ShuntingUnload) {
-                    WarehouseTask wt = job.tasks.Aggregate(
+                    var wt = job.tasks.Aggregate(
                         null as Task,
                         (found, outerTask) => found == null
                             ? Utilities.TaskFindDFS(outerTask, innerTask => innerTask is WarehouseTask)
                             : found) as WarehouseTask;
-                    WarehouseMachine wm = wt != null ? wt.warehouseMachine : null;
+                    var wm = wt != null ? wt.warehouseMachine : null;
                     if (wm != null && job.tasks.Any(
                             outerTask => Utilities.TaskAnyDFS(
                                 outerTask,
@@ -47,7 +47,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
                 // expire the job if all associated cars are outside the job destruction range
                 // the base method's logic will handle generating the expired report
-                StationJobGenerationRange stationRange = Traverse.Create(stationController)
+                var stationRange = Traverse.Create(stationController)
                     .Field("stationRange")
                     .GetValue<StationJobGenerationRange>();
                 if (!job.tasks.Any(
@@ -59,11 +59,11 @@ namespace PersistentJobsMod.HarmonyPatches {
                 }
 
                 // reserve space for this job
-                StationProceduralJobsController[] stationJobControllers
+                var stationJobControllers
                     = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>();
                 JobChainController jobChainController = null;
-                for (int i = 0; i < stationJobControllers.Length && jobChainController == null; i++) {
-                    foreach (JobChainController jcc in stationJobControllers[i].GetCurrentJobChains()) {
+                for (var i = 0; i < stationJobControllers.Length && jobChainController == null; i++) {
+                    foreach (var jcc in stationJobControllers[i].GetCurrentJobChains()) {
                         if (jcc.currentJobInChain == job) {
                             jobChainController = jcc;
                             break;
@@ -100,13 +100,13 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static void ReplaceShuntingLoadDestination(Job job) {
             Debug.Log("[PersistentJobs] attempting to replace destination track with warehouse track...");
-            SequentialTasks sequence = job.tasks[0] as SequentialTasks;
+            var sequence = job.tasks[0] as SequentialTasks;
             if (sequence == null) {
                 Debug.LogError("    couldn't find sequential task!");
                 return;
             }
 
-            LinkedList<Task> tasks = Traverse.Create(sequence)
+            var tasks = Traverse.Create(sequence)
                 .Field("tasks")
                 .GetValue<LinkedList<Task>>();
 
@@ -115,7 +115,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 return;
             }
 
-            LinkedListNode<Task> cursor = tasks.First;
+            var cursor = tasks.First;
 
             if (cursor == null) {
                 Debug.LogError("    first task in sequence was null!");
@@ -136,10 +136,10 @@ namespace PersistentJobsMod.HarmonyPatches {
 
             // cursor points at the parallel task of warehouse tasks
             // replace the destination track of all following tasks with the warehouse track
-            WarehouseTask wt = (Utilities.TaskFindDFS(
+            var wt = (Utilities.TaskFindDFS(
                 cursor.Value,
                 t => t.InstanceTaskType == TaskType.Warehouse) as WarehouseTask);
-            WarehouseMachine wm = wt != null ? wt.warehouseMachine : null;
+            var wm = wt != null ? wt.warehouseMachine : null;
 
             if (wm == null) {
                 Debug.LogError("    couldn't find warehouse machine!");
@@ -157,10 +157,10 @@ namespace PersistentJobsMod.HarmonyPatches {
         }
 
         private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
-            List<Car> cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
-            Car carInRangeOfStation = cars.FirstOrDefault((Car c) => {
-                TrainCar trainCar = SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c];
-                float distance =
+            var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
+            var carInRangeOfStation = cars.FirstOrDefault((Car c) => {
+                var trainCar = SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c];
+                var distance =
                     (trainCar.transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude;
                 return trainCar != null && distance <= Main.initialDistanceRegular;
             });
@@ -168,30 +168,30 @@ namespace PersistentJobsMod.HarmonyPatches {
         }
 
         private static bool IsAnyTaskCarOnTrack(Task task, Track track) {
-            List<Car> cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
+            var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
             return cars.Any(car => car.CurrentTrack == track);
         }
 
         private static void ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {
-            List<StaticJobDefinition> jobChain = Traverse.Create(jobChainController)
+            var jobChain = Traverse.Create(jobChainController)
                 .Field("jobChain")
                 .GetValue<List<StaticJobDefinition>>();
-            Dictionary<StaticJobDefinition, List<TrackReservation>> jobDefToCurrentlyReservedTracks
+            var jobDefToCurrentlyReservedTracks
                 = Traverse.Create(jobChainController)
                     .Field("jobDefToCurrentlyReservedTracks")
                     .GetValue<Dictionary<StaticJobDefinition, List<TrackReservation>>>();
-            for (int i = 0; i < jobChain.Count; i++) {
-                StaticJobDefinition key = jobChain[i];
+            for (var i = 0; i < jobChain.Count; i++) {
+                var key = jobChain[i];
                 if (jobDefToCurrentlyReservedTracks.ContainsKey(key)) {
-                    List<TrackReservation> trackReservations = jobDefToCurrentlyReservedTracks[key];
-                    for (int j = 0; j < trackReservations.Count; j++) {
-                        Track reservedTrack = trackReservations[j].track;
-                        float reservedLength = trackReservations[j].reservedLength;
+                    var trackReservations = jobDefToCurrentlyReservedTracks[key];
+                    for (var j = 0; j < trackReservations.Count; j++) {
+                        var reservedTrack = trackReservations[j].track;
+                        var reservedLength = trackReservations[j].reservedLength;
                         if (YardTracksOrganizer.Instance.GetFreeSpaceOnTrack(reservedTrack) >= reservedLength) {
                             YardTracksOrganizer.Instance.ReserveSpace(reservedTrack, reservedLength, false);
                         } else {
                             // not enough space to reserve; find a different track with enough space & update job data
-                            Track replacementTrack = GetReplacementTrack(reservedTrack, reservedLength);
+                            var replacementTrack = GetReplacementTrack(reservedTrack, reservedLength);
                             if (replacementTrack == null) {
                                 Debug.LogWarning(string.Format(
                                     "[PersistentJobs] Can't find track with enough free space for Job[{0}]. Skipping track reservation!",
@@ -219,7 +219,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                     .ToList();
                             } else {
                                 // attempt to replace track via Traverse for unknown job types
-                                bool replacedDestination = false;
+                                var replacedDestination = false;
                                 try {
                                     var destinationTrackField = Traverse.Create(key).Field("destinationTrack");
                                     var carsPerDestinationTrackField = Traverse.Create(key).Field("carsPerDestinationTrack");
@@ -245,10 +245,10 @@ namespace PersistentJobsMod.HarmonyPatches {
                             }
 
                             // update task data
-                            foreach (Task task in key.job.tasks) {
+                            foreach (var task in key.job.tasks) {
                                 Utilities.TaskDoDFS(task, t => {
                                     if (t is TransportTask) {
-                                        Traverse destinationTrack = Traverse.Create(t).Field("destinationTrack");
+                                        var destinationTrack = Traverse.Create(t).Field("destinationTrack");
                                         if (destinationTrack.GetValue<Track>() == reservedTrack) {
                                             destinationTrack.SetValue(replacementTrack);
                                         }
@@ -272,13 +272,13 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static Track GetReplacementTrack(Track oldTrack, float trainLength) {
             // find station controller for track
-            StationController[] allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
-            StationController stationController
+            var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
+            var stationController
                 = allStations.ToList().Find(sc => sc.stationInfo.YardID == oldTrack.ID.yardId);
 
             // setup preferred tracks
             List<Track>[] preferredTracks;
-            Yard stationYard = stationController.logicStation.yard;
+            var stationYard = stationController.logicStation.yard;
             if (stationYard.StorageTracks.Contains(oldTrack)) {
                 // shunting unload, logistical haul
                 preferredTracks = new List<Track>[] {
@@ -310,9 +310,9 @@ namespace PersistentJobsMod.HarmonyPatches {
 
             // find track with enough free space
             Track targetTrack = null;
-            YardTracksOrganizer yto = YardTracksOrganizer.Instance;
-            for (int p = 0; targetTrack == null && p < preferredTracks.Length; p++) {
-                List<Track> trackGroup = preferredTracks[p];
+            var yto = YardTracksOrganizer.Instance;
+            for (var p = 0; targetTrack == null && p < preferredTracks.Length; p++) {
+                var trackGroup = preferredTracks[p];
                 targetTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, trackGroup, trainLength);
             }
 

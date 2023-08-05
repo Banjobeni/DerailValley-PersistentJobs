@@ -14,9 +14,9 @@ namespace PersistentJobsMod {
             bool forceLicenseReqs,
             System.Random rng) {
             Debug.Log("[PersistentJobs] transport: generating with car spawning");
-            YardTracksOrganizer yto = YardTracksOrganizer.Instance;
-            List<CargoGroup> availableCargoGroups = startingStation.proceduralJobsRuleset.outputCargoGroups;
-            int countTrainCars = rng.Next(
+            var yto = YardTracksOrganizer.Instance;
+            var availableCargoGroups = startingStation.proceduralJobsRuleset.outputCargoGroups;
+            var countTrainCars = rng.Next(
                 startingStation.proceduralJobsRuleset.minCarsPerJob,
                 startingStation.proceduralJobsRuleset.maxCarsPerJob);
 
@@ -38,17 +38,17 @@ namespace PersistentJobsMod {
                 return null;
             }
 
-            CargoGroup chosenCargoGroup = Utilities.GetRandomFromEnumerable(availableCargoGroups, rng);
+            var chosenCargoGroup = Utilities.GetRandomFromEnumerable(availableCargoGroups, rng);
 
             // choose cargo & trainCar types
             Debug.Log("[PersistentJobs] transport: choosing cargo & trainCar types");
-            List<CargoType> availableCargoTypes = chosenCargoGroup.cargoTypes;
-            List<CargoType> orderedCargoTypes = new List<CargoType>();
-            List<TrainCarLivery> orderedTrainCarLiveries = new List<TrainCarLivery>();
-            for (int i = 0; i < countTrainCars; i++) {
-                CargoType chosenCargoType = Utilities.GetRandomFromEnumerable(availableCargoTypes, rng);
+            var availableCargoTypes = chosenCargoGroup.cargoTypes;
+            var orderedCargoTypes = new List<CargoType>();
+            var orderedTrainCarLiveries = new List<TrainCarLivery>();
+            for (var i = 0; i < countTrainCars; i++) {
+                var chosenCargoType = Utilities.GetRandomFromEnumerable(availableCargoTypes, rng);
                 var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[chosenCargoType.ToV2()];
-                TrainCarType_v2 chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
+                var chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
                 var chosenTrainCarLivery = Utilities.GetRandomFromEnumerable(chosenTrainCarType.liveries, rng);
                 //List<CargoContainerType> availableContainers
                 //    = CargoTypes.GetCarContainerTypesThatSupportCargoType(chosenCargoType);
@@ -59,11 +59,11 @@ namespace PersistentJobsMod {
                 orderedCargoTypes.Add(chosenCargoType);
                 orderedTrainCarLiveries.Add(chosenTrainCarLivery);
             }
-            float approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(orderedTrainCarLiveries, true);
+            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(orderedTrainCarLiveries, true);
 
             // choose starting track
             Debug.Log("[PersistentJobs] transport: choosing starting track");
-            Track startingTrack
+            var startingTrack
                 = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength);
             if (startingTrack == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
@@ -72,7 +72,7 @@ namespace PersistentJobsMod {
 
             // choose random destination station that has at least 1 available track
             Debug.Log("[PersistentJobs] transport: choosing destination");
-            List<StationController> availableDestinations = new List<StationController>(chosenCargoGroup.stations);
+            var availableDestinations = new List<StationController>(chosenCargoGroup.stations);
             StationController destStation = null;
             Track destinationTrack = null;
             while (availableDestinations.Count > 0 && destinationTrack == null) {
@@ -90,9 +90,9 @@ namespace PersistentJobsMod {
 
             // spawn trainCars
             Debug.Log("[PersistentJobs] transport: spawning trainCars");
-            RailTrack railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
+            var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
             var carOrientations = Enumerable.Range(0, orderedTrainCarLiveries.Count).Select(_ => rng.Next(2) > 0).ToList();
-            List<TrainCar> orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrack(
+            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrack(
                 orderedTrainCarLiveries,
                 carOrientations,
                 railTrack,
@@ -106,7 +106,7 @@ namespace PersistentJobsMod {
                 return null;
             }
 
-            JobChainControllerWithEmptyHaulGeneration jcc = GenerateTransportJobWithExistingCars(
+            var jcc = GenerateTransportJobWithExistingCars(
                 startingStation,
                 startingTrack,
                 destStation,
@@ -132,11 +132,11 @@ namespace PersistentJobsMod {
             System.Random rng,
             bool forceCorrectCargoStateOnCars = false) {
             Debug.Log("[PersistentJobs] transport: generating with pre-spawned cars");
-            YardTracksOrganizer yto = YardTracksOrganizer.Instance;
+            var yto = YardTracksOrganizer.Instance;
 
             Debug.Log("[PersistentJobs] transport: choosing destination track");
-            float approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
-            Track destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
+            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
                 yto,
                 yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks),
                 approxTrainLength);
@@ -156,7 +156,7 @@ namespace PersistentJobsMod {
                 ));
                 return null;
             }
-            List<TrainCarType> transportedCarTypes = (from tc in trainCars select tc.carType)
+            var transportedCarTypes = (from tc in trainCars select tc.carType)
                 .ToList<TrainCarType>();
 
             Debug.Log("[PersistentJobs] transport: calculating time/wage/licenses");
@@ -171,7 +171,7 @@ namespace PersistentJobsMod {
                 out bonusTimeLimit,
                 out initialWage
             );
-            JobLicenses requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.Transport))
+            var requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.Transport))
                 | JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForCargoTypes(transportedCargoPerCar))
                 | (LicenseManager.Instance.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count)?.v1 ?? JobLicenses.Basic);
             return TransportJobProceduralGenerator.GenerateTransportChainController(
@@ -207,22 +207,22 @@ namespace PersistentJobsMod {
                 startingStation.logicStation.ID,
                 destStation.logicStation.ID
             ));
-            GameObject gameObject = new GameObject(string.Format(
+            var gameObject = new GameObject(string.Format(
                 "ChainJob[{0}]: {1} - {2}",
                 JobType.Transport,
                 startingStation.logicStation.ID,
                 destStation.logicStation.ID
             ));
             gameObject.transform.SetParent(startingStation.transform);
-            JobChainControllerWithEmptyHaulGeneration jobChainController
+            var jobChainController
                 = new JobChainControllerWithEmptyHaulGeneration(gameObject);
-            StationsChainData chainData = new StationsChainData(
+            var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
                 destStation.stationInfo.YardID
             );
             jobChainController.trainCarsForJobChain = orderedTrainCars;
-            List<Car> orderedLogicCars = TrainCar.ExtractLogicCars(orderedTrainCars);
-            StaticTransportJobDefinition staticTransportJobDefinition
+            var orderedLogicCars = TrainCar.ExtractLogicCars(orderedTrainCars);
+            var staticTransportJobDefinition
                 = gameObject.AddComponent<StaticTransportJobDefinition>();
             staticTransportJobDefinition.PopulateBaseJobDefinition(
                 startingStation.logicStation,
@@ -244,15 +244,15 @@ namespace PersistentJobsMod {
         public static List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)>
             ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc,
                 System.Random rng) {
-            List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)> jobsToGenerate
+            var jobsToGenerate
                 = new List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)>();
 
-            foreach (StationController startingStation in cgsPerTcsPerSc.Keys) {
-                List<(List<TrainCar>, List<CargoGroup>)> cgsPerTcs = cgsPerTcsPerSc[startingStation];
+            foreach (var startingStation in cgsPerTcsPerSc.Keys) {
+                var cgsPerTcs = cgsPerTcsPerSc[startingStation];
 
-                foreach ((List<TrainCar> trainCars, List<CargoGroup> cargoGroups) in cgsPerTcs) {
-                    CargoGroup chosenCargoGroup = Utilities.GetRandomFromEnumerable(cargoGroups, rng);
-                    StationController destinationStation
+                foreach ((var trainCars, var cargoGroups) in cgsPerTcs) {
+                    var chosenCargoGroup = Utilities.GetRandomFromEnumerable(cargoGroups, rng);
+                    var destinationStation
                         = Utilities.GetRandomFromEnumerable(chosenCargoGroup.stations, rng);
 
                     // populate all the info; we'll generate the jobs later
@@ -273,8 +273,8 @@ namespace PersistentJobsMod {
             bool forceCorrectCargoStateOnCars = true) {
             return jobInfos.Select((definition) => {
                 // I miss having a spread operator :(
-                (StationController ss, Track st, StationController ds, _, _) = definition;
-                (_, _, _, List<TrainCar> tcs, List<CargoType> cts) = definition;
+                (var ss, var st, var ds, _, _) = definition;
+                (_, _, _, var tcs, var cts) = definition;
 
                 return (JobChainController)GenerateTransportJobWithExistingCars(
                     ss,

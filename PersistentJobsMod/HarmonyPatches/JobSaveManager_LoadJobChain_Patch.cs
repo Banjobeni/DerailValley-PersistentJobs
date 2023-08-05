@@ -11,11 +11,11 @@ namespace PersistentJobsMod.HarmonyPatches {
             try {
                 if (chainSaveData.jobTaken) {
                     // reserve space for this job
-                    StationProceduralJobsController[] stationJobControllers
+                    var stationJobControllers
                         = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>();
                     JobChainController jobChainController = null;
-                    for (int i = 0; i < stationJobControllers.Length && jobChainController == null; i++) {
-                        foreach (JobChainController jcc in stationJobControllers[i].GetCurrentJobChains()) {
+                    for (var i = 0; i < stationJobControllers.Length && jobChainController == null; i++) {
+                        foreach (var jcc in stationJobControllers[i].GetCurrentJobChains()) {
                             if (jcc.currentJobInChain.ID == chainSaveData.firstJobId) {
                                 jobChainController = jcc;
                                 break;

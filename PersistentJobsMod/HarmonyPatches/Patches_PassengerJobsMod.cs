@@ -13,16 +13,16 @@ namespace PersistentJobsMod.HarmonyPatches {
     static class PassengerJobGenerator_StartGenerationAsync_Patch {
         static bool Prefix(object __instance) {
             if (Main.modEntry.Active) {
-                StationController controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
-                string stationId = controller?.logicStation?.ID;
+                var controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
+                var stationId = controller?.logicStation?.ID;
                 return stationId == null || !Main.StationIdPassengerBlockList.Contains(controller.logicStation.ID);
             }
             return true;
         }
 
         static void Postfix(object __instance) {
-            StationController controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
-            string stationId = controller?.logicStation?.ID;
+            var controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
+            var stationId = controller?.logicStation?.ID;
             if (stationId != null && !Main.StationIdPassengerBlockList.Contains(stationId)) {
                 Main.StationIdPassengerBlockList.Add(stationId);
             }

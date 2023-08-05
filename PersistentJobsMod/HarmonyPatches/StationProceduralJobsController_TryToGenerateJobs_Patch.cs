@@ -11,7 +11,7 @@ namespace PersistentJobsMod.HarmonyPatches {
         }
 
         static void Postfix(StationProceduralJobsController __instance) {
-            string stationId = __instance.stationController.logicStation.ID;
+            var stationId = __instance.stationController.logicStation.ID;
             if (!Main.StationIdSpawnBlockList.Contains(stationId)) {
                 Main.StationIdSpawnBlockList.Add(stationId);
             }

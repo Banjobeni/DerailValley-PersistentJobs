@@ -9,14 +9,14 @@ namespace PersistentJobsMod.HarmonyPatches {
     class SaveGameManager_Load_Patch {
         static void Postfix() {
             try {
-                JObject saveData = SaveGameManager.Instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);
+                var saveData = SaveGameManager.Instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);
 
                 if (saveData == null) {
                     Main.modEntry.Logger.Log("Not loading save data: primary object is null.");
                     return;
                 }
 
-                JArray spawnBlockSaveData = (JArray)saveData[$"{SaveDataConstants.SAVE_DATA_SPAWN_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}"];
+                var spawnBlockSaveData = (JArray)saveData[$"{SaveDataConstants.SAVE_DATA_SPAWN_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}"];
                 if (spawnBlockSaveData == null) {
                     Main.modEntry.Logger.Log("Not loading spawn block list: data is null.");
                 } else {
@@ -24,7 +24,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     Main.modEntry.Logger.Log($"Loaded station spawn block list: [ {string.Join(", ", Main.StationIdSpawnBlockList)} ]");
                 }
 
-                JArray passengerBlockSaveData = (JArray)saveData[$"{SaveDataConstants.SAVE_DATA_PASSENGER_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}"];
+                var passengerBlockSaveData = (JArray)saveData[$"{SaveDataConstants.SAVE_DATA_PASSENGER_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}"];
                 if (passengerBlockSaveData == null) {
                     Main.modEntry.Logger.Log("Not loading passenger spawn block list: data is null.");
                 } else {

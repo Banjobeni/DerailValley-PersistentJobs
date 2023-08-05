@@ -3,15 +3,14 @@ using System.Linq;
 using System;
 using UnityEngine;
 using DV.Logic.Job;
-using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
 
 namespace PersistentJobsMod {
     class JobProceduralGenerationUtilities {
         public static Dictionary<Trainset, List<TrainCar>> GroupTrainCarsByTrainset(List<TrainCar> trainCars) {
-            Dictionary<Trainset, List<TrainCar>> trainCarsPerTrainSet = new Dictionary<Trainset, List<TrainCar>>();
-            foreach (TrainCar tc in trainCars) {
+            var trainCarsPerTrainSet = new Dictionary<Trainset, List<TrainCar>>();
+            foreach (var tc in trainCars) {
                 // TODO: to skip player spawned cars or to not?
                 if (tc != null) {
                     if (!trainCarsPerTrainSet.ContainsKey(tc.trainset)) {
@@ -28,22 +27,22 @@ namespace PersistentJobsMod {
             GroupTrainCarSetsByNearestStation(Dictionary<Trainset, List<TrainCar>> trainCarsPerTrainSet) {
             IEnumerable<StationController> stationControllers
                 = SingletonBehaviour<LogicController>.Instance.YardIdToStationController.Values;
-            Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc
+            var cgsPerTcsPerSc
                 = new Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>>();
-            float abandonmentThreshold = 1.2f * Main.DVJobDestroyDistanceRegular;
+            var abandonmentThreshold = 1.2f * Main.DVJobDestroyDistanceRegular;
             Debug.Log(string.Format(
                 "[PersistentJobs] station grouping: # of trainSets: {0}, # of stations: {1}",
                 trainCarsPerTrainSet.Values.Count,
                 stationControllers.Count()));
-            foreach (List<TrainCar> tcs in trainCarsPerTrainSet.Values) {
-                SortedList<float, StationController> stationsByDistance
+            foreach (var tcs in trainCarsPerTrainSet.Values) {
+                var stationsByDistance
                     = new SortedList<float, StationController>();
-                foreach (StationController sc in stationControllers) {
+                foreach (var sc in stationControllers) {
                     // since all trainCars in the trainset are coupled,
                     // use the position of the first one to approximate the position of the trainset
-                    Vector3 trainPosition = tcs[0].gameObject.transform.position;
-                    Vector3 stationPosition = sc.gameObject.transform.position;
-                    float distance = (trainPosition - stationPosition).sqrMagnitude;
+                    var trainPosition = tcs[0].gameObject.transform.position;
+                    var stationPosition = sc.gameObject.transform.position;
+                    var distance = (trainPosition - stationPosition).sqrMagnitude;
                     /*Debug.Log(string.Format(
                         "[PersistentJobs] station grouping: train position {0}, station position {1}, " +
                         "distance {2:F}, threshold {3:F}",
@@ -63,7 +62,7 @@ namespace PersistentJobsMod {
                 }
 
                 // the first station is the closest
-                KeyValuePair<float, StationController> closestStation = stationsByDistance.ElementAt(0);
+                var closestStation = stationsByDistance.ElementAt(0);
                 if (!cgsPerTcsPerSc.ContainsKey(closestStation.Value)) {
                     cgsPerTcsPerSc.Add(closestStation.Value, new List<(List<TrainCar>, List<CargoGroup>)>());
                 }
@@ -77,8 +76,8 @@ namespace PersistentJobsMod {
         }
 
         public static void PopulateCargoGroupsPerTrainCarSet(Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc) {
-            foreach (StationController sc in cgsPerTcsPerSc.Keys) {
-                foreach ((List<TrainCar>, List<CargoGroup>) cgsPerTcs in cgsPerTcsPerSc[sc]) {
+            foreach (var sc in cgsPerTcsPerSc.Keys) {
+                foreach (var cgsPerTcs in cgsPerTcsPerSc[sc]) {
                     if (cgsPerTcs.Item2.Count > 0) {
                         Debug.LogWarning(
                             "Unexpected CargoGroup data in PopulateCargoGroupsPerTrainCarSet! Proceding to overwrite."
@@ -86,9 +85,9 @@ namespace PersistentJobsMod {
                         cgsPerTcs.Item2.Clear();
                     }
 
-                    foreach (CargoGroup cg in sc.proceduralJobsRuleset.outputCargoGroups) {
+                    foreach (var cg in sc.proceduralJobsRuleset.outputCargoGroups) {
                         // ensure all trainCars will have at least one cargoType to haul
-                        IEnumerable<IEnumerable<CargoType>> outboundCargoTypesPerTrainCar
+                        var outboundCargoTypesPerTrainCar
                             = (from tc in cgsPerTcs.Item1
                                 select Utilities.GetCargoTypesForCarType(tc.carType).Intersect(cg.cargoTypes));
                         if (outboundCargoTypesPerTrainCar.All(cgs => cgs.Count() > 0)) {
@@ -100,13 +99,13 @@ namespace PersistentJobsMod {
         }
 
         public static Dictionary<StationController, List<List<TrainCar>>> ExtractEmptyHaulTrainSets(Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc) {
-            Dictionary<StationController, List<List<TrainCar>>> tcsPerSc
+            var tcsPerSc
                 = new Dictionary<StationController, List<List<TrainCar>>>();
 
-            foreach (StationController sc in cgsPerTcsPerSc.Keys) {
+            foreach (var sc in cgsPerTcsPerSc.Keys) {
                 // need to copy the list for iteration b/c we'll be editing the list during iteration
                 var cgsPerTcsCopy = new List<(List<TrainCar>, List<CargoGroup>)>(cgsPerTcsPerSc[sc]);
-                foreach ((List<TrainCar>, List<CargoGroup>) cgsPerTcs in cgsPerTcsCopy) {
+                foreach (var cgsPerTcs in cgsPerTcsCopy) {
                     // no cargo groups indicates a train car type that cannot carry cargo from its nearest station
                     // extract it to have an empty haul job generated for it
                     if (cgsPerTcs.Item2.Count == 0) {
@@ -124,8 +123,8 @@ namespace PersistentJobsMod {
         }
 
         public static void PopulateCargoGroupsPerLoadedTrainCarSet(Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc) {
-            foreach (StationController sc in cgsPerTcsPerSc.Keys) {
-                foreach ((List<TrainCar>, List<CargoGroup>) cgsPerTcs in cgsPerTcsPerSc[sc]) {
+            foreach (var sc in cgsPerTcsPerSc.Keys) {
+                foreach (var cgsPerTcs in cgsPerTcsPerSc[sc]) {
                     if (cgsPerTcs.Item2.Count > 0) {
                         Debug.LogWarning(
                             "Unexpected CargoGroup data in PopulateCargoGroupsPerTrainCarSet! Proceding to overwrite."
@@ -134,7 +133,7 @@ namespace PersistentJobsMod {
                     }
 
                     // transport jobs
-                    foreach (CargoGroup cg in sc.proceduralJobsRuleset.outputCargoGroups) {
+                    foreach (var cg in sc.proceduralJobsRuleset.outputCargoGroups) {
                         // ensure all trainCars are loaded with a cargoType from the cargoGroup
                         if (cgsPerTcs.Item1.All(tc => cg.cargoTypes.Contains(tc.logicCar.CurrentCargoTypeInCar))) {
                             cgsPerTcs.Item2.Add(cg);
@@ -148,7 +147,7 @@ namespace PersistentJobsMod {
                     }
 
                     // shunting unload jobs
-                    foreach (CargoGroup cg in sc.proceduralJobsRuleset.inputCargoGroups) {
+                    foreach (var cg in sc.proceduralJobsRuleset.inputCargoGroups) {
                         // ensure all trainCars are loaded with a cargoType from the cargoGroup
                         if (cgsPerTcs.Item1.All(tc => cg.cargoTypes.Contains(tc.logicCar.CurrentCargoTypeInCar))) {
                             cgsPerTcs.Item2.Add(cg);
@@ -164,7 +163,7 @@ namespace PersistentJobsMod {
             }
 
             var created = new List<JobChainController>();
-            foreach (StationController sc in tcsPerSc.Keys) {
+            foreach (var sc in tcsPerSc.Keys) {
                 var generator = sc.ProceduralJobsController.gameObject
                     .GetComponent(Main.paxEntry.Assembly.GetType("PassengerJobsMod.PassengerJobGenerator"));
                 var generatorTraverse = Traverse.Create(generator);
@@ -178,7 +177,7 @@ namespace PersistentJobsMod {
                     try {
                         var tcs = cgsPerTcs.Item1;
                         var track = tcs[0].logicCar.CurrentTrack;
-                        object tcsPerLt = AccessTools.Constructor(
+                        var tcsPerLt = AccessTools.Constructor(
                                 Main.paxEntry.Assembly.GetType("PassengerJobsMod.TrainCarsPerLogicTrack"),
                                 new Type[] { typeof(Track), typeof(IEnumerable<TrainCar>) })
                             .Invoke(new object[] { track, tcs });
