@@ -100,7 +100,7 @@ namespace PersistentJobsMod {
                 true,
                 0.0,
                 false,
-                true);
+                false);
             if (orderedTrainCars == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Failed to spawn trainCars!");
                 return null;

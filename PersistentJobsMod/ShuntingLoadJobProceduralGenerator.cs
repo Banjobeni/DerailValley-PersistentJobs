@@ -138,7 +138,7 @@ namespace PersistentJobsMod {
                     true,
                     0.0,
                     false,
-                    true);
+                    false);
                 if (spawnedCars == null) {
                     Debug.LogWarning("[PersistentJobs] load: Failed to spawn some trainCars!");
                     SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
