@@ -8,7 +8,6 @@ using HarmonyLib;
 namespace PersistentJobsMod {
     static class Main {
         public static UnityModManager.ModEntry modEntry;
-        public static UnityModManager.ModEntry paxEntry;
         public static bool overrideTrackReservation = false;
         public static float initialDistanceRegular = 0f;
         public static float initialDistanceAnyJobTaken = 0f;

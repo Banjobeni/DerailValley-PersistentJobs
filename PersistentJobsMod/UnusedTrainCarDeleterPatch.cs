@@ -48,9 +48,6 @@ namespace PersistentJobsMod {
                         // ------ BEGIN JOB GENERATION ------
                         // group trainCars by trainset
                         Debug.Log("[PersistentJobs] grouping trainCars by trainSet...");
-                        var paxTrainCars = trainCarsToDelete
-                            .Where(tc => Utilities.IsPassengerCar(tc.carType))
-                            .ToList();
                         var nonLocoOrPaxTrainCars = trainCarsToDelete
                             .Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery) && !Utilities.IsPassengerCar(tc.carType))
                             .ToList();
@@ -62,26 +59,22 @@ namespace PersistentJobsMod {
                             .Where(tc => tc.logicCar.CurrentCargoTypeInCar != CargoType.None
                                 && tc.logicCar.LoadedCargoAmount >= 0.001f)
                             .ToList();
-                        var paxTrainCarsPerTrainSet = JobProceduralGenerationUtilities.GroupTrainCarsByTrainset(paxTrainCars);
                         var emptyTrainCarsPerTrainSet = JobProceduralGenerationUtilities.GroupTrainCarsByTrainset(emptyFreightCars);
                         var loadedTrainCarsPerTrainSet = JobProceduralGenerationUtilities.GroupTrainCarsByTrainset(loadedFreightTrainCars);
                         Debug.Log(
                             $"[PersistentJobs]\n" +
-                            $"    found {paxTrainCarsPerTrainSet.Count} passenger trainSets,\n" +
-                            $"    {emptyTrainCarsPerTrainSet.Count} empty trainSets,\n" +
+                            $"    found {emptyTrainCarsPerTrainSet.Count} empty trainSets,\n" +
                             $"    and {loadedTrainCarsPerTrainSet.Count} loaded trainSets");
 
                         // group trainCars sets by nearest stationController
                         Debug.Log("[PersistentJobs] grouping trainSets by nearest station...");
-                        var paxTcsPerSc = JobProceduralGenerationUtilities.GroupTrainCarSetsByNearestStation(paxTrainCarsPerTrainSet);
                         var emptyCgsPerTcsPerSc
                             = JobProceduralGenerationUtilities.GroupTrainCarSetsByNearestStation(emptyTrainCarsPerTrainSet);
                         var loadedCgsPerTcsPerSc
                             = JobProceduralGenerationUtilities.GroupTrainCarSetsByNearestStation(loadedTrainCarsPerTrainSet);
                         Debug.Log(
                             $"[PersistentJobs]\n" +
-                            $"    found {paxTcsPerSc.Count} stations for passenger trainSets,\n" +
-                            $"    {emptyCgsPerTcsPerSc.Count} stations for empty trainSets,\n" +
+                            $"    found {emptyCgsPerTcsPerSc.Count} stations for empty trainSets,\n" +
                             $"    and {loadedCgsPerTcsPerSc.Count} stations for loaded trainSets");
 
                         // populate possible cargoGroups per group of trainCars
@@ -130,7 +123,6 @@ namespace PersistentJobsMod {
 
                         // try to generate jobs
                         Debug.Log("[PersistentJobs] generating jobs...");
-                        var paxJobChainControllers = JobProceduralGenerationUtilities.TryToGeneratePassengerJobs(paxTcsPerSc);
                         var shuntingLoadJobChainControllers
                             = ShuntingLoadJobProceduralGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
                         var transportJobChainControllers
@@ -147,8 +139,7 @@ namespace PersistentJobsMod {
                             });
                         Debug.Log(
                             $"[PersistentJobs]\n" +
-                            $"    generated {paxJobChainControllers.Where(jcc => jcc != null).Count()} passenger jobs,\n" +
-                            $"    {shuntingLoadJobChainControllers.Where(jcc => jcc != null).Count()} shunting load jobs,\n" +
+                            $"    generated {shuntingLoadJobChainControllers.Where(jcc => jcc != null).Count()} shunting load jobs,\n" +
                             $"    {transportJobChainControllers.Where(jcc => jcc != null).Count()} transport jobs,\n" +
                             $"    {shuntingUnloadJobChainControllers.Where(jcc => jcc != null).Count()} shunting unload jobs,\n" +
                             $"    and {emptyHaulJobChainControllers.Where(jcc => jcc != null).Count()} empty haul jobs");
@@ -156,14 +147,6 @@ namespace PersistentJobsMod {
                         // finalize jobs & preserve job train cars
                         Debug.Log("[PersistentJobs] finalizing jobs...");
                         var totalCarsPreserved = 0;
-                        foreach (var jcc in paxJobChainControllers) {
-                            if (jcc != null) {
-                                jcc.trainCarsForJobChain.ForEach(tc => { trainCarsToDelete.Remove(tc); });
-                                totalCarsPreserved += jcc.trainCarsForJobChain.Count;
-
-                                // generation has already taken care of converting player spawned cars and finalizing the job chain
-                            }
-                        }
                         foreach (var jcc in shuntingLoadJobChainControllers) {
                             if (jcc != null) {
                                 jcc.trainCarsForJobChain.ForEach(tc => {
@@ -449,13 +432,11 @@ namespace PersistentJobsMod {
 
                 // try to generate jobs
                 Debug.Log("[PersistentJobs] generating jobs... (coroutine)");
-                List<JobChainController> paxJobChainControllers = null;
                 IEnumerable<JobChainController> shuntingLoadJobChainControllers = null;
                 IEnumerable<JobChainController> transportJobChainControllers = null;
                 IEnumerable<JobChainController> shuntingUnloadJobChainControllers = null;
                 IEnumerable<JobChainController> emptyHaulJobChainControllers = null;
                 try {
-                    paxJobChainControllers = JobProceduralGenerationUtilities.TryToGeneratePassengerJobs(paxTcsPerSc);
                     shuntingLoadJobChainControllers
                         = ShuntingLoadJobProceduralGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
                     transportJobChainControllers
@@ -477,8 +458,7 @@ namespace PersistentJobsMod {
                 }
                 Debug.Log(
                     $"[PersistentJobs]\n" +
-                    $"    generated {paxJobChainControllers.Where(jcc => jcc != null).Count()} passenger jobs,\n" +
-                    $"    {shuntingLoadJobChainControllers.Where(jcc => jcc != null).Count()} shunting load jobs,\n" +
+                    $"    generated {shuntingLoadJobChainControllers.Where(jcc => jcc != null).Count()} shunting load jobs,\n" +
                     $"    {transportJobChainControllers.Where(jcc => jcc != null).Count()} transport jobs,\n" +
                     $"    {shuntingUnloadJobChainControllers.Where(jcc => jcc != null).Count()} shunting unload jobs,\n" +
                     $"    and {emptyHaulJobChainControllers.Where(jcc => jcc != null).Count()} empty haul jobs (coroutine)");
@@ -489,14 +469,6 @@ namespace PersistentJobsMod {
                 Debug.Log("[PersistentJobs] finalizing jobs... (coroutine)");
                 var totalCarsPreserved = 0;
                 try {
-                    foreach (var jcc in paxJobChainControllers) {
-                        if (jcc != null) {
-                            jcc.trainCarsForJobChain.ForEach(tc => { trainCarCandidatesForDelete.Remove(tc); });
-                            totalCarsPreserved += jcc.trainCarsForJobChain.Count;
-
-                            // generation has already taken care of converting player spawned cars and finalizing the job chain
-                        }
-                    }
                     foreach (var jcc in shuntingLoadJobChainControllers) {
                         if (jcc != null) {
                             jcc.trainCarsForJobChain.ForEach(tc => {
