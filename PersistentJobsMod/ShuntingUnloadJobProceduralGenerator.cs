@@ -9,7 +9,7 @@ using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 
 namespace PersistentJobsMod {
-    class ShuntingUnloadJobProceduralGenerator {
+    static class ShuntingUnloadJobProceduralGenerator {
         public static JobChainControllerWithEmptyHaulGeneration GenerateShuntingUnloadJobWithCarSpawning(StationController destinationStation,
             bool forceLicenseReqs,
             System.Random rng) {

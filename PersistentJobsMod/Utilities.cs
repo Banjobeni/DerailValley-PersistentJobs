@@ -11,7 +11,7 @@ using DV.ThingTypes.TransitionHelpers;
 using HarmonyLib;
 
 namespace PersistentJobsMod {
-    class Utilities {
+    static class Utilities {
         public static bool IsPassengerCar(TrainCarType carType) {
             switch (carType) {
                 case TrainCarType.PassengerBlue:

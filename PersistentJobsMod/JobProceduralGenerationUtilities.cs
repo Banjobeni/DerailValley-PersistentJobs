@@ -7,7 +7,7 @@ using DV.Utils;
 using HarmonyLib;
 
 namespace PersistentJobsMod {
-    class JobProceduralGenerationUtilities {
+    static class JobProceduralGenerationUtilities {
         public static Dictionary<Trainset, List<TrainCar>> GroupTrainCarsByTrainset(List<TrainCar> trainCars) {
             var trainCarsPerTrainSet = new Dictionary<Trainset, List<TrainCar>>();
             foreach (var tc in trainCars) {

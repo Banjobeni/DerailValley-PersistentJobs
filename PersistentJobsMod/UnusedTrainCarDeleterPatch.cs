@@ -10,7 +10,7 @@ using DV.Utils;
 using HarmonyLib;
 
 namespace PersistentJobsMod {
-    class UnusedTrainCarDeleterPatch {
+    static class UnusedTrainCarDeleterPatch {
         /// <summary>tries to generate new jobs for the train cars marked for deletion</summary>
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), "InstantConditionalDeleteOfUnusedCars")]
         class UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch {
