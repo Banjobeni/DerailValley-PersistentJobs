@@ -4,7 +4,7 @@ namespace PersistentJobsMod.HarmonyPatches {
     [HarmonyPatch(typeof(StationProceduralJobsController), "TryToGenerateJobs")]
     class StationProceduralJobsController_TryToGenerateJobs_Patch {
         static bool Prefix(StationProceduralJobsController __instance) {
-            if (Main.modEntry.Active) {
+            if (Main._modEntry.Active) {
                 return !Main.StationIdSpawnBlockList.Contains(__instance.stationController.logicStation.ID);
             }
             return true;

@@ -10,25 +10,25 @@ namespace PersistentJobsMod.HarmonyPatches {
         static void Prefix(StationJobGenerationRange __instance, MethodBase __originalMethod) {
             try {
                 // backup existing values before overwriting
-                if (Main.initialDistanceRegular < 1f) {
-                    Main.initialDistanceRegular = __instance.destroyGeneratedJobsSqrDistanceRegular;
+                if (Main._initialDistanceRegular < 1f) {
+                    Main._initialDistanceRegular = __instance.destroyGeneratedJobsSqrDistanceRegular;
                 }
-                if (Main.initialDistanceAnyJobTaken < 1f) {
-                    Main.initialDistanceAnyJobTaken = __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
+                if (Main._initialDistanceAnyJobTaken < 1f) {
+                    Main._initialDistanceAnyJobTaken = __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
                 }
 
-                if (Main.modEntry.Active) {
+                if (Main._modEntry.Active) {
                     if (__instance.destroyGeneratedJobsSqrDistanceAnyJobTaken < 4000000f) {
                         __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = 4000000f;
                     }
                     __instance.destroyGeneratedJobsSqrDistanceRegular =
                         __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
                 } else {
-                    __instance.destroyGeneratedJobsSqrDistanceRegular = Main.initialDistanceRegular;
-                    __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main.initialDistanceAnyJobTaken;
+                    __instance.destroyGeneratedJobsSqrDistanceRegular = Main._initialDistanceRegular;
+                    __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
                 }
             } catch (Exception e) {
-                Main.modEntry.Logger.Error(string.Format(
+                Main._modEntry.Logger.Error(string.Format(
                     "Exception thrown during StationJobGenerationRange.{0} prefix patch:\n{1}",
                     __originalMethod.Name,
                     e.ToString()

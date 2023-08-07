@@ -14,7 +14,7 @@ namespace PersistentJobsMod.HarmonyPatches {
         static bool Prefix(DV.Printers.PrinterController ___bookletPrinter,
             JobOverview jobOverview) {
             try {
-                if (!Main.modEntry.Active) {
+                if (!Main._modEntry.Active) {
                     return true;
                 }
 
@@ -89,7 +89,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     ReplaceShuntingLoadDestination(job);
                 }
             } catch (Exception e) {
-                Main.modEntry.Logger.Error(string.Format(
+                Main._modEntry.Logger.Error(string.Format(
                     "Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{0}",
                     e.ToString()
                 ));
@@ -162,7 +162,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 var trainCar = SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c];
                 var distance =
                     (trainCar.transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude;
-                return trainCar != null && distance <= Main.initialDistanceRegular;
+                return trainCar != null && distance <= Main._initialDistanceRegular;
             });
             return carInRangeOfStation != null;
         }

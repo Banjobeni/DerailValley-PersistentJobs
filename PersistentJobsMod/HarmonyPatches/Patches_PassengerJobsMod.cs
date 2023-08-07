@@ -12,7 +12,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
     static class PassengerJobGenerator_StartGenerationAsync_Patch {
         static bool Prefix(object __instance) {
-            if (Main.modEntry.Active) {
+            if (Main._modEntry.Active) {
                 var controller = Traverse.Create(__instance).Field("Controller").GetValue<StationController>();
                 var stationId = controller?.logicStation?.ID;
                 return stationId == null || !Main.StationIdPassengerBlockList.Contains(controller.logicStation.ID);

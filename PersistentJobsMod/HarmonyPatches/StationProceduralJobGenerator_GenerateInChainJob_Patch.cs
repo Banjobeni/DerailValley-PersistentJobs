@@ -6,7 +6,7 @@ namespace PersistentJobsMod.HarmonyPatches {
     [HarmonyPatch(typeof(StationProceduralJobGenerator), "GenerateInChainJob")]
     class StationProceduralJobGenerator_GenerateInChainJob_Patch {
         static bool Prefix(ref JobChainController __result) {
-            if (Main.modEntry.Active) {
+            if (Main._modEntry.Active) {
                 Debug.Log("[PersistentJobs] cancelling inbound job spawning" +
                     " to keep tracks clear for outbound jobs from other stations");
                 __result = null;

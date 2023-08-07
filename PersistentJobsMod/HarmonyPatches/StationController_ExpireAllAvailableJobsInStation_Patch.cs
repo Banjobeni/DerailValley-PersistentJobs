@@ -6,7 +6,7 @@ namespace PersistentJobsMod.HarmonyPatches {
     class StationController_ExpireAllAvailableJobsInStation_Patch {
         static bool Prefix() {
             // skips the original method entirely when this mod is active
-            return !Main.modEntry.Active;
+            return !Main._modEntry.Active;
         }
     }
 }

@@ -12,14 +12,14 @@ namespace PersistentJobsMod.HarmonyPatches {
                 var passengerBlockSaveData = new JArray(from id in Main.StationIdPassengerBlockList select new JValue(id));
 
                 var saveData = new JObject(
-                    new JProperty(SaveDataConstants.SAVE_DATA_VERSION_KEY, new JValue(Main.modEntry.Version.ToString())),
+                    new JProperty(SaveDataConstants.SAVE_DATA_VERSION_KEY, new JValue(Main._modEntry.Version.ToString())),
                     new JProperty($"{SaveDataConstants.SAVE_DATA_SPAWN_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}", spawnBlockSaveData),
                     new JProperty($"{SaveDataConstants.SAVE_DATA_PASSENGER_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}", passengerBlockSaveData));
 
                 __instance.data.SetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY, saveData);
             } catch (Exception e) {
                 // TODO: what to do if saving fails?
-                Main.modEntry.Logger.Warning(string.Format("Saving mod data failed with exception:\n{0}", e));
+                Main._modEntry.Logger.Warning(string.Format("Saving mod data failed with exception:\n{0}", e));
             }
         }
     }

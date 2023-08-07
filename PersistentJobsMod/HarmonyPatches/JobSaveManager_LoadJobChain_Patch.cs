@@ -31,14 +31,14 @@ namespace PersistentJobsMod.HarmonyPatches {
                             "[PersistentJobs] skipping track reservation for Job[{0}] because it's a shunting load job",
                             jobChainController.currentJobInChain.ID));
                     } else {
-                        Main.overrideTrackReservation = true;
+                        Main._overrideTrackReservation = true;
                         Traverse.Create(jobChainController).Method("ReserveRequiredTracks", new[] { typeof(bool) }).GetValue(true);
-                        Main.overrideTrackReservation = false;
+                        Main._overrideTrackReservation = false;
                     }
                 }
             } catch (Exception e) {
                 // TODO: what to do if reserving tracks fails?
-                Main.modEntry.Logger.Warning(string.Format("Reserving track space for Job[{1}] failed with exception:\n{0}", e, chainSaveData.firstJobId));
+                Main._modEntry.Logger.Warning(string.Format("Reserving track space for Job[{1}] failed with exception:\n{0}", e, chainSaveData.firstJobId));
             }
         }
     }

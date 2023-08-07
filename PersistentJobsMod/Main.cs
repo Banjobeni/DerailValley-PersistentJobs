@@ -7,15 +7,15 @@ using HarmonyLib;
 
 namespace PersistentJobsMod {
     static class Main {
-        public static UnityModManager.ModEntry modEntry;
-        public static bool overrideTrackReservation = false;
-        public static float initialDistanceRegular = 0f;
-        public static float initialDistanceAnyJobTaken = 0f;
+        public static UnityModManager.ModEntry _modEntry;
+        public static bool _overrideTrackReservation = false;
+        public static float _initialDistanceRegular = 0f;
+        public static float _initialDistanceAnyJobTaken = 0f;
 
         public static List<string> StationIdSpawnBlockList = new List<string>();
         public static List<string> StationIdPassengerBlockList = new List<string>();
 
-        private static bool isModBroken = false;
+        private static bool _isModBroken = false;
 
 #if DEBUG
         private const float PERIOD = 60f;
@@ -23,11 +23,11 @@ namespace PersistentJobsMod {
 		private const float PERIOD = 5f * 60f;
 #endif
         public static float DVJobDestroyDistanceRegular {
-            get { return initialDistanceRegular; }
+            get { return _initialDistanceRegular; }
         }
 
         static void Load(UnityModManager.ModEntry modEntry) {
-            Main.modEntry = modEntry;
+            Main._modEntry = modEntry;
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
@@ -60,7 +60,7 @@ namespace PersistentJobsMod {
                 StationIdSpawnBlockList.Clear();
             }
 
-            if (isModBroken) {
+            if (_isModBroken) {
                 return !isTogglingOn;
             }
 
@@ -75,12 +75,12 @@ namespace PersistentJobsMod {
                 carsCheckPeriod = 0.5f;
             }
             SingletonBehaviour<UnusedTrainCarDeleter>.Instance.StopAllCoroutines();
-            if (isTogglingOn && !isModBroken) {
-                modEntry.Logger.Log("Injected mod coroutine.");
+            if (isTogglingOn && !_isModBroken) {
+                _modEntry.Logger.Log("Injected mod coroutine.");
                 SingletonBehaviour<UnusedTrainCarDeleter>.Instance
                     .StartCoroutine(UnusedTrainCarDeleterPatch.TrainCarsCreateJobOrDeleteCheck(PERIOD, Mathf.Max(carsCheckPeriod.Value, 1.0f)));
             } else {
-                modEntry.Logger.Log("Restored game coroutine.");
+                _modEntry.Logger.Log("Restored game coroutine.");
                 SingletonBehaviour<UnusedTrainCarDeleter>.Instance.StartCoroutine(
                     SingletonBehaviour<UnusedTrainCarDeleter>.Instance.TrainCarsDeleteCheck(carsCheckPeriod.Value)
                 );
@@ -118,10 +118,10 @@ namespace PersistentJobsMod {
         ////}
 
         public static void OnCriticalFailure() {
-            isModBroken = true;
-            modEntry.Active = false;
-            modEntry.Logger.Critical("Deactivating mod PersistentJobs due to critical failure!");
-            modEntry.Logger.Warning("You can reactivate PersistentJobs by restarting the game, but this failure " +
+            _isModBroken = true;
+            _modEntry.Active = false;
+            _modEntry.Logger.Critical("Deactivating mod PersistentJobs due to critical failure!");
+            _modEntry.Logger.Warning("You can reactivate PersistentJobs by restarting the game, but this failure " +
                 "type likely indicates an incompatibility between the mod and a recent game update. Please search the " +
                 "mod's Github issue tracker for a relevant report. If none is found, please open one. Include the " +
                 $"exception message printed above and your game's current build number (likely {UnityModManager.gameVersion}).");

@@ -17,7 +17,7 @@ namespace PersistentJobsMod {
             static bool Prefix(UnusedTrainCarDeleter __instance,
                 List<TrainCar> ___unusedTrainCarsMarkedForDelete,
                 Dictionary<TrainCar, CarVisitChecker> ___carVisitCheckersMap) {
-                if (Main.modEntry.Active) {
+                if (Main._modEntry.Active) {
                     try {
                         if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                             return false;
@@ -218,7 +218,7 @@ namespace PersistentJobsMod {
                         Debug.Log($"[PersistentJobs] deleted {trainCarsToDelete.Count} cars");
                         return false;
                     } catch (Exception e) {
-                        Main.modEntry.Logger.Error(
+                        Main._modEntry.Logger.Error(
                             $"Exception thrown during {"UnusedTrainCarDeleter"}.{"InstantConditionalDeleteOfUnusedCars"} {"prefix"} patch:" +
                             $"\n{e.ToString()}");
                         Main.OnCriticalFailure();
@@ -250,7 +250,7 @@ namespace PersistentJobsMod {
                 AreDeleteConditionsFulfilledMethod
                     = unusedTrainCarDeleterTraverser.Method("AreDeleteConditionsFulfilled", new Type[] { typeof(TrainCar) });
             } catch (Exception e) {
-                Main.modEntry.Logger.Error(
+                Main._modEntry.Logger.Error(
                     $"Exception thrown during TrainCarsCreateJobOrDeleteCheck setup:\n{e.ToString()}");
                 Main.OnCriticalFailure();
             }
@@ -269,7 +269,7 @@ namespace PersistentJobsMod {
                         continue;
                     }
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck skip checks:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -292,7 +292,7 @@ namespace PersistentJobsMod {
                         continue;
                     }
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck delete candidate collection:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -328,7 +328,7 @@ namespace PersistentJobsMod {
                     loadedTrainCarsPerTrainSet = JobProceduralGenerationUtilities
                         .GroupTrainCarsByTrainset(loadedFreightCars);
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck trainset grouping:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -353,7 +353,7 @@ namespace PersistentJobsMod {
                     loadedCgsPerTcsPerSc = JobProceduralGenerationUtilities
                         .GroupTrainCarSetsByNearestStation(loadedTrainCarsPerTrainSet);
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck station grouping:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -373,7 +373,7 @@ namespace PersistentJobsMod {
                     JobProceduralGenerationUtilities.PopulateCargoGroupsPerLoadedTrainCarSet(loadedCgsPerTcsPerSc);
                     emptyTcsPerSc = JobProceduralGenerationUtilities.ExtractEmptyHaulTrainSets(emptyCgsPerTcsPerSc);
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck cargoGroup population:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -417,7 +417,7 @@ namespace PersistentJobsMod {
                                 .ToDictionary(tpl => tpl.Item1, tpl => tpl.Item2),
                             rng);
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck job info selection:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -452,7 +452,7 @@ namespace PersistentJobsMod {
                             return list;
                         });
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck job generation:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -521,7 +521,7 @@ namespace PersistentJobsMod {
                         }
                     }
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck trainCar preservation:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -540,7 +540,7 @@ namespace PersistentJobsMod {
                     }
                     Debug.Log($"[PersistentJobs] preserved {totalCarsPreserved} cars (coroutine)");
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck trainCar preservation:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
@@ -575,7 +575,7 @@ namespace PersistentJobsMod {
                     }
                     Debug.Log($"[PersistentJobs] deleted {trainCarsToDelete.Count} cars (coroutine)");
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(
+                    Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck car deletion:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }

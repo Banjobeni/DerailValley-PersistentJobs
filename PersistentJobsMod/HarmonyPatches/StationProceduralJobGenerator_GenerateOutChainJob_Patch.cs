@@ -11,7 +11,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             StationController ___stationController,
             JobType startingJobType,
             bool forceFulfilledLicenseRequirements = false) {
-            if (Main.modEntry.Active) {
+            if (Main._modEntry.Active) {
                 try {
                     if (startingJobType == JobType.ShuntingLoad) {
                         Debug.Log("[PersistentJobs] gen out shunting load");
@@ -44,7 +44,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                         "prefix"
                     ));
                 } catch (Exception e) {
-                    Main.modEntry.Logger.Error(string.Format(
+                    Main._modEntry.Logger.Error(string.Format(
                         "Exception thrown during {0}.{1} {2} patch:\n{3}",
                         "StationProceduralJobGenerator",
                         "GenerateOutChainJob",

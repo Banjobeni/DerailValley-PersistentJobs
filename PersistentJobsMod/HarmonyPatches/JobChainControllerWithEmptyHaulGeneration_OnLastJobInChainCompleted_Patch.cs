@@ -148,7 +148,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                         lastJobInChain.jobType));
                 }
             } catch (Exception e) {
-                Main.modEntry.Logger.Error(string.Format(
+                Main._modEntry.Logger.Error(string.Format(
                     "Exception thrown during {0}.{1} {2} patch:\n{3}",
                     "JobChainControllerWithEmptyHaulGeneration",
                     "OnLastJobInChainCompleted",
