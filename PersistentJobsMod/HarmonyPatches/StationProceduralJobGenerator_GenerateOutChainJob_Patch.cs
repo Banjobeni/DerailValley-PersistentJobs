@@ -14,43 +14,31 @@ namespace PersistentJobsMod.HarmonyPatches {
             if (Main._modEntry.Active) {
                 try {
                     if (startingJobType == JobType.ShuntingLoad) {
-                        Debug.Log("[PersistentJobs] gen out shunting load");
+                        Main._modEntry.Logger.Log("gen out shunting load");
                         __result = ShuntingLoadJobProceduralGenerator.GenerateShuntingLoadJobWithCarSpawning(
                             ___stationController,
                             forceFulfilledLicenseRequirements,
                             new System.Random(Environment.TickCount));
                         if (__result != null) {
-                            Debug.Log("[PersistentJobs] finalize out shunting load");
+                            Main._modEntry.Logger.Log("finalize out shunting load");
                             __result.FinalizeSetupAndGenerateFirstJob();
                         }
                         return false;
                     } else if (startingJobType == JobType.Transport) {
-                        Debug.Log("[PersistentJobs] gen out transport");
+                        Main._modEntry.Logger.Log("gen out transport");
                         __result = TransportJobProceduralGenerator.GenerateTransportJobWithCarSpawning(
                             ___stationController,
                             forceFulfilledLicenseRequirements,
                             new System.Random(Environment.TickCount));
                         if (__result != null) {
-                            Debug.Log("[PersistentJobs] finalize out transport");
+                            Main._modEntry.Logger.Log("finalize out transport");
                             __result.FinalizeSetupAndGenerateFirstJob();
                         }
                         return false;
                     }
-                    Debug.LogWarning(string.Format(
-                        "[PersistentJobs] Got unexpected JobType.{0} in {1}.{2} {3} patch. Falling back to base method.",
-                        startingJobType.ToString(),
-                        "StationProceduralJobGenerator",
-                        "GenerateOutChainJob",
-                        "prefix"
-                    ));
+                    Debug.LogWarning($"[PersistentJobs] Got unexpected JobType.{startingJobType.ToString()} in {"StationProceduralJobGenerator"}.{"GenerateOutChainJob"} {"prefix"} patch. Falling back to base method.");
                 } catch (Exception e) {
-                    Main._modEntry.Logger.Error(string.Format(
-                        "Exception thrown during {0}.{1} {2} patch:\n{3}",
-                        "StationProceduralJobGenerator",
-                        "GenerateOutChainJob",
-                        "prefix",
-                        e.ToString()
-                    ));
+                    Main._modEntry.Logger.Error($"Exception thrown during {"StationProceduralJobGenerator"}.{"GenerateOutChainJob"} {"prefix"} patch:\n{e.ToString()}");
                     Main.OnCriticalFailure();
                 }
             }

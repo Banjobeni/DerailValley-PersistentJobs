@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>generates shunting unload jobs</summary>
@@ -7,7 +6,7 @@ namespace PersistentJobsMod.HarmonyPatches {
     class StationProceduralJobGenerator_GenerateInChainJob_Patch {
         static bool Prefix(ref JobChainController __result) {
             if (Main._modEntry.Active) {
-                Debug.Log("[PersistentJobs] cancelling inbound job spawning" +
+                Main._modEntry.Logger.Log("cancelling inbound job spawning" +
                     " to keep tracks clear for outbound jobs from other stations");
                 __result = null;
                 return false;

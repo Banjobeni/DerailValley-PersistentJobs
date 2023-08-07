@@ -21,23 +21,20 @@ namespace PersistentJobsMod.HarmonyPatches {
         static void Prefix(JobChainControllerWithEmptyHaulGeneration __instance,
             List<StaticJobDefinition> ___jobChain,
             Job lastJobInChain) {
-            Debug.Log("[PersistentJobs] last job chain empty haul gen");
+            Main._modEntry.Logger.Log("last job chain empty haul gen");
             try {
                 var lastJobDef = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDef.job != lastJobInChain) {
-                    Debug.LogError(string.Format(
-                        "[PersistentJobs] lastJobInChain ({0}) does not match lastJobDef.job ({1})",
-                        lastJobInChain.ID,
-                        lastJobDef.job.ID));
+                    Debug.LogError($"[PersistentJobs] lastJobInChain ({lastJobInChain.ID}) does not match lastJobDef.job ({lastJobDef.job.ID})");
                 } else if (lastJobInChain.jobType == JobType.ShuntingUnload) {
-                    Debug.Log("[PersistentJobs] checking static definition type");
+                    Main._modEntry.Logger.Log("checking static definition type");
                     var unloadJobDef = lastJobDef as StaticShuntingUnloadJobDefinition;
                     if (unloadJobDef != null) {
                         var station = SingletonBehaviour<LogicController>.Instance
                             .YardIdToStationController[lastJobInChain.chainData.chainDestinationYardId];
                         var availableCargoGroups = station.proceduralJobsRuleset.outputCargoGroups;
 
-                        Debug.Log("[PersistentJobs] diverting trainCars");
+                        Main._modEntry.Logger.Log("diverting trainCars");
                         var countCarsDiverted = 0;
 
                         // if a trainCar set can be reused at the current station, keep them there
@@ -63,7 +60,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 unloadJobDef.carsPerDestinationTrack.Remove(cpt);
                             }
                         }
-                        Debug.Log(string.Format("[PersistentJobs] diverted {0} trainCars", countCarsDiverted));
+                        Main._modEntry.Logger.Log($"diverted {countCarsDiverted} trainCars");
                     } else {
                         Debug.LogError("[PersistentJobs] Couldn't convert lastJobDef to " +
                             "StaticShuntingUnloadJobDefinition. EmptyHaul jobs won't be generated.");
@@ -93,10 +90,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 __instance.trainCarsForJobChain.Remove(tc);
                             }
                             jobChainController.FinalizeSetupAndGenerateFirstJob();
-                            Debug.Log(string.Format(
-                                "[PersistentJobs] Generated job chain [{0}]: {1}",
-                                jobChainController.jobChainGO.name,
-                                jobChainController.jobChainGO));
+                            Main._modEntry.Logger.Log($"Generated job chain [{jobChainController.jobChainGO.name}]: {jobChainController.jobChainGO}");
                         }
                     } else {
                         Debug.LogError(
@@ -129,10 +123,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                 __instance.trainCarsForJobChain.Remove(tc);
                             }
                             jobChainController.FinalizeSetupAndGenerateFirstJob();
-                            Debug.Log(string.Format(
-                                "[PersistentJobs] Generated job chain [{0}]: {1}",
-                                jobChainController.jobChainGO.name,
-                                jobChainController.jobChainGO));
+                            Main._modEntry.Logger.Log($"Generated job chain [{jobChainController.jobChainGO.name}]: {jobChainController.jobChainGO}");
                         }
                     } else {
                         Debug.LogError(
@@ -141,19 +132,10 @@ namespace PersistentJobsMod.HarmonyPatches {
                         );
                     }
                 } else {
-                    Debug.LogError(string.Format(
-                        "[PersistentJobs] Unexpected job type: {0}. The last job in chain must be " +
-                        "ShuntingLoad, Transport, or ShuntingUnload for JobChainControllerWithEmptyHaulGeneration patch! " +
-                        "New jobs won't be generated.",
-                        lastJobInChain.jobType));
+                    Debug.LogError($"[PersistentJobs] Unexpected job type: {lastJobInChain.jobType}. The last job in chain must be " + "ShuntingLoad, Transport, or ShuntingUnload for JobChainControllerWithEmptyHaulGeneration patch! " + "New jobs won't be generated.");
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error(string.Format(
-                    "Exception thrown during {0}.{1} {2} patch:\n{3}",
-                    "JobChainControllerWithEmptyHaulGeneration",
-                    "OnLastJobInChainCompleted",
-                    "prefix",
-                    e.ToString()));
+                Main._modEntry.Logger.Error($"Exception thrown during {"JobChainControllerWithEmptyHaulGeneration"}.{"OnLastJobInChainCompleted"} {"prefix"} patch:\n{e.ToString()}");
                 Main.OnCriticalFailure();
             }
         }

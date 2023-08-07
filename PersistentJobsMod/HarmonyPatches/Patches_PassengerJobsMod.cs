@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
 using HarmonyLib;
-using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {
     static class PJModSettings_PurgeData_Patch {
         static void Postfix() {
-            Debug.Log("Clearing passenger spawning block list...");
+            Main._modEntry.Logger.Log("Clearing passenger spawning block list...");
             Main.StationIdPassengerBlockList.Clear();
         }
     }

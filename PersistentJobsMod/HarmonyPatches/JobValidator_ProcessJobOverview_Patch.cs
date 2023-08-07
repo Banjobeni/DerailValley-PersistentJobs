@@ -71,15 +71,11 @@ namespace PersistentJobsMod.HarmonyPatches {
                     }
                 }
                 if (jobChainController == null) {
-                    Debug.LogWarning(string.Format(
-                        "[PersistentJobs] could not find JobChainController for Job[{0}]",
-                        job.ID));
+                    Debug.LogWarning($"[PersistentJobs] could not find JobChainController for Job[{job.ID}]");
                 } else if (job.jobType == JobType.ShuntingLoad) {
                     // shunting load jobs don't need to reserve space
                     // their destination track task will be changed to the warehouse track
-                    Debug.Log(string.Format(
-                        "[PersistentJobs] skipping track reservation for Job[{0}] because it's a shunting load job",
-                        job.ID));
+                    Main._modEntry.Logger.Log($"skipping track reservation for Job[{job.ID}] because it's a shunting load job");
                 } else {
                     ReserveOrReplaceRequiredTracks(jobChainController);
                 }
@@ -89,17 +85,14 @@ namespace PersistentJobsMod.HarmonyPatches {
                     ReplaceShuntingLoadDestination(job);
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error(string.Format(
-                    "Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{0}",
-                    e.ToString()
-                ));
+                Main._modEntry.Logger.Error($"Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{e.ToString()}");
                 Main.OnCriticalFailure();
             }
             return true;
         }
 
         private static void ReplaceShuntingLoadDestination(Job job) {
-            Debug.Log("[PersistentJobs] attempting to replace destination track with warehouse track...");
+            Main._modEntry.Logger.Log("attempting to replace destination track with warehouse track...");
             var sequence = job.tasks[0] as SequentialTasks;
             if (sequence == null) {
                 Debug.LogError("    couldn't find sequential task!");
@@ -125,7 +118,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             while (cursor != null && Utilities.TaskAnyDFS(
                        cursor.Value,
                        t => t.InstanceTaskType != TaskType.Warehouse)) {
-                Debug.Log("    searching for warehouse task...");
+                Main._modEntry.Logger.Log("    searching for warehouse task...");
                 cursor = cursor.Next;
             }
 
@@ -147,13 +140,13 @@ namespace PersistentJobsMod.HarmonyPatches {
             }
 
             while ((cursor = cursor.Next) != null) {
-                Debug.Log("    replace destination tracks...");
+                Main._modEntry.Logger.Log("    replace destination tracks...");
                 Utilities.TaskDoDFS(
                     cursor.Value,
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
 
-            Debug.Log("    done!");
+            Main._modEntry.Logger.Log("    done!");
         }
 
         private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
@@ -193,9 +186,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                             // not enough space to reserve; find a different track with enough space & update job data
                             var replacementTrack = GetReplacementTrack(reservedTrack, reservedLength);
                             if (replacementTrack == null) {
-                                Debug.LogWarning(string.Format(
-                                    "[PersistentJobs] Can't find track with enough free space for Job[{0}]. Skipping track reservation!",
-                                    key.job.ID));
+                                Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{key.job.ID}]. Skipping track reservation!");
                                 continue;
                             }
 
@@ -237,10 +228,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                                     Debug.LogError(e);
                                 }
                                 if (!replacedDestination) {
-                                    Debug.LogError(string.Format(
-                                        "[PersistentJobs] Unaccounted for JobType[{1}] encountered while reserving track space for Job[{0}].",
-                                        key.job.ID,
-                                        key.job.jobType));
+                                    Debug.LogError($"[PersistentJobs] Unaccounted for JobType[{key.job.jobType}] encountered while reserving track space for Job[{key.job.ID}].");
                                 }
                             }
 
@@ -259,12 +247,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     }
                 } else {
                     Debug.LogError(
-                        string.Format(
-                            "[PersistentJobs] No reservation data for {0}[{1}] found!" +
-                            " Reservation data can be empty, but it needs to be in {2}.",
-                            "jobChain",
-                            i,
-                            "jobDefToCurrentlyReservedTracks"),
+                        $"[PersistentJobs] No reservation data for {"jobChain"}[{i}] found!" + $" Reservation data can be empty, but it needs to be in {"jobDefToCurrentlyReservedTracks"}.",
                         jobChain[i]);
                 }
             }
@@ -301,10 +284,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     stationYard.TransferInTracks
                 };
             } else {
-                Debug.LogError(string.Format(
-                    "[PersistentJobs] Cant't find track group for Track[{0}] in Station[{1}]. Skipping reservation!",
-                    oldTrack.ID,
-                    stationController.logicStation.ID));
+                Debug.LogError($"[PersistentJobs] Cant't find track group for Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
                 return null;
             }
 
@@ -317,10 +297,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             }
 
             if (targetTrack == null) {
-                Debug.LogWarning(string.Format(
-                    "[PersistentJobs] Cant't find any track to replace Track[{0}] in Station[{1}]. Skipping reservation!",
-                    oldTrack.ID,
-                    stationController.logicStation.ID));
+                Debug.LogWarning($"[PersistentJobs] Cant't find any track to replace Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
             }
 
             return targetTrack;

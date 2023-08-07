@@ -27,10 +27,7 @@ namespace PersistentJobsMod {
             var cgsPerTcsPerSc
                 = new Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>>();
             var abandonmentThreshold = 1.2f * Main.DVJobDestroyDistanceRegular;
-            Debug.Log(string.Format(
-                "[PersistentJobs] station grouping: # of trainSets: {0}, # of stations: {1}",
-                trainCarsPerTrainSet.Values.Count,
-                stationControllers.Count()));
+            Main._modEntry.Logger.Log("station grouping: # of trainSets: {trainCarsPerTrainSet.Values.Count}, # of stations: {stationControllers.Count()}");
             foreach (var tcs in trainCarsPerTrainSet.Values) {
                 var stationsByDistance
                     = new SortedList<float, StationController>();
@@ -40,7 +37,7 @@ namespace PersistentJobsMod {
                     var trainPosition = tcs[0].gameObject.transform.position;
                     var stationPosition = sc.gameObject.transform.position;
                     var distance = (trainPosition - stationPosition).sqrMagnitude;
-                    /*Debug.Log(string.Format(
+                    /*Main._modEntry.Logger.Log(string.Format(
                         "[PersistentJobs] station grouping: train position {0}, station position {1}, " +
                         "distance {2:F}, threshold {3:F}",
                         trainPosition,
@@ -54,7 +51,7 @@ namespace PersistentJobsMod {
                 }
                 if (stationsByDistance.Count == 0) {
                     // trainCars not near any station; abandon them
-                    Debug.Log("[PersistentJobs] station grouping: train not near any station; abandoning train");
+                    Main._modEntry.Logger.Log("station grouping: train not near any station; abandoning train");
                     continue;
                 }
 
@@ -63,10 +60,7 @@ namespace PersistentJobsMod {
                 if (!cgsPerTcsPerSc.ContainsKey(closestStation.Value)) {
                     cgsPerTcsPerSc.Add(closestStation.Value, new List<(List<TrainCar>, List<CargoGroup>)>());
                 }
-                Debug.Log(string.Format(
-                    "[PersistentJobs] station grouping: assigning train to {0} with distance {1:F}",
-                    closestStation.Value,
-                    closestStation.Key));
+                Main._modEntry.Logger.Log("station grouping: assigning train to {closestStation.Value} with distance {closestStation.Key:F}");
                 cgsPerTcsPerSc[closestStation.Value].Add((tcs, new List<CargoGroup>()));
             }
             return cgsPerTcsPerSc;

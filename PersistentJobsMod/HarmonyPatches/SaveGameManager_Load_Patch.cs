@@ -33,7 +33,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 }
             } catch (Exception e) {
                 // TODO: what to do if loading fails?
-                Main._modEntry.Logger.Warning(string.Format("Loading mod data failed with exception:\n{0}", e));
+                Main._modEntry.Logger.Warning($"Loading mod data failed with exception:\n{e}");
             }
         }
     }

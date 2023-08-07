@@ -88,7 +88,7 @@ namespace PersistentJobsMod {
         }
 
         ////static void PatchPassengerJobsMod(UnityModManager.ModEntry paxMod, HarmonyInstance harmony) {
-        ////    Debug.Log("Patching PassengerJobsMod...");
+        ////    Main._modEntry.Logger.Log("Patching PassengerJobsMod...");
         ////    try {
         ////        // spawn block list handling for passenger jobs
         ////        Type paxJobGen = paxMod.Assembly.GetType("PassengerJobsMod.PassengerJobGenerator", true);

@@ -23,13 +23,9 @@ namespace PersistentJobsMod.HarmonyPatches {
                         }
                     }
                     if (jobChainController == null) {
-                        Debug.LogWarning(string.Format(
-                            "[PersistentJobs] could not find JobChainController for Job[{0}]; skipping track reservation!",
-                            chainSaveData.firstJobId));
+                        Debug.LogWarning($"[PersistentJobs] could not find JobChainController for Job[{chainSaveData.firstJobId}]; skipping track reservation!");
                     } else if (jobChainController.currentJobInChain.jobType == JobType.ShuntingLoad) {
-                        Debug.Log(string.Format(
-                            "[PersistentJobs] skipping track reservation for Job[{0}] because it's a shunting load job",
-                            jobChainController.currentJobInChain.ID));
+                        Main._modEntry.Logger.Log($"skipping track reservation for Job[{jobChainController.currentJobInChain.ID}] because it's a shunting load job");
                     } else {
                         Main._overrideTrackReservation = true;
                         Traverse.Create(jobChainController).Method("ReserveRequiredTracks", new[] { typeof(bool) }).GetValue(true);
@@ -38,7 +34,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 }
             } catch (Exception e) {
                 // TODO: what to do if reserving tracks fails?
-                Main._modEntry.Logger.Warning(string.Format("Reserving track space for Job[{1}] failed with exception:\n{0}", e, chainSaveData.firstJobId));
+                Main._modEntry.Logger.Warning($"Reserving track space for Job[{chainSaveData.firstJobId}] failed with exception:\n{e}");
             }
         }
     }

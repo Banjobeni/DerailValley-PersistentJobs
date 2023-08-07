@@ -37,9 +37,7 @@ namespace PersistentJobsMod {
 
             var carDamage = Traverse.Create(trainCar).Field("carDmg").GetValue<CarDamageModel>();
             if (carDamage == null) {
-                Debug.Log(string.Format(
-                    "[PersistentJobs] Creating CarDamageModel for TrainCar[{0}]...",
-                    trainCar.logicCar.ID));
+                Main._modEntry.Logger.Log($"Creating CarDamageModel for TrainCar[{trainCar.logicCar.ID}]...");
                 carDamage = trainCar.gameObject.AddComponent<CarDamageModel>();
                 Traverse.Create(trainCar).Field("carDmg").SetValue(carDamage);
                 carDamage.OnCreated(trainCar);
@@ -53,9 +51,7 @@ namespace PersistentJobsMod {
 
             var cargoDamage = trainCar.CargoDamage;
             if (cargoDamage == null && !trainCar.IsLoco) {
-                Debug.Log(string.Format(
-                    "[PersistentJobs] Creating CargoDamageModel for TrainCar[{0}]...",
-                    trainCar.logicCar.ID));
+                Main._modEntry.Logger.Log($"Creating CargoDamageModel for TrainCar[{trainCar.logicCar.ID}]...");
                 cargoDamage = trainCar.gameObject.AddComponent<CargoDamageModel>();
                 Traverse.Create(trainCar).Property("cargoDamage").SetValue(cargoDamage);
                 cargoDamage.OnCreated(trainCar);
@@ -74,7 +70,7 @@ namespace PersistentJobsMod {
             carStateSave.Initialize(carDamage, cargoDamage);
             carStateSave.SetDebtTrackerCar(carDebtController.CarDebtTracker);
 
-            Debug.Log(string.Format("Converted player spawned TrainCar {0}", trainCar.logicCar.ID));
+            Main._modEntry.Logger.Log($"Converted player spawned TrainCar {trainCar.logicCar.ID}");
         }
 
         // taken from JobChainControllerWithEmptyHaulGeneration.ExtractCorrespondingTrainCars
@@ -285,9 +281,9 @@ namespace PersistentJobsMod {
         }
 
         public static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength, Random rng) {
-            Debug.Log("[PersistentJobs] getting random track with free space");
+            Main._modEntry.Logger.Log("getting random track with free space");
             var tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);
-            Debug.Log($"[PersistentJobs] {tracksWithFreeSpace.Count}/{tracks.Count} tracks have at least {requiredLength}m available");
+            Main._modEntry.Logger.Log($"{tracksWithFreeSpace.Count}/{tracks.Count} tracks have at least {requiredLength}m available");
             if (tracksWithFreeSpace.Count > 0) {
                 return rng.GetRandomElement(tracksWithFreeSpace);
             }

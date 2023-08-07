@@ -23,7 +23,7 @@ namespace PersistentJobsMod {
         }
 
         public static JobChainControllerWithEmptyHaulGeneration GenerateShuntingLoadJobWithCarSpawning(StationController startingStation, bool forceLicenseReqs, System.Random rng) {
-            Debug.Log("[PersistentJobs] load: generating with car spawning");
+            Main._modEntry.Logger.Log("load: generating with car spawning");
             var yardTracksOrganizer = YardTracksOrganizer.Instance;
 
             var possibleCargoGroupsAndTrainCarCountOrNull = TryGetPossibleCargoGroupsAndTrainCarCount(startingStation, forceLicenseReqs, rng);
@@ -55,7 +55,7 @@ namespace PersistentJobsMod {
 
             // choose starting tracks
             var maxTracksCount = GetMaxTracksCount(startingStation, carCount, rng);
-            Debug.Log($"[PersistentJobs] load: choosing {maxTracksCount} starting tracks at most");
+            Main._modEntry.Logger.Log($"load: choosing {maxTracksCount} starting tracks at most");
 
             var startingTracksWithCargoLiveryCars = TryFindStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoLiveryCars, rng, maxTracksCount);
             if (startingTracksWithCargoLiveryCars == null) {
@@ -73,7 +73,7 @@ namespace PersistentJobsMod {
             }
 
             // spawn trainCars & form carsPerStartingTrack
-            Debug.Log("[PersistentJobs] load: spawning trainCars");
+            Main._modEntry.Logger.Log("load: spawning trainCars");
             var orderedTrainCars = new List<TrainCar>();
             var carsPerStartingTrack = new List<CarsPerTrack>();
 
@@ -81,7 +81,7 @@ namespace PersistentJobsMod {
                 var startingTrack = startingTracksWithCargoLiveryCars[i].Track;
                 var trackTrainCarLiveries = startingTracksWithCargoLiveryCars[i].CargoLiveryCars.Select(clc => clc.TrainCarLivery).ToList();
 
-                Debug.Log($"[PersistentJobs] load: spawning car group {i + 1}/{startingTracksWithCargoLiveryCars.Count} on track {startingTrack.ID}");
+                Main._modEntry.Logger.Log($"load: spawning car group {i + 1}/{startingTracksWithCargoLiveryCars.Count} on track {startingTrack.ID}");
 
                 var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
                 var carOrientations = Enumerable.Range(0, trackTrainCarLiveries.Count).Select(_ => rng.Next(2) > 0).ToList();
@@ -97,7 +97,7 @@ namespace PersistentJobsMod {
                     false);
 
                 if (spawnedCars == null) {
-                    Debug.LogWarning("[PersistentJobs] load: Failed to spawn some trainCars!");
+                    Main._modEntry.Logger.Log("load: Failed to spawn some trainCars!");
                     SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                     return null;
                 }
@@ -125,7 +125,7 @@ namespace PersistentJobsMod {
         }
 
         private static StationController ChooseDestinationStationHavingFreeTrack(List<StationController> destinationStations, List<CargoLiveryCar> carCargoTypes, YardTracksOrganizer yardTracksOrganizer, Random rng) {
-            Debug.Log("[PersistentJobs] load: choosing destination");
+            Main._modEntry.Logger.Log("load: choosing destination");
             var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(carCargoTypes.Select(cct => cct.TrainCarLivery).ToList(), true);
 
             var availableDestinations = destinationStations.ToList();
@@ -148,7 +148,7 @@ namespace PersistentJobsMod {
         [CanBeNull]
         private static List<(Track Track, List<CargoLiveryCar> CargoLiveryCars)> TryFindStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoLiveryCar> cargoLiveryCars, Random rng, int maxTracksCount) {
             for (var currentTracksCount = maxTracksCount; currentTracksCount >= 1; currentTracksCount -= 1) {
-                Debug.Log($"[PersistentJobs] load: trying to find {currentTracksCount} starting tracks");
+                Main._modEntry.Logger.Log($"load: trying to find {currentTracksCount} starting tracks");
                 var startingTracks = TryFindXStartingTracks(startingStation, yardTracksOrganizer, cargoLiveryCars, rng, currentTracksCount);
                 if (startingTracks != null) {
                     return startingTracks;
@@ -228,7 +228,7 @@ namespace PersistentJobsMod {
                 return (stationOutputCargoGroups, trainCarCount);
             }
 
-            Debug.Log("[PersistentJobs] load: forcing license requirements");
+            Main._modEntry.Logger.Log("load: forcing license requirements");
 
             if (!LicenseManager.Instance.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
                 Debug.LogError("Trying to generate a ShuntingLoad job with forceLicenseReqs=true should never happen if player doesn't have Shunting license!");
@@ -249,44 +249,33 @@ namespace PersistentJobsMod {
                 List<CargoType> transportedCargoPerCar,
                 System.Random rng,
                 bool forceCorrectCargoStateOnCars = false) {
-            Debug.Log("[PersistentJobs] load: generating with pre-spawned cars");
+            Main._modEntry.Logger.Log("load: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
 
             // choose warehosue machine
-            Debug.Log("[PersistentJobs] load: choosing warehouse machine");
+            Main._modEntry.Logger.Log("load: choosing warehouse machine");
             var supportedWMCs = startingStation.warehouseMachineControllers
                 .Where(wm => wm.supportedCargoTypes.Intersect(transportedCargoPerCar).Count() > 0)
                 .ToList();
             if (supportedWMCs.Count == 0) {
-                Debug.LogWarning(string.Format(
-                    "[PersistentJobs] load: Could not create ChainJob[{0}]: {1} - {2}. Found no supported WarehouseMachine!",
-                    JobType.ShuntingLoad,
-                    startingStation.logicStation.ID,
-                    destStation.logicStation.ID
-                ));
+                Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
             var loadMachine = Utilities.GetRandomFromEnumerable(supportedWMCs, rng).warehouseMachine;
 
             // choose destination track
-            Debug.Log("[PersistentJobs] load: choosing destination track");
+            Main._modEntry.Logger.Log("load: choosing destination track");
             var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(startingStation.logicStation.yard.TransferOutTracks), approxTrainLength, new Random());
             if (destinationTrack == null) {
                 destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength, new Random());
             }
             if (destinationTrack == null) {
-                Debug.LogWarning(string.Format(
-                    "[PersistentJobs] load: Could not create ChainJob[{0}]: {1} - {2}. " +
-                    "Found no TransferOutTrack with enough free space!",
-                    JobType.ShuntingLoad,
-                    startingStation.logicStation.ID,
-                    destStation.logicStation.ID
-                ));
+                Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. " + "Found no TransferOutTrack with enough free space!");
                 return null;
             }
 
-            Debug.Log("[PersistentJobs] load: calculating time/wage/licenses");
+            Main._modEntry.Logger.Log("load: calculating time/wage/licenses");
             var transportedCarTypes = (from tc in trainCars select tc.carType)
                 .ToList<TrainCarType>();
             float bonusTimeLimit;
@@ -330,18 +319,8 @@ namespace PersistentJobsMod {
             float bonusTimeLimit,
             float initialWage,
             JobLicenses requiredLicenses) {
-            Debug.Log(string.Format(
-                "[PersistentJobs] load: attempting to generate ChainJob[{0}]: {1} - {2}",
-                JobType.ShuntingLoad,
-                startingStation.logicStation.ID,
-                destStation.logicStation.ID
-            ));
-            var gameObject = new GameObject(string.Format(
-                "ChainJob[{0}]: {1} - {2}",
-                JobType.ShuntingLoad,
-                startingStation.logicStation.ID,
-                destStation.logicStation.ID
-            ));
+            Main._modEntry.Logger.Log($"load: attempting to generate ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
+            var gameObject = new GameObject($"ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
             gameObject.transform.SetParent(startingStation.transform);
             var jobChainController
                 = new JobChainControllerWithEmptyHaulGeneration(gameObject);
@@ -469,21 +448,13 @@ namespace PersistentJobsMod {
                             var intersection = chosenCargoGroup.cargoTypes.Intersect(
                                 Utilities.GetCargoTypesForCarType(tc.carType)).ToList();
                             if (!intersection.Any()) {
-                                Debug.LogError(string.Format(
-                                    "[PersistentJobs] Unexpected trainCar with no overlapping cargoType in cargoGroup!\n" +
-                                    "cargo types for train car: [ {0} ]\n" +
-                                    "cargo types for chosen cargo group: [ {1} ]",
-                                    String.Join(", ", Utilities.GetCargoTypesForCarType(tc.carType)),
-                                    String.Join(", ", chosenCargoGroup.cargoTypes)));
+                                Debug.LogError("[PersistentJobs] Unexpected trainCar with no overlapping cargoType in cargoGroup!\n" + $"cargo types for train car: [ {String.Join(", ", Utilities.GetCargoTypesForCarType(tc.carType))} ]\n" + $"cargo types for chosen cargo group: [ {String.Join(", ", chosenCargoGroup.cargoTypes)} ]");
                                 return CargoType.None;
                             }
                             return Utilities.GetRandomFromEnumerable<CargoType>(intersection, rng);
                         }).ToList();
 
-                    Debug.Log(string.Format(
-                        "[PersistentJobs]\ntrain car types: [ {0} ]\ncargo types: [ {1} ]",
-                        string.Join(", ", trainCarsToLoad.Select(tc => tc.carType)),
-                        string.Join(", ", cargoTypes)));
+                    Main._modEntry.Logger.Log($"[PersistentJobs]\ntrain car types: [ {string.Join(", ", trainCarsToLoad.Select(tc => tc.carType))} ]\ncargo types: [ {string.Join(", ", cargoTypes)} ]");
 
                     // populate all the info; we'll generate the jobs later
                     jobsToGenerate.Add((

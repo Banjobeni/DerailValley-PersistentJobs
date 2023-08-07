@@ -28,11 +28,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error(string.Format(
-                    "Exception thrown during StationJobGenerationRange.{0} prefix patch:\n{1}",
-                    __originalMethod.Name,
-                    e.ToString()
-                ));
+                Main._modEntry.Logger.Error($"Exception thrown during StationJobGenerationRange.{__originalMethod.Name} prefix patch:\n{e.ToString()}");
                 Main.OnCriticalFailure();
             }
         }

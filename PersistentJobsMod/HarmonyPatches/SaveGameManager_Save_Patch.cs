@@ -19,7 +19,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 __instance.data.SetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY, saveData);
             } catch (Exception e) {
                 // TODO: what to do if saving fails?
-                Main._modEntry.Logger.Warning(string.Format("Saving mod data failed with exception:\n{0}", e));
+                Main._modEntry.Logger.Warning($"Saving mod data failed with exception:\n{e}");
             }
         }
     }
