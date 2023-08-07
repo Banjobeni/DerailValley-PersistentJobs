@@ -262,6 +262,11 @@ namespace PersistentJobsMod {
             return list.ElementAt(rng.Next(0, list.Count()));
         }
 
+        public static T GetRandomElement<T>(this System.Random rng, IReadOnlyList<T> list) {
+            var index = rng.Next(0, list.Count);
+            return list[index];
+        }
+
         // taken from StationProcedurationJobGenerator.GetMultipleRandomsFromList
         public static List<T> GetMultipleRandomsFromList<T>(List<T> list, int countToGet, System.Random rng) {
             var list2 = new List<T>(list);
