@@ -7,6 +7,7 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
+using Random = System.Random;
 
 namespace PersistentJobsMod {
     static class ShuntingUnloadJobProceduralGenerator {
@@ -64,8 +65,7 @@ namespace PersistentJobsMod {
 
             // choose starting track
             Debug.Log("[PersistentJobs] unload: choosing starting track");
-            var startingTrack
-                = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength);
+            var startingTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, new Random());
             if (startingTrack == null) {
                 Debug.LogWarning("[PersistentJobs] unload: Couldn't find startingTrack with enough free space for train!");
                 return null;
@@ -152,10 +152,7 @@ namespace PersistentJobsMod {
             do {
                 destinationTracks.Clear();
                 for (var i = 0; i < countTracks; i++) {
-                    var track = Utilities.GetTrackThatHasEnoughFreeSpace(
-                        yto,
-                        destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(),
-                        approxTrainLength / (float)countTracks);
+                    var track = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(), approxTrainLength / (float)countTracks, new Random());
                     if (track == null) {
                         break;
                     }

@@ -42,7 +42,7 @@ namespace PersistentJobsMod {
             var chosenCargoGroup = rng.GetRandomElement(availableCargoGroups);
 
             // choose cargo & trainCar types
-            Debug.Log("[PersistentJobs] load: choosing cargo & trainCar types");
+            Main._modEntry.Logger.Log($"load: choosing cargo & trainCar types for {carCount} cars");
             var cargoLiveryCars = new List<CargoLiveryCar>();
             for (var i = 0; i < carCount; i++) {
                 var chosenCargoType = rng.GetRandomElement(chosenCargoGroup.cargoTypes);
@@ -135,7 +135,7 @@ namespace PersistentJobsMod {
 
                 availableDestinations.Remove(station);
 
-                var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yardTracksOrganizer, yardTracksOrganizer.FilterOutOccupiedTracks(station.logicStation.yard.TransferInTracks), approxTrainLength);
+                var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yardTracksOrganizer, yardTracksOrganizer.FilterOutOccupiedTracks(station.logicStation.yard.TransferInTracks), approxTrainLength, rng);
 
                 if (destinationTrack != null) {
                     return station;
@@ -176,17 +176,37 @@ namespace PersistentJobsMod {
 
                 var availableTracks = startingStation.logicStation.yard.StorageTracks.Except(alreadyUsedTracks).ToList();
 
-                var track = Utilities.GetTrackThatHasEnoughFreeSpace(yardTracksOrganizer, availableTracks, requiredTrackLength);
-                if (track == null) {
-                    Debug.Log($"[PersistentJobs] load: could not find another track having {requiredTrackLength}m of free space");
+                Main._modEntry.Logger.Log($"load: Trying to find a suitable track no. {trackIndex + 1} for {rangeCount} cars having {requiredTrackLength}m of free space");
+                var suitableTracks = new List<Track>();
+                foreach (var t in availableTracks) {
+                    var freeSpace = yardTracksOrganizer.GetFreeSpaceOnTrack(t);
+                    var jobCount = GetDistinctJobCountForCarsOnTrack(t);
+                    if (jobCount < 3 && freeSpace > requiredTrackLength) {
+                        Main._modEntry.Logger.Log($"load: Considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
+                        suitableTracks.Add(t);
+                    } else {
+                        Main._modEntry.Logger.Log($"load: Not considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
+                    }
+                }
+
+                if (suitableTracks.Count == 0) {
+                    Main._modEntry.Logger.Log("load: Could not find any suitable track");
                     return null;
                 }
 
-                Debug.Log($"[PersistentJobs] load: found {trackIndex + 1}/{tracksCount} track {track.ID} having {requiredTrackLength}m of free space");
+                var chosenTrack = rng.GetRandomElement(suitableTracks);
 
-                result.Add((track, trackCargoLiveryCars));
+                Main._modEntry.Logger.Log($"load: For track no. {trackIndex + 1}, chosing {chosenTrack.ID}");
+
+                result.Add((chosenTrack, trackCargoLiveryCars));
             }
             return result;
+        }
+
+        private static int GetDistinctJobCountForCarsOnTrack(Track track) {
+            var cars = track.GetCarsFullyOnTrack();
+            var jobs = cars.Select(c => JobsManager.Instance.GetJobOfCar(IdGenerator.Instance.logicCarToTrainCar[c])).Distinct().ToList();
+            return jobs.Count;
         }
 
         private static int GetMaxTracksCount(StationController startingStation, int carCount, Random rng) {
@@ -251,17 +271,9 @@ namespace PersistentJobsMod {
 
             // choose destination track
             Debug.Log("[PersistentJobs] load: choosing destination track");
-            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
-                yto,
-                yto.FilterOutOccupiedTracks(startingStation.logicStation.yard.TransferOutTracks),
-                approxTrainLength
-            );
+            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(startingStation.logicStation.yard.TransferOutTracks), approxTrainLength, new Random());
             if (destinationTrack == null) {
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
-                    yto,
-                    startingStation.logicStation.yard.TransferOutTracks,
-                    approxTrainLength
-                );
+                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength, new Random());
             }
             if (destinationTrack == null) {
                 Debug.LogWarning(string.Format(

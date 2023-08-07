@@ -64,7 +64,7 @@ namespace PersistentJobsMod {
             // choose starting track
             Debug.Log("[PersistentJobs] transport: choosing starting track");
             var startingTrack
-                = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength);
+                = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength, rng);
             if (startingTrack == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
                 return null;
@@ -78,10 +78,7 @@ namespace PersistentJobsMod {
             while (availableDestinations.Count > 0 && destinationTrack == null) {
                 destStation = Utilities.GetRandomFromEnumerable(availableDestinations, rng);
                 availableDestinations.Remove(destStation);
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
-                    yto,
-                    yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks),
-                    approxTrainLength);
+                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks), approxTrainLength, rng);
             }
             if (destinationTrack == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");
@@ -136,15 +133,9 @@ namespace PersistentJobsMod {
 
             Debug.Log("[PersistentJobs] transport: choosing destination track");
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
-            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
-                yto,
-                yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks),
-                approxTrainLength);
+            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks), approxTrainLength, rng);
             if (destinationTrack == null) {
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(
-                    yto,
-                    destStation.logicStation.yard.TransferInTracks,
-                    approxTrainLength);
+                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, rng);
             }
             if (destinationTrack == null) {
                 Debug.LogWarning(string.Format(

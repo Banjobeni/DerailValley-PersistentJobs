@@ -9,6 +9,7 @@ using DV.ServicePenalty;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using HarmonyLib;
+using Random = System.Random;
 
 namespace PersistentJobsMod {
     static class Utilities {
@@ -283,22 +284,14 @@ namespace PersistentJobsMod {
             return list3;
         }
 
-        public static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength) {
+        public static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength, Random rng) {
             Debug.Log("[PersistentJobs] getting random track with free space");
             var tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);
-            Debug.Log(string.Format(
-                "[PersistentJobs] {0}/{1} tracks have at least {2}m available",
-                tracksWithFreeSpace.Count,
-                tracks.Count,
-                requiredLength));
+            Debug.Log($"[PersistentJobs] {tracksWithFreeSpace.Count}/{tracks.Count} tracks have at least {requiredLength}m available");
             if (tracksWithFreeSpace.Count > 0) {
-                return Utilities.GetRandomFromEnumerable(
-                    tracksWithFreeSpace,
-                    new System.Random());
+                return rng.GetRandomElement(tracksWithFreeSpace);
             }
             return null;
         }
-
-        private static Dictionary<TrainCarType, List<CargoType>> trainCarTypeToCargoTypes = new Dictionary<TrainCarType, List<CargoType>>();
     }
 }

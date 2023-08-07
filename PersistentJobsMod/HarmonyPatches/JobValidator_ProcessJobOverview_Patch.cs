@@ -313,7 +313,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             var yto = YardTracksOrganizer.Instance;
             for (var p = 0; targetTrack == null && p < preferredTracks.Length; p++) {
                 var trackGroup = preferredTracks[p];
-                targetTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, trackGroup, trainLength);
+                targetTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, trackGroup, trainLength, new System.Random());
             }
 
             if (targetTrack == null) {
