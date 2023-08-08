@@ -265,7 +265,7 @@ namespace PersistentJobsMod {
         }
 
         // taken from StationProcedurationJobGenerator.GetMultipleRandomsFromList
-        public static List<T> GetMultipleRandomsFromList<T>(List<T> list, int countToGet, System.Random rng) {
+        public static List<T> GetMultipleRandomsFromList<T>(this Random rng, List<T> list, int countToGet) {
             var list2 = new List<T>(list);
             if (countToGet > list2.Count) {
                 Debug.LogError("Trying to get more random items from list than it contains. Returning all items from list.");

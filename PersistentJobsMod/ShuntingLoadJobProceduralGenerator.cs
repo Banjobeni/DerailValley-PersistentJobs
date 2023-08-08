@@ -12,13 +12,35 @@ using Random = System.Random;
 
 namespace PersistentJobsMod {
     static class ShuntingLoadJobProceduralGenerator {
-        private class CargoLiveryCar {
+        private class CargoTypeLiveryCar {
             public CargoType CargoType { get; }
             public TrainCarLivery TrainCarLivery { get; }
 
-            public CargoLiveryCar(CargoType cargoType, TrainCarLivery trainCarLivery) {
+            public CargoTypeLiveryCar(CargoType cargoType, TrainCarLivery trainCarLivery) {
                 CargoType = cargoType;
                 TrainCarLivery = trainCarLivery;
+            }
+        }
+
+        private class CargoCarGroup {
+            public CargoType CargoType { get; }
+            public List<TrainCarLivery> CarLiveries { get; }
+
+            public CargoCarGroup(CargoType cargoType, List<TrainCarLivery> carLiveries) {
+                CargoType = cargoType;
+                CarLiveries = carLiveries;
+            }
+        }
+
+        private class CargoCarGroupForTrack {
+            public List<CargoCarGroup> CargoCarGroups { get; }
+
+            public CargoCarGroupForTrack(List<CargoCarGroup> cargoCarGroups) {
+                CargoCarGroups = cargoCarGroups;
+            }
+
+            public List<CargoTypeLiveryCar> ToCargoTypeLiveryCars() {
+                return CargoCarGroups.SelectMany(ccg => ccg.CarLiveries.Select(livery => new CargoTypeLiveryCar(ccg.CargoType, livery))).ToList();
             }
         }
 
@@ -41,32 +63,23 @@ namespace PersistentJobsMod {
 
             var chosenCargoGroup = rng.GetRandomElement(availableCargoGroups);
 
-            // choose cargo & trainCar types
-            Main._modEntry.Logger.Log($"load: choosing cargo & trainCar types for {carCount} cars");
-            var cargoLiveryCars = new List<CargoLiveryCar>();
-            for (var i = 0; i < carCount; i++) {
-                var chosenCargoType = rng.GetRandomElement(chosenCargoGroup.cargoTypes);
-                var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[chosenCargoType.ToV2()];
-                var chosenTrainCarType = rng.GetRandomElement(availableTrainCarTypes);
-                var chosenTrainCarLivery = rng.GetRandomElement(chosenTrainCarType.liveries);
+            var chosenCargoTypes = ChooseCargoTypes(chosenCargoGroup.cargoTypes, rng);
 
-                cargoLiveryCars.Add(new CargoLiveryCar(chosenCargoType, chosenTrainCarLivery));
-            }
+            var cargoCarGroups = ChooseCargoCarGroups(chosenCargoTypes, carCount, rng);
+
+            var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, rng);
 
             // choose starting tracks
-            var maxTracksCount = GetMaxTracksCount(startingStation, carCount, rng);
-            Main._modEntry.Logger.Log($"load: choosing {maxTracksCount} starting tracks at most");
-
-            var startingTracksWithCargoLiveryCars = TryFindStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoLiveryCars, rng, maxTracksCount);
+            var startingTracksWithCargoLiveryCars = TryFindActualStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoCarGroupsForTracks, rng);
             if (startingTracksWithCargoLiveryCars == null) {
                 Debug.LogWarning("[PersistentJobs] load: Couldn't find startingTrack with enough free space for train!");
                 return null;
             }
 
-            var cargoDestinationStations = chosenCargoGroup.stations;
+            var cargoTypeLiveryCars = startingTracksWithCargoLiveryCars.SelectMany(trackCars => trackCars.CargoLiveryCars).ToList();
 
             // choose random destination station that has at least 1 available track
-            var destinationStation = ChooseDestinationStationHavingFreeTrack(cargoDestinationStations, cargoLiveryCars, yardTracksOrganizer, rng);
+            var destinationStation = ChooseDestinationStationHavingFreeTrack(chosenCargoGroup.stations, cargoTypeLiveryCars, yardTracksOrganizer, rng);
             if (destinationStation == null) {
                 Debug.LogWarning("Couldn't find a station with enough free space for train!");
                 return null;
@@ -111,7 +124,7 @@ namespace PersistentJobsMod {
                 carsPerStartingTrack,
                 destinationStation,
                 orderedTrainCars,
-                cargoLiveryCars.Select(clc => clc.CargoType).ToList(),
+                cargoTypeLiveryCars.Select(clc => clc.CargoType).ToList(),
                 rng,
                 true);
 
@@ -124,9 +137,89 @@ namespace PersistentJobsMod {
             return jcc;
         }
 
-        private static StationController ChooseDestinationStationHavingFreeTrack(List<StationController> destinationStations, List<CargoLiveryCar> carCargoTypes, YardTracksOrganizer yardTracksOrganizer, Random rng) {
+        private static List<CargoCarGroupForTrack> DistributeCargoCarGroupsToTracks(List<CargoCarGroup> cargoCarGroups, int stationRulesetMaxTrackCount, Random random) {
+            var totalCarCount = cargoCarGroups.Select(ccg => ccg.CarLiveries.Count).Sum();
+            var desiredTracksCount = Math.Min(stationRulesetMaxTrackCount, GetMaxTracksForCarCount(totalCarCount));
+
+            if (cargoCarGroups.Count < desiredTracksCount) {
+                // need to split some cargoCarGroups in order to reach the desired track count
+
+                while (cargoCarGroups.Count < desiredTracksCount) {
+                    var largestCargoCargGroup = cargoCarGroups.OrderByDescending(ccg => ccg.CarLiveries.Count).First();
+                    if (largestCargoCargGroup.CarLiveries.Count < 4) {
+                        // could not find a group that is large enough for splitting
+                        break;
+                    } else {
+                        var newGroup1CarCount = random.Next(0, largestCargoCargGroup.CarLiveries.Count - 1) + 1;
+                        var newGroup1 = new CargoCarGroup(largestCargoCargGroup.CargoType, largestCargoCargGroup.CarLiveries.Take(newGroup1CarCount).ToList());
+                        var newGroup2 = new CargoCarGroup(largestCargoCargGroup.CargoType, largestCargoCargGroup.CarLiveries.Skip(newGroup1CarCount).ToList());
+                        
+                        var index = cargoCarGroups.IndexOf(largestCargoCargGroup);
+                        cargoCarGroups.RemoveAt(index);
+                        cargoCarGroups.Insert(index, newGroup1);
+                        cargoCarGroups.Insert(index + 1, newGroup2);
+                    }
+                }
+
+                return cargoCarGroups.Select(ccg => new CargoCarGroupForTrack(new[] { ccg }.ToList())).ToList();
+            } else {
+                // there are at least enough cargo car groups for the requested number of tracks
+                var result = new List<CargoCarGroupForTrack>();
+
+                foreach (var cargoCarGroup in cargoCarGroups) {
+                    if (result.Count < desiredTracksCount) {
+                        result.Add(new CargoCarGroupForTrack(new[] { cargoCarGroup }.ToList()));
+                    } else {
+                        var index = random.Next(desiredTracksCount);
+                        result[index].CargoCarGroups.Add(cargoCarGroup);
+                    }
+                }
+
+                return result;
+            }
+        }
+
+        private static int GetMaxTracksForCarCount(int carCount) {
+            if (carCount <= 3) {
+                return 1;
+            } else if (carCount <= 4) {
+                return 2;
+            } else {
+                return 3;
+            }
+        }
+
+        private static List<CargoCarGroup> ChooseCargoCarGroups(List<CargoType> cargoTypes, int carCount, Random random) {
+            return Enumerable.Range(0, carCount)
+                .Select(_ => random.GetRandomElement(cargoTypes))
+                .Select(ct => new CargoTypeLiveryCar(ct, GetRandomLivery(ct, random)))
+                .GroupBy(ctlc => ctlc.CargoType, ctlc => ctlc.TrainCarLivery, (type, liveries) => new CargoCarGroup(type, liveries.ToList()))
+                .OrderBy(ccg => cargoTypes.IndexOf(ccg.CargoType))
+                .ToList();
+        }
+
+        private static TrainCarLivery GetRandomLivery(CargoType cargoType, Random random) {
+            var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[cargoType.ToV2()];
+            var chosenTrainCarType = random.GetRandomElement(availableTrainCarTypes);
+            var chosenTrainCarLivery = random.GetRandomElement(chosenTrainCarType.liveries);
+            return chosenTrainCarLivery;
+        }
+
+        private static List<CargoType> ChooseCargoTypes(List<CargoType> cargoTypes, Random random) {
+            if (random.NextDouble() < 0.5 || cargoTypes.Count == 1) {
+                // take only one cargo type
+                return new[] { random.GetRandomElement(cargoTypes) }.ToList();
+            } else {
+                var numberOfCargoTypes = random.Next(cargoTypes.Count - 1) + 2;
+                return random.GetMultipleRandomsFromList(cargoTypes, numberOfCargoTypes);
+            }
+        }
+
+        private static StationController ChooseDestinationStationHavingFreeTrack(List<StationController> destinationStations, List<CargoTypeLiveryCar> cargoTypeLiveryCars, YardTracksOrganizer yardTracksOrganizer, Random rng) {
             Main._modEntry.Logger.Log("load: choosing destination");
-            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(carCargoTypes.Select(cct => cct.TrainCarLivery).ToList(), true);
+            
+            var trainCarLiveries = cargoTypeLiveryCars.Select(ctlc => ctlc.TrainCarLivery).ToList();
+            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
 
             var availableDestinations = destinationStations.ToList();
 
@@ -145,8 +238,45 @@ namespace PersistentJobsMod {
             return null;
         }
 
+        private static List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)> TryFindActualStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoCarGroupForTrack> carGroupsOnTracks, Random random) {
+            var result = new List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)>();
+            foreach (var cargoCarGroupForTrack in carGroupsOnTracks) {
+                var trackCargoLiveryCars = cargoCarGroupForTrack.ToCargoTypeLiveryCars();
+                var requiredTrackLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trackCargoLiveryCars.Select(clc => clc.TrainCarLivery).ToList(), true);
+
+                var alreadyUsedTracks = result.Select(r => r.Track).ToList();
+
+                var availableTracks = startingStation.logicStation.yard.StorageTracks.Except(alreadyUsedTracks).ToList();
+
+                Main._modEntry.Logger.Log($"load: Trying to find a suitable track no. {result.Count + 1} for {trackCargoLiveryCars.Count} cars having {requiredTrackLength}m of free space");
+                var suitableTracks = new List<Track>();
+                foreach (var t in availableTracks) {
+                    var freeSpace = yardTracksOrganizer.GetFreeSpaceOnTrack(t);
+                    var jobCount = GetDistinctJobCountForCarsOnTrack(t);
+                    if (jobCount < 3 && freeSpace > requiredTrackLength) {
+                        Main._modEntry.Logger.Log($"load: Considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
+                        suitableTracks.Add(t);
+                    } else {
+                        Main._modEntry.Logger.Log($"load: Not considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
+                    }
+                }
+
+                if (suitableTracks.Count == 0) {
+                    Main._modEntry.Logger.Log("load: Could not find any suitable track");
+                    return null;
+                }
+
+                var chosenTrack = random.GetRandomElement(suitableTracks);
+
+                Main._modEntry.Logger.Log($"load: For track no. {result.Count + 1}, chosing {chosenTrack.ID}");
+
+                result.Add((chosenTrack, trackCargoLiveryCars));
+            }
+            return result;
+        }
+
         [CanBeNull]
-        private static List<(Track Track, List<CargoLiveryCar> CargoLiveryCars)> TryFindStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoLiveryCar> cargoLiveryCars, Random rng, int maxTracksCount) {
+        private static List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)> TryFindStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoTypeLiveryCar> cargoLiveryCars, Random rng, int maxTracksCount) {
             for (var currentTracksCount = maxTracksCount; currentTracksCount >= 1; currentTracksCount -= 1) {
                 Main._modEntry.Logger.Log($"load: trying to find {currentTracksCount} starting tracks");
                 var startingTracks = TryFindXStartingTracks(startingStation, yardTracksOrganizer, cargoLiveryCars, rng, currentTracksCount);
@@ -159,12 +289,12 @@ namespace PersistentJobsMod {
         }
 
         [CanBeNull]
-        private static List<(Track, List<CargoLiveryCar>)> TryFindXStartingTracks(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoLiveryCar> cargoLiveryCars, Random rng, int tracksCount) {
+        private static List<(Track, List<CargoTypeLiveryCar>)> TryFindXStartingTracks(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoTypeLiveryCar> cargoLiveryCars, Random rng, int tracksCount) {
             var trainCarsCount = cargoLiveryCars.Count;
             var countCarsPerTrainset = trainCarsCount / tracksCount;
             var countTrainsetsWithExtraCar = trainCarsCount % tracksCount;
 
-            var result = new List<(Track Track, List<CargoLiveryCar> CargoLiveryCars)>();
+            var result = new List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)>();
             for (var trackIndex = 0; trackIndex < tracksCount; trackIndex++) {
                 var rangeStart = trackIndex * countCarsPerTrainset + Math.Min(trackIndex, countTrainsetsWithExtraCar);
                 var rangeCount = trackIndex < countTrainsetsWithExtraCar ? countCarsPerTrainset + 1 : countCarsPerTrainset;
@@ -222,7 +352,7 @@ namespace PersistentJobsMod {
 
         private static (List<CargoGroup> availableCargoGroups, int countTrainCars)? TryGetPossibleCargoGroupsAndTrainCarCount(StationController startingStation, bool forceLicenseReqs, Random rng) {
             var stationOutputCargoGroups = startingStation.proceduralJobsRuleset.outputCargoGroups;
-            var trainCarCount = rng.Next(startingStation.proceduralJobsRuleset.minCarsPerJob, startingStation.proceduralJobsRuleset.maxCarsPerJob);
+            var trainCarCount = rng.Next(startingStation.proceduralJobsRuleset.minCarsPerJob, startingStation.proceduralJobsRuleset.maxCarsPerJob + 1);
 
             if (!forceLicenseReqs) {
                 return (stationOutputCargoGroups, trainCarCount);
