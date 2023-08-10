@@ -62,10 +62,13 @@ namespace PersistentJobsMod {
             }
 
             var chosenCargoGroup = rng.GetRandomElement(availableCargoGroups);
+            Main._modEntry.Logger.Log($"load: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
 
             var chosenCargoTypes = ChooseCargoTypes(chosenCargoGroup.cargoTypes, rng);
+            Main._modEntry.Logger.Log($"load: chose cargo types ({string.Join("/", chosenCargoTypes)})");
 
             var cargoCarGroups = ChooseCargoCarGroups(chosenCargoTypes, carCount, rng);
+            Main._modEntry.Logger.Log($"load: chose cargo car groups ({string.Join(", ", cargoCarGroups.Select(g => $"{g.CarLiveries.Count} x {g.CargoType}"))})");
 
             var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, rng);
 
@@ -239,6 +242,11 @@ namespace PersistentJobsMod {
         }
 
         private static List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)> TryFindActualStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoCarGroupForTrack> carGroupsOnTracks, Random random) {
+            var tracks = startingStation.logicStation.yard.StorageTracks.Select(t => (Track: t, FreeSpace: yardTracksOrganizer.GetFreeSpaceOnTrack(t), JobCount: GetDistinctJobCountForCarsOnTrack(t))).ToList();
+            foreach (var (track, freeSpace, jobCount) in tracks) {
+                Main._modEntry.Logger.Log($"load: Considering track {track.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
+            }
+
             var result = new List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)>();
             foreach (var cargoCarGroupForTrack in carGroupsOnTracks) {
                 var trackCargoLiveryCars = cargoCarGroupForTrack.ToCargoTypeLiveryCars();
@@ -248,27 +256,23 @@ namespace PersistentJobsMod {
 
                 var availableTracks = startingStation.logicStation.yard.StorageTracks.Except(alreadyUsedTracks).ToList();
 
-                Main._modEntry.Logger.Log($"load: Trying to find a suitable track no. {result.Count + 1} for {trackCargoLiveryCars.Count} cars having {requiredTrackLength}m of free space");
                 var suitableTracks = new List<Track>();
                 foreach (var t in availableTracks) {
                     var freeSpace = yardTracksOrganizer.GetFreeSpaceOnTrack(t);
                     var jobCount = GetDistinctJobCountForCarsOnTrack(t);
                     if (jobCount < 3 && freeSpace > requiredTrackLength) {
-                        Main._modEntry.Logger.Log($"load: Considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
                         suitableTracks.Add(t);
-                    } else {
-                        Main._modEntry.Logger.Log($"load: Not considering track {t.ID} having cars of {jobCount} jobs already and {freeSpace}m of free space");
                     }
                 }
 
                 if (suitableTracks.Count == 0) {
-                    Main._modEntry.Logger.Log("load: Could not find any suitable track");
+                    Main._modEntry.Logger.Log($"load: Could not find any suitable track for track no. {result.Count + 1}");
                     return null;
                 }
 
                 var chosenTrack = random.GetRandomElement(suitableTracks);
 
-                Main._modEntry.Logger.Log($"load: For track no. {result.Count + 1}, chosing {chosenTrack.ID}");
+                Main._modEntry.Logger.Log($"load: For track no. {result.Count + 1}, choosing {chosenTrack.ID}");
 
                 result.Add((chosenTrack, trackCargoLiveryCars));
             }
