@@ -5,14 +5,16 @@ using DV.ThingTypes;
 using HarmonyLib;
 using UnityEngine;
 using DV.Logic.Job;
+using JetBrains.Annotations;
 using Random = System.Random;
 using PersistentJobsMod.CarSpawningJobGenerators;
 
 namespace PersistentJobsMod.HarmonyPatches {
     [HarmonyPatch(typeof(StationProceduralJobGenerator), nameof(StationProceduralJobGenerator.GenerateJobChain))]
+    // ReSharper disable once InconsistentNaming
     public static class StationProceduralJobGenerator_GenerateJobChain_Patch {
+        [UsedImplicitly]
         public static bool Prefix(
-                StationProceduralJobGenerator __instance,
                 ref JobChainController __result,
                 StationProceduralJobsRuleset ___generationRuleset,
                 StationController ___stationController,
@@ -98,7 +100,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                 return null;
             }
 
-            if (allowedJobTypes.Contains(JobType.Transport) && unoccuppiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * (float)yard.TransferOutTracks.Count)) {
+            if (allowedJobTypes.Contains(JobType.Transport) && unoccuppiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * yard.TransferOutTracks.Count)) {
                 var jobChainController = GenerateAndFinalizeTransportJob(stationController, false, random);
                 if (jobChainController != null) {
                     return jobChainController;

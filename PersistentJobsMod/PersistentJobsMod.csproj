@@ -115,8 +115,6 @@
     <Compile Include="ShuntingUnloadJobProceduralGenerator.cs" />
     <Compile Include="HarmonyPatches\StationController_ExpireAllAvailableJobsInStation_Patch.cs" />
     <Compile Include="HarmonyPatches\StationJobGenerationRange_AllMethods_Patch.cs" />
-    <Compile Include="HarmonyPatches\StationProceduralJobGenerator_GenerateInChainJob_Patch.cs" />
-    <Compile Include="HarmonyPatches\StationProceduralJobGenerator_GenerateOutChainJob_Patch.cs" />
     <Compile Include="HarmonyPatches\StationProceduralJobsController_TryToGenerateJobs_Patch.cs" />
     <Compile Include="TransportJobProceduralGenerator.cs" />
     <Compile Include="UnusedTrainCarDeleterPatch.cs" />
