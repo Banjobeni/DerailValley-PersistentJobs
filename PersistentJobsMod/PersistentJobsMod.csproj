@@ -45,6 +45,10 @@
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="CommandTerminal">
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\CommandTerminal.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DV.ThingTypes">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.ThingTypes.dll</HintPath>
       <Private>False</Private>
@@ -89,6 +93,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Console.cs" />
     <Compile Include="HarmonyPatches\JobChainControllerWithEmptyHaulGeneration_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainController_ReserveRequiredTracks_Patch.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
