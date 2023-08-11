@@ -280,6 +280,10 @@ namespace PersistentJobsMod {
             return list3;
         }
 
+        public static List<T> GetRandomPermutation<T>(this Random rng, List<T> list) {
+            return GetMultipleRandomsFromList(rng, list, list.Count);
+        }
+
         public static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength, Random rng) {
             Main._modEntry.Logger.Log("getting random track with free space");
             var tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);

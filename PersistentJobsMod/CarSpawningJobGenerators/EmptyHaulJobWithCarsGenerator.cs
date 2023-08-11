@@ -10,7 +10,7 @@ using Random = System.Random;
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class EmptyHaulJobWithCarsGenerator {
         public static JobChainController TryGenerateJobChain(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
-            var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cars, random);
+            var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.inputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cars, random);
 
             if (possibleCargoGroupsAndTrainCarCountOrNull == null) {
                 return null;

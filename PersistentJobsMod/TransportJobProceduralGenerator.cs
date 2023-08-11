@@ -1,86 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using DV;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
-using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
+using PersistentJobsMod.CarSpawningJobGenerators;
+using PersistentJobsMod.Licensing;
 
 namespace PersistentJobsMod {
     class TransportJobProceduralGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration GenerateTransportJobWithCarSpawning(StationController startingStation,
-            bool forceLicenseReqs,
-            System.Random rng) {
+        public static JobChainControllerWithEmptyHaulGeneration GenerateTransportJobWithCarSpawning(StationController startingStation, bool requirePlayerLicensesCompatible, System.Random random) {
             Main._modEntry.Logger.Log("transport: generating with car spawning");
-            var yto = YardTracksOrganizer.Instance;
-            var availableCargoGroups = startingStation.proceduralJobsRuleset.outputCargoGroups;
-            var countTrainCars = rng.Next(
-                startingStation.proceduralJobsRuleset.minCarsPerJob,
-                startingStation.proceduralJobsRuleset.maxCarsPerJob);
+            var yardTracksOrganizer = YardTracksOrganizer.Instance;
 
-            if (forceLicenseReqs) {
-                Main._modEntry.Logger.Log("transport: forcing license requirements");
-                if (!LicenseManager.Instance.IsJobLicenseAcquired(JobLicenses.FreightHaul.ToV2())) {
-                    Debug.LogError("[PersistentJobs] transport: Trying to generate a Transport job with " +
-                        "forceLicenseReqs=true should never happen if player doesn't have FreightHaul license!");
-                    return null;
-                }
-                availableCargoGroups
-                    = (from cg in availableCargoGroups
-                        where LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))
-                        select cg).ToList();
-                countTrainCars = Math.Min(countTrainCars, LicenseManager.Instance.GetMaxNumberOfCarsPerJobWithAcquiredJobLicenses());
-            }
-            if (availableCargoGroups.Count == 0) {
-                Debug.LogWarning("[PersistentJobs] transport: no available cargo groups");
+            var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cargo, random);
+
+            if (possibleCargoGroupsAndTrainCarCountOrNull == null) {
                 return null;
             }
 
-            var chosenCargoGroup = Utilities.GetRandomFromEnumerable(availableCargoGroups, rng);
+            var (availableCargoGroups, carCount) = possibleCargoGroupsAndTrainCarCountOrNull.Value;
 
-            // choose cargo & trainCar types
-            Main._modEntry.Logger.Log("transport: choosing cargo & trainCar types");
-            var availableCargoTypes = chosenCargoGroup.cargoTypes;
-            var orderedCargoTypes = new List<CargoType>();
-            var orderedTrainCarLiveries = new List<TrainCarLivery>();
-            for (var i = 0; i < countTrainCars; i++) {
-                var chosenCargoType = Utilities.GetRandomFromEnumerable(availableCargoTypes, rng);
-                var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[chosenCargoType.ToV2()];
-                var chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
-                var chosenTrainCarLivery = Utilities.GetRandomFromEnumerable(chosenTrainCarType.liveries, rng);
-                //List<CargoContainerType> availableContainers
-                //    = CargoTypes.GetCarContainerTypesThatSupportCargoType(chosenCargoType);
-                //CargoContainerType chosenContainerType = Utilities.GetRandomFromEnumerable(availableContainers, rng);
-                //List<TrainCarType> availableTrainCarTypes
-                //    = CargoTypes.GetTrainCarTypesThatAreSpecificContainerType(chosenContainerType);
-                //TrainCarType chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
-                orderedCargoTypes.Add(chosenCargoType);
-                orderedTrainCarLiveries.Add(chosenTrainCarLivery);
-            }
-            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(orderedTrainCarLiveries, true);
+            var chosenCargoGroup = random.GetRandomElement(availableCargoGroups);
+            Main._modEntry.Logger.Log($"transport: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
 
-            // choose starting track
-            Main._modEntry.Logger.Log("transport: choosing starting track");
-            var startingTrack
-                = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength, rng);
-            if (startingTrack == null) {
+            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup, carCount, random);
+
+            var trainCarLiveries = cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList();
+
+            var requiredTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
+
+            var trackCandidates = startingStation.logicStation.yard.TransferOutTracks.Where(t => t.IsFree()).ToList();
+
+            var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, requiredTrainLength);
+
+            if (!tracks.Any()) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
                 return null;
             }
 
+            Main._modEntry.Logger.Log("transport: choosing starting track");
+            var startingTrack = random.GetRandomElement(tracks);
+
             // choose random destination station that has at least 1 available track
             Main._modEntry.Logger.Log("transport: choosing destination");
-            var availableDestinations = new List<StationController>(chosenCargoGroup.stations);
-            StationController destStation = null;
-            Track destinationTrack = null;
-            while (availableDestinations.Count > 0 && destinationTrack == null) {
-                destStation = Utilities.GetRandomFromEnumerable(availableDestinations, rng);
-                availableDestinations.Remove(destStation);
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks), approxTrainLength, rng);
-            }
-            if (destinationTrack == null) {
+
+            var destinationStation = random.GetRandomPermutation(chosenCargoGroup.stations).FirstOrDefault(ds => yardTracksOrganizer.FilterOutTracksWithoutRequiredFreeSpace(ds.logicStation.yard.TransferInTracks, requiredTrainLength).Any(t => t.IsFree()));
+
+            if (destinationStation == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");
                 return null;
             }
@@ -88,16 +55,7 @@ namespace PersistentJobsMod {
             // spawn trainCars
             Main._modEntry.Logger.Log("transport: spawning trainCars");
             var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
-            var carOrientations = Enumerable.Range(0, orderedTrainCarLiveries.Count).Select(_ => rng.Next(2) > 0).ToList();
-            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrack(
-                orderedTrainCarLiveries,
-                carOrientations,
-                railTrack,
-                true,
-                true,
-                0.0,
-                false,
-                false);
+            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, true);
             if (orderedTrainCars == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Failed to spawn trainCars!");
                 return null;
@@ -106,10 +64,10 @@ namespace PersistentJobsMod {
             var jcc = GenerateTransportJobWithExistingCars(
                 startingStation,
                 startingTrack,
-                destStation,
+                destinationStation,
                 orderedTrainCars,
-                orderedCargoTypes,
-                rng,
+                cargoCarGroups.SelectMany(c => Enumerable.Repeat(c.CargoType, c.CarLiveries.Count)).ToList(),
+                random,
                 true);
 
             if (jcc == null) {
