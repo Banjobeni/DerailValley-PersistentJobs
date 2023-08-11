@@ -123,7 +123,9 @@ namespace PersistentJobsMod {
 
         private static List<CargoCarGroupForTrack> DistributeCargoCarGroupsToTracks(List<CargoCarGroup> cargoCarGroups, int stationRulesetMaxTrackCount, Random random) {
             var totalCarCount = cargoCarGroups.Select(ccg => ccg.CarLiveries.Count).Sum();
-            var desiredTracksCount = Math.Min(stationRulesetMaxTrackCount, GetMaxTracksForCarCount(totalCarCount));
+            var maximumTracksCount = Math.Min(stationRulesetMaxTrackCount, GetMaxTracksForCarCount(totalCarCount, random));
+
+            var desiredTracksCount = random.Next(1, maximumTracksCount + 1);
 
             if (cargoCarGroups.Count < desiredTracksCount) {
                 // need to split some cargoCarGroups in order to reach the desired track count
@@ -163,10 +165,10 @@ namespace PersistentJobsMod {
             }
         }
 
-        private static int GetMaxTracksForCarCount(int carCount) {
+        private static int GetMaxTracksForCarCount(int carCount, Random random) {
             if (carCount <= 3) {
                 return 1;
-            } else if (carCount <= 4) {
+            } else if (carCount <= 5) {
                 return 2;
             } else {
                 return 3;
