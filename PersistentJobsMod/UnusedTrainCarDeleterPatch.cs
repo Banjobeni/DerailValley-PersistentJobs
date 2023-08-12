@@ -8,6 +8,7 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.JobGenerators;
 
 namespace PersistentJobsMod {
     static class UnusedTrainCarDeleterPatch {
@@ -88,10 +89,10 @@ namespace PersistentJobsMod {
                         Main._modEntry.Logger.Log("picking jobs...");
                         var rng = new System.Random(Environment.TickCount);
                         var
-                            shuntingLoadJobInfos = ShuntingLoadJobProceduralGenerator
+                            shuntingLoadJobInfos = ShuntingLoadJobGenerator
                                 .ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(emptyCgsPerTcsPerSc, rng);
                         var
-                            transportJobInfos = TransportJobProceduralGenerator
+                            transportJobInfos = TransportJobGenerator
                                 .ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(
                                     loadedCgsPerTcsPerSc.Select(kv => (
                                             kv.Key,
@@ -124,9 +125,9 @@ namespace PersistentJobsMod {
                         // try to generate jobs
                         Main._modEntry.Logger.Log("generating jobs...");
                         var shuntingLoadJobChainControllers
-                            = ShuntingLoadJobProceduralGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
+                            = ShuntingLoadJobGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
                         var transportJobChainControllers
-                            = TransportJobProceduralGenerator.doJobGeneration(transportJobInfos, rng);
+                            = TransportJobGenerator.doJobGeneration(transportJobInfos, rng);
                         var shuntingUnloadJobChainControllers
                             = ShuntingUnloadJobProceduralGenerator.doJobGeneration(shuntingUnloadJobInfos, rng);
                         IEnumerable<JobChainController> emptyHaulJobChainControllers = emptyTcsPerSc.Aggregate(
@@ -390,10 +391,10 @@ namespace PersistentJobsMod {
                 List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)>
                     shuntingUnloadJobInfos = null;
                 try {
-                    shuntingLoadJobInfos = ShuntingLoadJobProceduralGenerator
+                    shuntingLoadJobInfos = ShuntingLoadJobGenerator
                         .ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(emptyCgsPerTcsPerSc, rng);
 
-                    transportJobInfos = TransportJobProceduralGenerator
+                    transportJobInfos = TransportJobGenerator
                         .ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(
                             loadedCgsPerTcsPerSc.Select(kv => (
                                     kv.Key,
@@ -438,9 +439,9 @@ namespace PersistentJobsMod {
                 IEnumerable<JobChainController> emptyHaulJobChainControllers = null;
                 try {
                     shuntingLoadJobChainControllers
-                        = ShuntingLoadJobProceduralGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
+                        = ShuntingLoadJobGenerator.doJobGeneration(shuntingLoadJobInfos, rng);
                     transportJobChainControllers
-                        = TransportJobProceduralGenerator.doJobGeneration(transportJobInfos, rng);
+                        = TransportJobGenerator.doJobGeneration(transportJobInfos, rng);
                     shuntingUnloadJobChainControllers
                         = ShuntingUnloadJobProceduralGenerator.doJobGeneration(shuntingUnloadJobInfos, rng);
                     emptyHaulJobChainControllers = emptyTcsPerSc.Aggregate(

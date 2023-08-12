@@ -8,6 +8,7 @@ using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.JobGenerators;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches {
@@ -76,7 +77,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                         var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
                         var rng = new System.Random(Environment.TickCount);
                         JobChainController jobChainController
-                            = TransportJobProceduralGenerator.GenerateTransportJobWithExistingCars(
+                            = TransportJobGenerator.TryGenerateJobChainController(
                                 startingStation,
                                 startingTrack,
                                 destStation,

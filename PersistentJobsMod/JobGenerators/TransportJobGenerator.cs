@@ -1,85 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
-using DV.Utils;
-using PersistentJobsMod.CarSpawningJobGenerators;
-using PersistentJobsMod.Licensing;
+using UnityEngine;
 
-namespace PersistentJobsMod {
-    class TransportJobProceduralGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration GenerateTransportJobWithCarSpawning(StationController startingStation, bool requirePlayerLicensesCompatible, System.Random random) {
-            Main._modEntry.Logger.Log("transport: generating with car spawning");
-            var yardTracksOrganizer = YardTracksOrganizer.Instance;
-
-            var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cargo, random);
-
-            if (possibleCargoGroupsAndTrainCarCountOrNull == null) {
-                return null;
-            }
-
-            var (availableCargoGroups, carCount) = possibleCargoGroupsAndTrainCarCountOrNull.Value;
-
-            var chosenCargoGroup = random.GetRandomElement(availableCargoGroups);
-            Main._modEntry.Logger.Log($"transport: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
-
-            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup, carCount, random);
-
-            var trainCarLiveries = cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList();
-
-            var requiredTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
-
-            var trackCandidates = startingStation.logicStation.yard.TransferOutTracks.Where(t => t.IsFree()).ToList();
-
-            var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, requiredTrainLength);
-
-            if (!tracks.Any()) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
-                return null;
-            }
-
-            Main._modEntry.Logger.Log("transport: choosing starting track");
-            var startingTrack = random.GetRandomElement(tracks);
-
-            // choose random destination station that has at least 1 available track
-            Main._modEntry.Logger.Log("transport: choosing destination");
-
-            var destinationStation = random.GetRandomPermutation(chosenCargoGroup.stations).FirstOrDefault(ds => yardTracksOrganizer.FilterOutTracksWithoutRequiredFreeSpace(ds.logicStation.yard.TransferInTracks, requiredTrainLength).Any(t => t.IsFree()));
-
-            if (destinationStation == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");
-                return null;
-            }
-
-            // spawn trainCars
-            Main._modEntry.Logger.Log("transport: spawning trainCars");
-            var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
-            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, true);
-            if (orderedTrainCars == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Failed to spawn trainCars!");
-                return null;
-            }
-
-            var jcc = GenerateTransportJobWithExistingCars(
-                startingStation,
-                startingTrack,
-                destinationStation,
-                orderedTrainCars,
-                cargoCarGroups.SelectMany(c => Enumerable.Repeat(c.CargoType, c.CarLiveries.Count)).ToList(),
-                random,
-                true);
-
-            if (jcc == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't generate job chain. Deleting spawned trainCars!");
-                SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
-                return null;
-            }
-
-            return jcc;
-        }
-
-        public static JobChainControllerWithEmptyHaulGeneration GenerateTransportJobWithExistingCars(StationController startingStation,
+namespace PersistentJobsMod.JobGenerators {
+    static class TransportJobGenerator {
+        public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation,
             Track startingTrack,
             StationController destStation,
             List<TrainCar> trainCars,
@@ -117,7 +44,7 @@ namespace PersistentJobsMod {
             var requiredLicenses = JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForJobType(JobType.Transport))
                 | JobLicenseType_v2.ListToFlags(LicenseManager.Instance.GetRequiredLicensesForCargoTypes(transportedCargoPerCar))
                 | (LicenseManager.Instance.GetRequiredLicenseForNumberOfTransportedCars(trainCars.Count)?.v1 ?? JobLicenses.Basic);
-            return TransportJobProceduralGenerator.GenerateTransportChainController(
+            return GenerateTransportChainController(
                 startingStation,
                 startingTrack,
                 destStation,
@@ -209,7 +136,7 @@ namespace PersistentJobsMod {
                 (var ss, var st, var ds, _, _) = definition;
                 (_, _, _, var tcs, var cts) = definition;
 
-                return (JobChainController)GenerateTransportJobWithExistingCars(
+                return (JobChainController)TryGenerateJobChainController(
                     ss,
                     st,
                     ds,

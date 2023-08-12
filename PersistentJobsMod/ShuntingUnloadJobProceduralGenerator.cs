@@ -1,118 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DV;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
-using DV.ThingTypes.TransitionHelpers;
-using DV.Utils;
 using Random = System.Random;
 
 namespace PersistentJobsMod {
     static class ShuntingUnloadJobProceduralGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration GenerateShuntingUnloadJobWithCarSpawning(StationController destinationStation,
-            bool forceLicenseReqs,
-            System.Random rng) {
-            Main._modEntry.Logger.Log("unload: generating with car spawning");
-            var yto = YardTracksOrganizer.Instance;
-            var availableCargoGroups = destinationStation.proceduralJobsRuleset.inputCargoGroups;
-            var countTrainCars = rng.Next(
-                destinationStation.proceduralJobsRuleset.minCarsPerJob,
-                destinationStation.proceduralJobsRuleset.maxCarsPerJob);
-
-            if (forceLicenseReqs) {
-                Main._modEntry.Logger.Log("unload: forcing license requirements");
-                if (!LicenseManager.Instance.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
-                    Debug.LogError("[PersistentJobs] unload: Trying to generate a ShuntingUnload job with " +
-                        "forceLicenseReqs=true should never happen if player doesn't have Shunting license!");
-                    return null;
-                }
-                availableCargoGroups
-                    = (from cg in availableCargoGroups
-                        where LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))
-                        select cg).ToList();
-                countTrainCars
-                    = Math.Min(countTrainCars, LicenseManager.Instance.GetMaxNumberOfCarsPerJobWithAcquiredJobLicenses());
-            }
-            if (availableCargoGroups.Count == 0) {
-                Debug.LogWarning("[PersistentJobs] unload: no available cargo groups");
-                return null;
-            }
-
-            var chosenCargoGroup = Utilities.GetRandomFromEnumerable(availableCargoGroups, rng);
-
-            // choose cargo & trainCar types
-            Main._modEntry.Logger.Log("unload: choosing cargo & trainCar types");
-            var availableCargoTypes = chosenCargoGroup.cargoTypes;
-            var orderedCargoTypes = new List<CargoType>();
-            var orderedTrainCarLiveries = new List<TrainCarLivery>();
-            for (var i = 0; i < countTrainCars; i++) {
-                var chosenCargoType = Utilities.GetRandomFromEnumerable(availableCargoTypes, rng);
-                var availableTrainCarTypes = Globals.G.Types.CargoToLoadableCarTypes[chosenCargoType.ToV2()];
-                var chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
-                var chosenTrainCarLivery = Utilities.GetRandomFromEnumerable(chosenTrainCarType.liveries, rng);
-                //List<CargoContainerType> availableContainers
-                //    = CargoTypes.GetCarContainerTypesThatSupportCargoType(chosenCargoType);
-                //CargoContainerType chosenContainerType = Utilities.GetRandomFromEnumerable(availableContainers, rng);
-                //List<TrainCarType> availableTrainCarTypes
-                //    = CargoTypes.GetTrainCarTypesThatAreSpecificContainerType(chosenContainerType);
-                //TrainCarType chosenTrainCarType = Utilities.GetRandomFromEnumerable(availableTrainCarTypes, rng);
-                orderedCargoTypes.Add(chosenCargoType);
-                orderedTrainCarLiveries.Add(chosenTrainCarLivery);
-            }
-            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(orderedTrainCarLiveries, true);
-
-            // choose starting track
-            Main._modEntry.Logger.Log("unload: choosing starting track");
-            var startingTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, new Random());
-            if (startingTrack == null) {
-                Debug.LogWarning("[PersistentJobs] unload: Couldn't find startingTrack with enough free space for train!");
-                return null;
-            }
-
-            // choose random starting station
-            // no need to ensure it has has free space; this is just a back story
-            Main._modEntry.Logger.Log("unload: choosing origin (inconsequential)");
-            var availableOrigins = new List<StationController>(chosenCargoGroup.stations);
-            var startingStation = Utilities.GetRandomFromEnumerable(availableOrigins, rng);
-
-            // spawn trainCars
-            Main._modEntry.Logger.Log("unload: spawning trainCars");
-            var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
-            var carOrientations = Enumerable.Range(0, orderedTrainCarLiveries.Count).Select(_ => rng.Next(2) > 0).ToList();
-            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrack(
-                orderedTrainCarLiveries,
-                carOrientations,
-                railTrack,
-                true,
-                true,
-                0.0,
-                false,
-                false);
-            if (orderedTrainCars == null) {
-                Debug.LogWarning("[PersistentJobs] unload: Failed to spawn trainCars!");
-                return null;
-            }
-
-            var jcc = GenerateShuntingUnloadJobWithExistingCars(
-                startingStation,
-                startingTrack,
-                destinationStation,
-                orderedTrainCars,
-                orderedCargoTypes,
-                rng,
-                true);
-
-            if (jcc == null) {
-                Debug.LogWarning("[PersistentJobs] unload: Couldn't generate job chain. Deleting spawned trainCars!");
-                SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
-                return null;
-            }
-
-            return jcc;
-        }
-
         public static JobChainControllerWithEmptyHaulGeneration GenerateShuntingUnloadJobWithExistingCars(StationController startingStation,
             Track startingTrack,
             StationController destinationStation,

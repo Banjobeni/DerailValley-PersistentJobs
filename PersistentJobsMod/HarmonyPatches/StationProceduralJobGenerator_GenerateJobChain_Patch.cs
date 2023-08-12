@@ -60,10 +60,6 @@ namespace PersistentJobsMod.HarmonyPatches {
             if (generationRuleset.haulStartingJobSupported && unoccuppiedTransferOutTracks > 0) {
                 allowedJobTypes.Add(JobType.Transport);
             }
-            ////var unoccuppiedAndUnreservedTransferInTracks = yardTracksOrganizer.FilterOutReservedTracks(yardTracksOrganizer.FilterOutOccupiedTracks(yard.TransferInTracks)).Count;
-            ////if (generationRuleset.unloadStartingJobSupported && unoccuppiedAndUnreservedTransferInTracks > 0) {
-            ////    allowedJobTypes.Add(JobType.ShuntingUnload);
-            ////}
 
             if (allowedJobTypes.Count == 0) {
                 return null;
@@ -90,13 +86,6 @@ namespace PersistentJobsMod.HarmonyPatches {
                         return shuntingLoadJob;
                     }
                 }
-                ////if (allowedJobTypes.Contains(JobType.ShuntingUnload) && licenseManager.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
-                ////    return null;
-                ////    JobChainController inChainJob = this.GenerateInChainJob(JobType.ShuntingUnload, true);
-                ////    if (inChainJob != null) {
-                ////        return inChainJob;
-                ////    }
-                ////}
                 return null;
             }
 
@@ -111,8 +100,6 @@ namespace PersistentJobsMod.HarmonyPatches {
                     return GenerateAndFinalizeShuntingLoadJob(stationController, false, random);
                 } else if (jobType == JobType.EmptyHaul) {
                     return GenerateAndFinalizeEmptyHaulJob(stationController, false, random);
-                    ////} else if (jobType == JobType.ShuntingUnload) {
-                    ////    // nothing
                 }
             }
             return null;
@@ -120,7 +107,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static JobChainController GenerateAndFinalizeShuntingLoadJob(StationController stationController, bool requirePlayerLicensesCompatible, Random random) {
             Main._modEntry.Logger.Log("trying to generate SL job");
-            var result = ShuntingLoadJobProceduralGenerator.GenerateShuntingLoadJobWithCarSpawning(stationController, requirePlayerLicensesCompatible, random);
+            var result = ShuntingLoadJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
                 Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
@@ -130,7 +117,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static JobChainController GenerateAndFinalizeTransportJob(StationController stationController, bool requirePlayerLicensesCompatible, Random random) {
             Main._modEntry.Logger.Log("trying to generate FH job");
-            var result = TransportJobProceduralGenerator.GenerateTransportJobWithCarSpawning(stationController, requirePlayerLicensesCompatible, random);
+            var result = TransportJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
                 Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
@@ -140,7 +127,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static JobChainController GenerateAndFinalizeEmptyHaulJob(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
             Main._modEntry.Logger.Log("trying to generate LH job");
-            var result = EmptyHaulJobWithCarsGenerator.TryGenerateJobChain(startingStation, requirePlayerLicensesCompatible, random);
+            var result = EmptyHaulJobWithCarsGenerator.TryGenerateJobChainController(startingStation, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
                 Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
