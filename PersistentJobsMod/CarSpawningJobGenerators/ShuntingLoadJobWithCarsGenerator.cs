@@ -66,7 +66,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 return null;
             }
 
-            var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, random);
+            var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, startingStation.logicStation.yard.StorageTracks.Count, random);
 
             // choose starting tracks
             var startingTracksWithCargoLiveryCars = TryFindActualStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoCarGroupsForTracks, random);
@@ -127,9 +127,9 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             return jcc;
         }
 
-        private static List<CargoCarGroupForTrack> DistributeCargoCarGroupsToTracks(List<CargoCarGroup> cargoCarGroups, int stationRulesetMaxTrackCount, Random random) {
+        private static List<CargoCarGroupForTrack> DistributeCargoCarGroupsToTracks(List<CargoCarGroup> cargoCarGroups, int stationRulesetMaxTrackCount, int numberOfStorageTracks, Random random) {
             var totalCarCount = cargoCarGroups.Select(ccg => ccg.CarLiveries.Count).Sum();
-            var maximumTracksCount = Math.Min(stationRulesetMaxTrackCount, GetMaxTracksForCarCount(totalCarCount));
+            var maximumTracksCount = Math.Min(Math.Min(stationRulesetMaxTrackCount, GetMaxTracksForCarCount(totalCarCount)), numberOfStorageTracks);
 
             var desiredTracksCount = random.Next(1, maximumTracksCount + 1);
 
