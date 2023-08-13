@@ -34,7 +34,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
         public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, System.Random random) {
             Main._modEntry.Logger.Log($"{nameof(ShuntingLoadJobWithCarsGenerator)}: trying to generate job at {startingStation.logicStation.ID}");
-            System.Console.WriteLine("Test");
+
             var yardTracksOrganizer = YardTracksOrganizer.Instance;
 
             var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, forceLicenseReqs, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cargo, random);
@@ -71,7 +71,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // choose starting tracks
             var startingTracksWithCargoLiveryCars = TryFindActualStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoCarGroupsForTracks, random);
             if (startingTracksWithCargoLiveryCars == null) {
-                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find startingTrack with enough free space for train!");
+                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find starting tracks with enough free space for train!");
                 return null;
             }
 

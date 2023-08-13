@@ -32,6 +32,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, requiredTrainLength);
 
             if (!tracks.Any()) {
+                Main._modEntry.Logger.Log("logistical haul: Couldn't find starting track with enough free space for train!");
                 return null;
             }
 

@@ -1,50 +1,72 @@
 ﻿using System;
-using DV.ThingTypes.TransitionHelpers;
+using System.Collections;
 using System.Collections.Generic;
-using DV.ThingTypes;
-using HarmonyLib;
-using UnityEngine;
 using DV.Logic.Job;
+using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
+using DV.Utils;
+using HarmonyLib;
 using JetBrains.Annotations;
-using Random = System.Random;
 using PersistentJobsMod.CarSpawningJobGenerators;
+using UnityEngine;
+using Random = System.Random;
 
 namespace PersistentJobsMod.HarmonyPatches {
-    [HarmonyPatch(typeof(StationProceduralJobGenerator), nameof(StationProceduralJobGenerator.GenerateJobChain))]
-    // ReSharper disable once InconsistentNaming
-    public static class StationProceduralJobGenerator_GenerateJobChain_Patch {
-        [UsedImplicitly]
-        public static bool Prefix(
-                ref JobChainController __result,
-                StationProceduralJobsRuleset ___generationRuleset,
-                StationController ___stationController,
-                LicenseManager ___licenseManager,
-                Yard ___stYard,
-                YardTracksOrganizer ___yto,
-                Random rng,
-                bool forceJobWithLicenseRequirementFulfilled) {
+    [UsedImplicitly]
+    [HarmonyPatch(typeof(StationProceduralJobsController))]
+    public static class StationProceduralJobsController_Patch {
+        [HarmonyPatch(nameof(StationProceduralJobsController.TryToGenerateJobs))]
+        [HarmonyPrefix]
+        static bool TryToGenerateJobs_Prefix(StationProceduralJobsController __instance, StationProceduralJobsRuleset ___generationRuleset, ref Coroutine ___generationCoro) {
             if (!Main._modEntry.Active) {
                 return true;
-            } else {
-                Main._modEntry.Logger.Log("StationProceduralJobGenerator_GenerateJobChain_Patch");
-                try {
-                    __result = GenerateJobChain(___generationRuleset, ___stationController, ___licenseManager, ___stYard, ___yto, rng, forceJobWithLicenseRequirementFulfilled);
-                } catch (Exception e) {
-                    Main._modEntry.Logger.Error($"Exception thrown during {nameof(StationProceduralJobGenerator_GenerateJobChain_Patch)} {nameof(Prefix)} patch:\n{e}");
-                    Main.OnCriticalFailure();
-                }
-                return false;
             }
+
+            if (!Main.StationIdSpawnBlockList.Contains(__instance.stationController.logicStation.ID)) {
+                Main.StationIdSpawnBlockList.Add(__instance.stationController.logicStation.ID);
+
+                __instance.StopJobGeneration();
+                ___generationCoro = __instance.StartCoroutine(GenerateProceduralJobsCoroutine(__instance, ___generationRuleset));
+            }
+
+            return false;
         }
 
-        private static JobChainController GenerateJobChain(
-            StationProceduralJobsRuleset generationRuleset,
-                StationController stationController,
-                LicenseManager licenseManager,
-                Yard yard,
-                YardTracksOrganizer yardTracksOrganizer,
-                Random random,
-                bool forceJobWithLicenseRequirementFulfilled) {
+        private static IEnumerator GenerateProceduralJobsCoroutine(StationProceduralJobsController instance, StationProceduralJobsRuleset stationProceduralJobsRuleset) {
+            var generateJobsAttempts = 0;
+            var forcePlayerLicensedJobGeneration = true;
+            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation started. At most {stationProceduralJobsRuleset.jobsCapacity} job chains will be generated.");
+            while (instance.stationController.logicStation.availableJobs.Count < stationProceduralJobsRuleset.jobsCapacity && generateJobsAttempts < 30) {
+                yield return WaitFor.FixedUpdate;
+                if (generateJobsAttempts > 10 & forcePlayerLicensedJobGeneration) {
+                    Main._modEntry.Logger.Log("Couldn't generate any player licensed job");
+                    forcePlayerLicensedJobGeneration = false;
+                }
+                var tickCount = Environment.TickCount;
+                var jobChain = GenerateJobChain(stationProceduralJobsRuleset, instance.stationController, new Random(tickCount), forcePlayerLicensedJobGeneration);
+                var generationAttempt = (Action)Traverse.Create(instance).Field("JobGenerationAttempt").GetValue();
+                generationAttempt?.Invoke();
+                if (jobChain != null) {
+                    if (forcePlayerLicensedJobGeneration) {
+                        forcePlayerLicensedJobGeneration = false;
+                    }
+                    Main._modEntry.Logger.Log($"Generated job {jobChain.currentJobInChain.ID} (rng seed: {tickCount})");
+                    for (var i = 0; i < 12; ++i) {
+                        yield return null;
+                    }
+                } else {
+                    ++generateJobsAttempts;
+                    yield return null;
+                }
+            }
+
+            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation ended. {instance.stationController.logicStation.availableJobs.Count} jobs were generated with {generateJobsAttempts} job generation attempts");
+
+            Traverse.Create(instance).Field("generationCoro").SetValue(null);
+        }
+
+        private static JobChainController GenerateJobChain(StationProceduralJobsRuleset generationRuleset, StationController stationController, Random random, bool forceJobWithLicenseRequirementFulfilled) {
+            Yard yard = stationController.logicStation.yard;
             if (!generationRuleset.loadStartingJobSupported && !generationRuleset.haulStartingJobSupported && !generationRuleset.unloadStartingJobSupported && !generationRuleset.emptyHaulStartingJobSupported) {
                 return null;
             }
@@ -56,7 +78,7 @@ namespace PersistentJobsMod.HarmonyPatches {
             if (generationRuleset.emptyHaulStartingJobSupported) {
                 allowedJobTypes.Add(JobType.EmptyHaul);
             }
-            var unoccuppiedTransferOutTracks = yardTracksOrganizer.FilterOutOccupiedTracks(yard.TransferOutTracks).Count;
+            var unoccuppiedTransferOutTracks = SingletonBehaviour<YardTracksOrganizer>.Instance.FilterOutOccupiedTracks(yard.TransferOutTracks).Count;
             if (generationRuleset.haulStartingJobSupported && unoccuppiedTransferOutTracks > 0) {
                 allowedJobTypes.Add(JobType.Transport);
             }
@@ -64,6 +86,8 @@ namespace PersistentJobsMod.HarmonyPatches {
             if (allowedJobTypes.Count == 0) {
                 return null;
             }
+
+            var licenseManager = SingletonBehaviour<LicenseManager>.Instance;
 
             if (forceJobWithLicenseRequirementFulfilled) {
                 // generate a job that the player can actually take. this flag will not be set after the first licensable job was successfully generated.
@@ -110,7 +134,6 @@ namespace PersistentJobsMod.HarmonyPatches {
             var result = ShuntingLoadJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
-                Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
             }
             return result;
         }
@@ -120,7 +143,6 @@ namespace PersistentJobsMod.HarmonyPatches {
             var result = TransportJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
-                Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
             }
             return result;
         }
@@ -130,7 +152,6 @@ namespace PersistentJobsMod.HarmonyPatches {
             var result = EmptyHaulJobWithCarsGenerator.TryGenerateJobChainController(startingStation, requirePlayerLicensesCompatible, random);
             if (result != null) {
                 result.FinalizeSetupAndGenerateFirstJob();
-                Main._modEntry.Logger.Log($"Generated job {result.currentJobInChain?.ID}");
             }
             return result;
         }
