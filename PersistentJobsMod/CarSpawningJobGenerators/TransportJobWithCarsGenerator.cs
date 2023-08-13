@@ -25,11 +25,11 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var trainCarLiveries = cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList();
 
-            var requiredTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
+            var totalTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
 
             var trackCandidates = startingStation.logicStation.yard.TransferOutTracks.Where(t => t.IsFree()).ToList();
 
-            var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, requiredTrainLength);
+            var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, totalTrainLength);
 
             if (!tracks.Any()) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
@@ -42,7 +42,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // choose random destination station that has at least 1 available track
             Main._modEntry.Logger.Log("transport: choosing destination");
 
-            var destinationStation = random.GetRandomPermutation(chosenCargoGroup.stations).FirstOrDefault(ds => yardTracksOrganizer.FilterOutTracksWithoutRequiredFreeSpace(ds.logicStation.yard.TransferInTracks, requiredTrainLength).Any(t => t.IsFree()));
+            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, yardTracksOrganizer, totalTrainLength, cargoCarGroups.Select(ccg => ccg.CargoType).ToList(), random);
 
             if (destinationStation == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");

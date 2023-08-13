@@ -33,7 +33,8 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
         }
 
         public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, System.Random random) {
-            Main._modEntry.Logger.Log("load: generating with car spawning");
+            Main._modEntry.Logger.Log($"{nameof(ShuntingLoadJobWithCarsGenerator)}: trying to generate job at {startingStation.logicStation.ID}");
+            System.Console.WriteLine("Test");
             var yardTracksOrganizer = YardTracksOrganizer.Instance;
 
             var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, forceLicenseReqs, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cargo, random);
@@ -49,6 +50,22 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup, carCount, random);
 
+            var totalTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList(), true);
+
+            var distinctCargoTypes = cargoCarGroups.Select(cg => cg.CargoType).Distinct().ToList();
+
+            var startingStationWarehouseMachines = startingStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(distinctCargoTypes);
+            if (startingStationWarehouseMachines.Count == 0) {
+                UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
+                return null;
+            }
+
+            var startingStationWarehouseMachine = startingStationWarehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.length > totalTrainLength);
+            if (startingStationWarehouseMachine == null) {
+                UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that is long enough for the train!");
+                return null;
+            }
+
             var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, random);
 
             // choose starting tracks
@@ -61,9 +78,9 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var cargoTypeLiveryCars = startingTracksWithCargoLiveryCars.SelectMany(trackCars => trackCars.CargoLiveryCars).ToList();
 
             // choose random destination station that has at least 1 available track
-            var destinationStation = ChooseDestinationStationHavingFreeTrack(chosenCargoGroup.stations, cargoTypeLiveryCars, yardTracksOrganizer, random);
+            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, yardTracksOrganizer, totalTrainLength, distinctCargoTypes, random);
             if (destinationStation == null) {
-                UnityEngine.Debug.LogWarning("Couldn't find a station with enough free space for train!");
+                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find a compatible station with enough free space for train!");
                 return null;
             }
 
@@ -162,28 +179,6 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             } else {
                 return 3;
             }
-        }
-        private static StationController ChooseDestinationStationHavingFreeTrack(List<StationController> destinationStations, List<CargoTypeLiveryCar> cargoTypeLiveryCars, YardTracksOrganizer yardTracksOrganizer, Random rng) {
-            Main._modEntry.Logger.Log("load: choosing destination");
-
-            var trainCarLiveries = cargoTypeLiveryCars.Select(ctlc => ctlc.TrainCarLivery).ToList();
-            var approxTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
-
-            var availableDestinations = destinationStations.ToList();
-
-            while (availableDestinations.Count > 0) {
-                var station = Utilities.GetRandomFromEnumerable(availableDestinations, rng);
-
-                availableDestinations.Remove(station);
-
-                var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yardTracksOrganizer, yardTracksOrganizer.FilterOutOccupiedTracks(station.logicStation.yard.TransferInTracks), approxTrainLength, rng);
-
-                if (destinationTrack != null) {
-                    return station;
-                }
-            }
-
-            return null;
         }
 
         private static List<(Track Track, List<CargoTypeLiveryCar> CargoLiveryCars)> TryFindActualStartingTracksOrNull(StationController startingStation, YardTracksOrganizer yardTracksOrganizer, List<CargoCarGroupForTrack> carGroupsOnTracks, Random random) {
