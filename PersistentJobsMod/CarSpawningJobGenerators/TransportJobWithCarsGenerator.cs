@@ -42,7 +42,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // choose random destination station that has at least 1 available track
             Main._modEntry.Logger.Log("transport: choosing destination");
 
-            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, yardTracksOrganizer, totalTrainLength, cargoCarGroups.Select(ccg => ccg.CargoType).ToList(), random);
+            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, totalTrainLength, cargoCarGroups.Select(ccg => ccg.CargoType).ToList(), random);
 
             if (destinationStation == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");

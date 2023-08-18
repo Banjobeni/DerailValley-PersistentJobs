@@ -60,7 +60,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 return null;
             }
 
-            var startingStationWarehouseMachine = startingStationWarehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.length > totalTrainLength);
+            var startingStationWarehouseMachine = startingStationWarehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.GetTotalUsableTrackLength() > totalTrainLength);
             if (startingStationWarehouseMachine == null) {
                 UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that is long enough for the train!");
                 return null;
@@ -78,7 +78,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var cargoTypeLiveryCars = startingTracksWithCargoLiveryCars.SelectMany(trackCars => trackCars.CargoLiveryCars).ToList();
 
             // choose random destination station that has at least 1 available track
-            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, yardTracksOrganizer, totalTrainLength, distinctCargoTypes, random);
+            var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, totalTrainLength, distinctCargoTypes, random);
             if (destinationStation == null) {
                 UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find a compatible station with enough free space for train!");
                 return null;
