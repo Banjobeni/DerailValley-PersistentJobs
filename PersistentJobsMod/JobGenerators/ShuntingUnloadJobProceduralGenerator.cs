@@ -1,20 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using UnityEngine;
 using Random = System.Random;
 
-namespace PersistentJobsMod {
+namespace PersistentJobsMod.JobGenerators {
     static class ShuntingUnloadJobProceduralGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration GenerateShuntingUnloadJobWithExistingCars(StationController startingStation,
-            Track startingTrack,
-            StationController destinationStation,
-            List<TrainCar> trainCars,
-            List<CargoType> transportedCargoPerCar,
-            System.Random rng,
-            bool forceCorrectCargoStateOnCars = false) {
+        public static JobChainController TryGenerateJobChainController(
+                StationController startingStation,
+                Track startingTrack,
+                StationController destinationStation,
+                List<TrainCar> trainCars,
+                List<CargoType> transportedCargoPerCar,
+                System.Random rng,
+                bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log("unload: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
@@ -101,7 +102,7 @@ namespace PersistentJobsMod {
                 requiredLicenses);
         }
 
-        private static JobChainControllerWithEmptyHaulGeneration GenerateShuntingUnloadChainController(StationController startingStation,
+        private static JobChainController GenerateShuntingUnloadChainController(StationController startingStation,
             Track startingTrack,
             WarehouseMachine unloadMachine,
             StationController destinationStation,
@@ -117,7 +118,7 @@ namespace PersistentJobsMod {
             var gameObject = new GameObject($"ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}");
             gameObject.transform.SetParent(destinationStation.transform);
             var jobChainController
-                = new JobChainControllerWithEmptyHaulGeneration(gameObject);
+                = new JobChainController(gameObject);
             var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID);
@@ -187,7 +188,7 @@ namespace PersistentJobsMod {
                 (var ss, var st, var ds, _, _) = definition;
                 (_, _, _, var tcs, var cts) = definition;
 
-                return (JobChainController)GenerateShuntingUnloadJobWithExistingCars(
+                return (JobChainController)TryGenerateJobChainController(
                     ss,
                     st,
                     ds,

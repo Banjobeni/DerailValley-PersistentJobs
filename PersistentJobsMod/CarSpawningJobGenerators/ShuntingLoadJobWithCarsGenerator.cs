@@ -32,7 +32,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             }
         }
 
-        public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, System.Random random) {
+        public static JobChainController TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, System.Random random) {
             Main._modEntry.Logger.Log($"{nameof(ShuntingLoadJobWithCarsGenerator)}: trying to generate job at {startingStation.logicStation.ID}");
 
             var yardTracksOrganizer = YardTracksOrganizer.Instance;

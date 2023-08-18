@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class TransportJobWithCarsGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation, bool requirePlayerLicensesCompatible, System.Random random) {
+        public static JobChainController TryGenerateJobChainController(StationController startingStation, bool requirePlayerLicensesCompatible, System.Random random) {
             Main._modEntry.Logger.Log("transport: generating with car spawning");
             var yardTracksOrganizer = YardTracksOrganizer.Instance;
 

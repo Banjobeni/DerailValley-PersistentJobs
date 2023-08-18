@@ -8,7 +8,7 @@ using Random = System.Random;
 
 namespace PersistentJobsMod.JobGenerators {
     static class ShuntingLoadJobGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(
+        public static JobChainController TryGenerateJobChainController(
                 StationController startingStation,
                 List<CarsPerTrack> carsPerStartingTrack,
                 StationController destStation,
@@ -75,7 +75,7 @@ namespace PersistentJobsMod.JobGenerators {
             );
         }
 
-        private static JobChainControllerWithEmptyHaulGeneration GenerateShuntingLoadChainController(StationController startingStation,
+        private static JobChainController GenerateShuntingLoadChainController(StationController startingStation,
             List<CarsPerTrack> carsPerStartingTrack,
             WarehouseMachine loadMachine,
             StationController destStation,
@@ -91,7 +91,7 @@ namespace PersistentJobsMod.JobGenerators {
             var gameObject = new GameObject($"ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
             gameObject.transform.SetParent(startingStation.transform);
             var jobChainController
-                = new JobChainControllerWithEmptyHaulGeneration(gameObject);
+                = new JobChainController(gameObject);
             var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
                 destStation.stationInfo.YardID

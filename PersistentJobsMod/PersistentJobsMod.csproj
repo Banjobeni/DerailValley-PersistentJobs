@@ -101,7 +101,7 @@
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="Extensions\TrackExtension.cs" />
-    <Compile Include="HarmonyPatches\JobChainControllerWithEmptyHaulGeneration_OnLastJobInChainCompleted_Patch.cs" />
+    <Compile Include="HarmonyPatches\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainController_ReserveRequiredTracks_Patch.cs" />
     <Compile Include="HarmonyPatches\UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
@@ -119,7 +119,7 @@
     <Compile Include="HarmonyPatches\StationJobGenerationRange_AllMethods_Patch.cs" />
     <Compile Include="HarmonyPatches\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
-    <Compile Include="ShuntingUnloadJobProceduralGenerator.cs" />
+    <Compile Include="JobGenerators\ShuntingUnloadJobProceduralGenerator.cs" />
     <Compile Include="UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>

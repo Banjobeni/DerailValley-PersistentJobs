@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
     static class TransportJobGenerator {
-        public static JobChainControllerWithEmptyHaulGeneration TryGenerateJobChainController(StationController startingStation,
+        public static JobChainController TryGenerateJobChainController(StationController startingStation,
             Track startingTrack,
             StationController destStation,
             List<TrainCar> trainCars,
@@ -60,7 +60,7 @@ namespace PersistentJobsMod.JobGenerators {
             );
         }
 
-        private static JobChainControllerWithEmptyHaulGeneration GenerateTransportChainController(StationController startingStation,
+        private static JobChainController GenerateTransportChainController(StationController startingStation,
             Track startingTrack,
             StationController destStation,
             Track destTrack,
@@ -75,7 +75,7 @@ namespace PersistentJobsMod.JobGenerators {
             var gameObject = new GameObject($"ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
             gameObject.transform.SetParent(startingStation.transform);
             var jobChainController
-                = new JobChainControllerWithEmptyHaulGeneration(gameObject);
+                = new JobChainController(gameObject);
             var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
                 destStation.stationInfo.YardID
