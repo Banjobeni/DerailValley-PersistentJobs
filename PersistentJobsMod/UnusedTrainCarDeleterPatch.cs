@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using DV;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
@@ -16,8 +15,7 @@ namespace PersistentJobsMod {
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), "InstantConditionalDeleteOfUnusedCars")]
         class UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch {
             static bool Prefix(UnusedTrainCarDeleter __instance,
-                List<TrainCar> ___unusedTrainCarsMarkedForDelete,
-                Dictionary<TrainCar, CarVisitChecker> ___carVisitCheckersMap) {
+                List<TrainCar> ___unusedTrainCarsMarkedForDelete) {
                 if (Main._modEntry.Active) {
                     try {
                         if (___unusedTrainCarsMarkedForDelete.Count == 0) {
@@ -213,7 +211,6 @@ namespace PersistentJobsMod {
                         Main._modEntry.Logger.Log("deleting cars...");
                         foreach (var tc in trainCarsToDelete) {
                             ___unusedTrainCarsMarkedForDelete.Remove(tc);
-                            ___carVisitCheckersMap.Remove(tc);
                         }
                         SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(trainCarsToDelete, true);
                         Main._modEntry.Logger.Log($"deleted {trainCarsToDelete.Count} cars");
