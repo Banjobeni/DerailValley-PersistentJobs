@@ -6,7 +6,7 @@ using Newtonsoft.Json.Linq;
 namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
     [HarmonyPatch(typeof(CarsSaveManager), "Load")]
-    class SaveGameManager_Load_Patch {
+    class CarsSaveManager_Load_Patch {
         static void Postfix() {
             try {
                 var saveData = SaveGameManager.Instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);

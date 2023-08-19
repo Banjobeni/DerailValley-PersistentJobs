@@ -103,6 +103,7 @@
     <Compile Include="Extensions\TrackExtension.cs" />
     <Compile Include="HarmonyPatches\JobChainControllerWithEmptyHaulGeneration_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainController_ReserveRequiredTracks_Patch.cs" />
+    <Compile Include="HarmonyPatches\UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
     <Compile Include="HarmonyPatches\JobSaveManager_LoadJobChain_Patch.cs" />
     <Compile Include="HarmonyPatches\JobValidator_ProcessJobOverview_Patch.cs" />
@@ -111,7 +112,7 @@
     <Compile Include="HarmonyPatches\Patches_PassengerJobsMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SaveDataConstants.cs" />
-    <Compile Include="HarmonyPatches\SaveGameManager_Load_Patch.cs" />
+    <Compile Include="HarmonyPatches\CarsSaveManager_Load_Patch.cs" />
     <Compile Include="HarmonyPatches\SaveGameManager_Save_Patch.cs" />
     <Compile Include="JobGenerators\ShuntingLoadJobGenerator.cs" />
     <Compile Include="HarmonyPatches\StationController_ExpireAllAvailableJobsInStation_Patch.cs" />
