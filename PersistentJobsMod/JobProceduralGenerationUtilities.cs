@@ -27,7 +27,7 @@ namespace PersistentJobsMod {
             var cgsPerTcsPerSc
                 = new Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>>();
             var abandonmentThreshold = 1.2f * Main.DVJobDestroyDistanceRegular;
-            Main._modEntry.Logger.Log("station grouping: # of trainSets: {trainCarsPerTrainSet.Values.Count}, # of stations: {stationControllers.Count()}");
+            Main._modEntry.Logger.Log($"station grouping: # of trainSets: {trainCarsPerTrainSet.Values.Count}, # of stations: {stationControllers.Count()}");
             foreach (var tcs in trainCarsPerTrainSet.Values) {
                 var stationsByDistance
                     = new SortedList<float, StationController>();
@@ -60,7 +60,7 @@ namespace PersistentJobsMod {
                 if (!cgsPerTcsPerSc.ContainsKey(closestStation.Value)) {
                     cgsPerTcsPerSc.Add(closestStation.Value, new List<(List<TrainCar>, List<CargoGroup>)>());
                 }
-                Main._modEntry.Logger.Log("station grouping: assigning train to {closestStation.Value} with distance {closestStation.Key:F}");
+                Main._modEntry.Logger.Log($"station grouping: assigning train to {closestStation.Value} with distance {closestStation.Key:F}");
                 cgsPerTcsPerSc[closestStation.Value].Add((tcs, new List<CargoGroup>()));
             }
             return cgsPerTcsPerSc;

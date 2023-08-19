@@ -10,35 +10,44 @@ using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
 
 namespace PersistentJobsMod {
-    static class UnusedTrainCarDeleterPatch {
-        // override/replacement for UnusedTrainCarDeleter.TrainCarsDeleteCheck coroutine
-        // tries to generate new jobs for the train cars marked for deletion
-        public static IEnumerator TrainCarsCreateJobOrDeleteCheck(float period, float interopPeriod) {
-            List<TrainCar> trainCarsToDelete = null;
-            List<TrainCar> trainCarCandidatesForDelete = null;
-            Traverse unusedTrainCarDeleterTraverser = null;
-            List<TrainCar> unusedTrainCarsMarkedForDelete = null;
-            Dictionary<TrainCar, DV.CarVisitChecker> carVisitCheckersMap = null;
-            Traverse AreDeleteConditionsFulfilledMethod = null;
-            try {
-                trainCarsToDelete = new List<TrainCar>();
-                trainCarCandidatesForDelete = new List<TrainCar>();
-                unusedTrainCarDeleterTraverser = Traverse.Create(SingletonBehaviour<UnusedTrainCarDeleter>.Instance);
-                unusedTrainCarsMarkedForDelete = unusedTrainCarDeleterTraverser
-                    .Field("unusedTrainCarsMarkedForDelete")
-                    .GetValue<List<TrainCar>>();
-                carVisitCheckersMap = unusedTrainCarDeleterTraverser
-                    .Field("carVisitCheckersMap")
-                    .GetValue<Dictionary<TrainCar, DV.CarVisitChecker>>();
-                AreDeleteConditionsFulfilledMethod
-                    = unusedTrainCarDeleterTraverser.Method("AreDeleteConditionsFulfilled", new Type[] { typeof(TrainCar) });
-            } catch (Exception e) {
-                Main._modEntry.Logger.Error(
-                    $"Exception thrown during TrainCarsCreateJobOrDeleteCheck setup:\n{e.ToString()}");
-                Main.OnCriticalFailure();
+    // override/replacement for UnusedTrainCarDeleter.TrainCarsDeleteCheck coroutine
+    // tries to generate new jobs for the train cars marked for deletion
+    [HarmonyPatch]
+    public static class UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch {
+#if DEBUG
+        private const float COROUTINE_INTERVAL = 60f;
+#else
+        private const float COROUTINE_INTERVAL = 5f * 60f;
+#endif
+        [HarmonyPatch(typeof(UnusedTrainCarDeleter), "TrainCarsDeleteCheck")]
+        [HarmonyPrefix]
+        public static bool TrainCarsDeleteCheck_Prefix(
+                UnusedTrainCarDeleter __instance,
+                float period,
+                ref IEnumerator __result,
+                List<TrainCar> ___unusedTrainCarsMarkedForDelete) {
+            if (!Main._modEntry.Active) {
+                return true;
+            } else {
+                Main._modEntry.Logger.Log("UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch taking Prefix");
+
+                __result = TrainCarsCreateJobOrDeleteCheck(__instance, COROUTINE_INTERVAL, period, ___unusedTrainCarsMarkedForDelete);
+                return false;
             }
-            for (;;) {
-                yield return WaitFor.SecondsRealtime(period);
+        }
+
+        [HarmonyReversePatch]
+        [HarmonyPatch(typeof(UnusedTrainCarDeleter), "AreDeleteConditionsFulfilled")]
+        private static bool AreDeleteConditionsFulfilled(UnusedTrainCarDeleter instance, TrainCar trainCar) {
+            throw new NotImplementedException("This is a stub");
+        }
+
+        private static IEnumerator TrainCarsCreateJobOrDeleteCheck(UnusedTrainCarDeleter unusedTrainCarDeleter, float interval, float stagesInteropPeriod, List<TrainCar> unusedTrainCarsMarkedForDelete) {
+            var trainCarsToDelete = new List<TrainCar>();
+            var trainCarCandidatesForDelete = new List<TrainCar>();
+            
+            for (; ; ) {
+                yield return WaitFor.SecondsRealtime(interval);
 
                 try {
                     if (PlayerManager.PlayerTransform == null || FastTravelController.IsFastTravelling) {
@@ -46,9 +55,6 @@ namespace PersistentJobsMod {
                     }
 
                     if (unusedTrainCarsMarkedForDelete.Count == 0) {
-                        if (carVisitCheckersMap.Count != 0) {
-                            carVisitCheckersMap.Clear();
-                        }
                         continue;
                     }
                 } catch (Exception e) {
@@ -64,7 +70,7 @@ namespace PersistentJobsMod {
                         var trainCar = unusedTrainCarsMarkedForDelete[i];
                         if (trainCar == null) {
                             unusedTrainCarsMarkedForDelete.RemoveAt(i);
-                        } else if (AreDeleteConditionsFulfilledMethod.GetValue<bool>(trainCar)) {
+                        } else if (AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar)) {
                             unusedTrainCarsMarkedForDelete.RemoveAt(i);
                             trainCarCandidatesForDelete.Add(trainCar);
                         }
@@ -80,7 +86,7 @@ namespace PersistentJobsMod {
                     Main.OnCriticalFailure();
                 }
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // ------ BEGIN JOB GENERATION ------
                 // group trainCars by trainset
@@ -121,7 +127,7 @@ namespace PersistentJobsMod {
                     $"    {emptyTrainCarsPerTrainSet.Count} empty trainSets,\n" +
                     $"    and {loadedTrainCarsPerTrainSet.Count} loaded trainSets (coroutine)");
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // group trainCars sets by nearest stationController
                 Main._modEntry.Logger.Log("grouping trainSets by nearest station... (coroutine)");
@@ -146,7 +152,7 @@ namespace PersistentJobsMod {
                     $"    {emptyCgsPerTcsPerSc.Count} stations for empty trainSets\n," +
                     $"    and {loadedCgsPerTcsPerSc.Count} stations for loaded trainSets (coroutine)");
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // populate possible cargoGroups per group of trainCars
                 Dictionary<StationController, List<List<TrainCar>>> emptyTcsPerSc = null;
@@ -161,7 +167,7 @@ namespace PersistentJobsMod {
                     Main.OnCriticalFailure();
                 }
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // pick new jobs for the trainCars at each station
                 Main._modEntry.Logger.Log("picking jobs... (coroutine)");
@@ -211,7 +217,7 @@ namespace PersistentJobsMod {
                     $"    {shuntingUnloadJobInfos.Count} shunting unload jobs,\n" +
                     $"    and {emptyTcsPerSc.Aggregate(0, (acc, kv) => acc + kv.Value.Count)} empty haul jobs (coroutine)");
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // try to generate jobs
                 Main._modEntry.Logger.Log("generating jobs... (coroutine)");
@@ -246,7 +252,7 @@ namespace PersistentJobsMod {
                     $"    {shuntingUnloadJobChainControllers.Where(jcc => jcc != null).Count()} shunting unload jobs,\n" +
                     $"    and {emptyHaulJobChainControllers.Where(jcc => jcc != null).Count()} empty haul jobs (coroutine)");
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // finalize jobs & preserve job train cars
                 Main._modEntry.Logger.Log("finalizing jobs... (coroutine)");
@@ -309,7 +315,7 @@ namespace PersistentJobsMod {
                     Main.OnCriticalFailure();
                 }
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 // preserve all trainCars that are not locomotives
                 Main._modEntry.Logger.Log("preserving cars... (coroutine)");
@@ -330,7 +336,7 @@ namespace PersistentJobsMod {
 
                 // ------ END JOB GENERATION ------
 
-                yield return WaitFor.SecondsRealtime(interopPeriod);
+                yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 Main._modEntry.Logger.Log("deleting cars... (coroutine)");
                 try {
@@ -339,9 +345,8 @@ namespace PersistentJobsMod {
                         var trainCar2 = trainCarCandidatesForDelete[j];
                         if (trainCar2 == null) {
                             trainCarCandidatesForDelete.RemoveAt(j);
-                        } else if (AreDeleteConditionsFulfilledMethod.GetValue<bool>(trainCar2)) {
+                        } else if (AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar2)) {
                             trainCarCandidatesForDelete.RemoveAt(j);
-                            carVisitCheckersMap.Remove(trainCar2);
                             trainCarsToDelete.Add(trainCar2);
                         } else {
                             Debug.LogWarning(

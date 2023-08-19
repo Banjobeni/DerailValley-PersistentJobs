@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
-using UnityEngine;
 using UnityModManagerNet;
-using DV.Utils;
 using HarmonyLib;
 
 namespace PersistentJobsMod {
@@ -17,11 +15,6 @@ namespace PersistentJobsMod {
 
         private static bool _isModBroken = false;
 
-#if DEBUG
-        private const float PERIOD = 60f;
-#else
-		private const float PERIOD = 5f * 60f;
-#endif
         public static float DVJobDestroyDistanceRegular {
             get { return _initialDistanceRegular; }
         }
@@ -41,22 +34,7 @@ namespace PersistentJobsMod {
         }
 
         static bool OnToggle(UnityModManager.ModEntry modEntry, bool isTogglingOn) {
-            var isTogglingOff = !isTogglingOn;
-
-            if (SingletonBehaviour<UnusedTrainCarDeleter>.Instance == null) {
-                // delay initialization
-                modEntry.OnUpdate = (entry, delta) => {
-                    if (SingletonBehaviour<UnusedTrainCarDeleter>.Instance != null) {
-                        modEntry.OnUpdate = null;
-                        ReplaceCoroutine(isTogglingOn);
-                    }
-                };
-                return true;
-            } else {
-                ReplaceCoroutine(isTogglingOn);
-            }
-
-            if (isTogglingOff) {
+            if (!isTogglingOn) {
                 StationIdSpawnBlockList.Clear();
             }
 
@@ -65,26 +43,6 @@ namespace PersistentJobsMod {
             }
 
             return true;
-        }
-
-        static void ReplaceCoroutine(bool isTogglingOn) {
-            float? carsCheckPeriod = Traverse.Create(SingletonBehaviour<UnusedTrainCarDeleter>.Instance)
-                .Field("DELETE_CARS_CHECK_PERIOD")
-                .GetValue<float>();
-            if (carsCheckPeriod == null) {
-                carsCheckPeriod = 0.5f;
-            }
-            SingletonBehaviour<UnusedTrainCarDeleter>.Instance.StopAllCoroutines();
-            if (isTogglingOn && !_isModBroken) {
-                _modEntry.Logger.Log("Injected mod coroutine.");
-                SingletonBehaviour<UnusedTrainCarDeleter>.Instance
-                    .StartCoroutine(UnusedTrainCarDeleterPatch.TrainCarsCreateJobOrDeleteCheck(PERIOD, Mathf.Max(carsCheckPeriod.Value, 1.0f)));
-            } else {
-                _modEntry.Logger.Log("Restored game coroutine.");
-                SingletonBehaviour<UnusedTrainCarDeleter>.Instance.StartCoroutine(
-                    SingletonBehaviour<UnusedTrainCarDeleter>.Instance.TrainCarsDeleteCheck(carsCheckPeriod.Value)
-                );
-            }
         }
 
         ////static void PatchPassengerJobsMod(UnityModManager.ModEntry paxMod, HarmonyInstance harmony) {
