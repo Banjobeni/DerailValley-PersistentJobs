@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Reflection;
+﻿using System.Reflection;
 using UnityModManagerNet;
 using HarmonyLib;
+using PersistentJobsMod.Persistence;
 
 namespace PersistentJobsMod {
     static class Main {
@@ -9,9 +9,6 @@ namespace PersistentJobsMod {
         public static bool _overrideTrackReservation = false;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
-
-        public static List<string> StationIdSpawnBlockList = new List<string>();
-        public static List<string> StationIdPassengerBlockList = new List<string>();
 
         private static bool _isModBroken = false;
 
@@ -25,17 +22,12 @@ namespace PersistentJobsMod {
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
-            ////paxEntry = UnityModManager.FindMod("PassengerJobs");
-            ////if (paxEntry?.Active == true) {
-            ////    PatchPassengerJobsMod(paxEntry, harmony);
-            ////}
-
             modEntry.OnToggle = OnToggle;
         }
 
         static bool OnToggle(UnityModManager.ModEntry modEntry, bool isTogglingOn) {
             if (!isTogglingOn) {
-                StationIdSpawnBlockList.Clear();
+                StationIdCarSpawningPersistence.Instance.ClearStationsSpawnedCarsFlagForAllStations();
             }
 
             if (_isModBroken) {
@@ -44,36 +36,6 @@ namespace PersistentJobsMod {
 
             return true;
         }
-
-        ////static void PatchPassengerJobsMod(UnityModManager.ModEntry paxMod, HarmonyInstance harmony) {
-        ////    Main._modEntry.Logger.Log("Patching PassengerJobsMod...");
-        ////    try {
-        ////        // spawn block list handling for passenger jobs
-        ////        Type paxJobGen = paxMod.Assembly.GetType("PassengerJobsMod.PassengerJobGenerator", true);
-        ////        var StartGenAsync = AccessTools.Method(paxJobGen, "StartGenerationAsync");
-        ////        var StartGenAsyncPrefix = AccessTools.Method(typeof(PassengerJobGenerator_StartGenerationAsync_Patch), "Prefix");
-        ////        var StartGenAsyncPostfix = AccessTools.Method(typeof(PassengerJobGenerator_StartGenerationAsync_Patch), "Postfix");
-        ////        harmony.Patch(StartGenAsync, prefix: new HarmonyMethod(StartGenAsyncPrefix), postfix: new HarmonyMethod(StartGenAsyncPostfix));
-        ////        Type paxJobSettings = paxMod.Assembly.GetType("PassengerJobsMod.PJModSettings", true);
-        ////        var PurgeData = AccessTools.Method(paxJobSettings, "PurgeData");
-        ////        var PurgeDataPostfix = AccessTools.Method(typeof(PJModSettings_PurgeData_Patch), "Postfix");
-        ////        harmony.Patch(PurgeData, postfix: new HarmonyMethod(PurgeDataPostfix));
-
-        ////        // train car preservation
-        ////        Type paxCommuterCtrl = paxMod.Assembly.GetType("PassengerJobsMod.CommuterChainController", true);
-        ////        var LastJobInChainComplete_Commuter = AccessTools.Method(paxCommuterCtrl, "OnLastJobInChainCompleted");
-        ////        var ReplaceDeleteTrainCars = AccessTools.Method(typeof(CarSpawner_DeleteTrainCars_Replacer), "Transpiler");
-        ////        harmony.Patch(LastJobInChainComplete_Commuter, transpiler: new HarmonyMethod(ReplaceDeleteTrainCars));
-        ////        Type paxExpressCtrl = paxMod.Assembly.GetType("PassengerJobsMod.PassengerTransportChainController", true);
-        ////        var LastJobInChainComplete_Express = AccessTools.Method(paxExpressCtrl, "OnLastJobInChainCompleted");
-        ////        harmony.Patch(LastJobInChainComplete_Express, transpiler: new HarmonyMethod(ReplaceDeleteTrainCars));
-        ////        Type paxAbandonPatch = paxMod.Assembly.GetType("PassengerJobsMod.JCC_OnJobAbandoned_Patch");
-        ////        var OnAnyJobFromChainAbandonedPrefix = AccessTools.Method(paxAbandonPatch, "Prefix");
-        ////        harmony.Patch(OnAnyJobFromChainAbandonedPrefix, transpiler: new HarmonyMethod(ReplaceDeleteTrainCars));
-        ////    } catch (Exception e) {
-        ////        Debug.LogError($"Failed to patch PassengerJobsMod!\n{e}");
-        ////    }
-        ////}
 
         public static void OnCriticalFailure() {
             _isModBroken = true;

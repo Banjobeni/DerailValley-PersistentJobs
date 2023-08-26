@@ -8,6 +8,7 @@ using DV.Utils;
 using HarmonyLib;
 using JetBrains.Annotations;
 using PersistentJobsMod.CarSpawningJobGenerators;
+using PersistentJobsMod.Persistence;
 using UnityEngine;
 using Random = System.Random;
 
@@ -22,8 +23,10 @@ namespace PersistentJobsMod.HarmonyPatches {
                 return true;
             }
 
-            if (!Main.StationIdSpawnBlockList.Contains(__instance.stationController.logicStation.ID)) {
-                Main.StationIdSpawnBlockList.Add(__instance.stationController.logicStation.ID);
+            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(__instance.stationController)) {
+                Main._modEntry.Logger.Log($"Station {__instance.stationController.logicStation.ID} has already spawned cars, skipping jobs-with-cars generation");
+            } else {
+                StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(__instance.stationController, true);
 
                 __instance.StopJobGeneration();
                 ___generationCoro = __instance.StartCoroutine(GenerateProceduralJobsCoroutine(__instance, ___generationRuleset));

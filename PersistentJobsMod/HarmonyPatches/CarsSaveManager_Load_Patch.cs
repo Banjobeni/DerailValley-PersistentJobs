@@ -2,6 +2,7 @@
 using System.Linq;
 using HarmonyLib;
 using Newtonsoft.Json.Linq;
+using PersistentJobsMod.Persistence;
 
 namespace PersistentJobsMod.HarmonyPatches {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
@@ -20,19 +21,11 @@ namespace PersistentJobsMod.HarmonyPatches {
                 if (spawnBlockSaveData == null) {
                     Main._modEntry.Logger.Log("Not loading spawn block list: data is null.");
                 } else {
-                    Main.StationIdSpawnBlockList = spawnBlockSaveData.Select(id => (string)id).ToList();
-                    Main._modEntry.Logger.Log($"Loaded station spawn block list: [ {string.Join(", ", Main.StationIdSpawnBlockList)} ]");
-                }
-
-                var passengerBlockSaveData = (JArray)saveData[$"{SaveDataConstants.SAVE_DATA_PASSENGER_BLOCK_KEY}#{SaveDataConstants.TRACK_HASH_SAVE_KEY}"];
-                if (passengerBlockSaveData == null) {
-                    Main._modEntry.Logger.Log("Not loading passenger spawn block list: data is null.");
-                } else {
-                    Main.StationIdPassengerBlockList = passengerBlockSaveData.Select(id => (string)id).ToList();
-                    Main._modEntry.Logger.Log($"Loaded passenger spawn block list: [ {string.Join(", ", Main.StationIdPassengerBlockList)} ]");
+                    var alreadySpawnedCarsStatioinIds = spawnBlockSaveData.Select(id => (string)id).ToList();
+                    StationIdCarSpawningPersistence.Instance.HandleSavegameLoadedSpawnedStationIds(alreadySpawnedCarsStatioinIds);
+                    Main._modEntry.Logger.Log($"Loaded station spawn block list: [ {string.Join(", ", alreadySpawnedCarsStatioinIds)} ]");
                 }
             } catch (Exception e) {
-                // TODO: what to do if loading fails?
                 Main._modEntry.Logger.Warning($"Loading mod data failed with exception:\n{e}");
             }
         }
