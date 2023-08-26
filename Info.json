@@ -1,10 +1,10 @@
 {
 	"Id": "PersistentJobsMod",
 	"DisplayName": "Persistent Jobs",
-	"Author": "fauxnik",
-	"Version": "2.5.2",
+	"Author": "Banjobeni",
+	"Version": "3.0.0",
 	"AssemblyName": "PersistentJobsMod.dll",
 	"EntryMethod": "PersistentJobsMod.Main.Load",
 	"LoadAfter": [ "PassengerJobs" ],
-	"Repository": "https://raw.githubusercontent.com/fauxnik/DerailValleyPersistentJobsMod/master/Repository.json"
+	"Repository": "https://raw.githubusercontent.com/Banjobeni/DerailValley-PersistentJobs/master/Repository.json"
 }
