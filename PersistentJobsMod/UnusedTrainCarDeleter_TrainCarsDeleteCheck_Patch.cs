@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
@@ -38,6 +39,7 @@ namespace PersistentJobsMod {
 
         [HarmonyReversePatch]
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), "AreDeleteConditionsFulfilled")]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool AreDeleteConditionsFulfilled(UnusedTrainCarDeleter instance, TrainCar trainCar) {
             throw new NotImplementedException("This is a stub");
         }
