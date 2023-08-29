@@ -71,7 +71,7 @@ namespace PersistentJobsMod.JobGenerators {
             float bonusTimeLimit,
             float initialWage,
             JobLicenses requiredLicenses) {
-            Main._modEntry.Logger.Log("transport: attempting to generate ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
+            Main._modEntry.Logger.Log($"transport: attempting to generate ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
             var gameObject = new GameObject($"ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
             gameObject.transform.SetParent(startingStation.transform);
             var jobChainController

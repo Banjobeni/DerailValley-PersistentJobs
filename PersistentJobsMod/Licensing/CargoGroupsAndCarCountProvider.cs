@@ -19,7 +19,7 @@ namespace PersistentJobsMod.Licensing {
                 return (cargoGroups, trainCarCount);
             }
 
-            Main._modEntry.Logger.Log("load: forcing license requirements");
+            Main._modEntry.Logger.Log("CargoGroupsAndCarCountProvider: forcing license requirements");
 
             if (licenseKind == CargoGroupLicenseKind.Cargo) {
                 var licensedCargoGroups = cargoGroups.Where(cg => LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))).ToList();

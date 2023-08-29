@@ -32,7 +32,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var tracks = YardTracksOrganizer.Instance.FilterOutTracksWithoutRequiredFreeSpace(trackCandidates, totalTrainLength);
 
             if (!tracks.Any()) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't find startingTrack with enough free space for train!");
+                Main._modEntry.Logger.Log("transport: Couldn't find startingTrack with enough free space for train!");
                 return null;
             }
 
@@ -45,7 +45,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, totalTrainLength, cargoCarGroups.Select(ccg => ccg.CargoType).ToList(), random);
 
             if (destinationStation == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't find a station with enough free space for train!");
+                Main._modEntry.Logger.Log("transport: Couldn't find a station with enough free space for train!");
                 return null;
             }
 
@@ -54,7 +54,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
             var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, true);
             if (orderedTrainCars == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Failed to spawn trainCars!");
+                Main._modEntry.Logger.Log("transport: Failed to spawn trainCars!");
                 return null;
             }
 

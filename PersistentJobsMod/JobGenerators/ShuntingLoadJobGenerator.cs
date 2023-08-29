@@ -222,7 +222,6 @@ namespace PersistentJobsMod.JobGenerators {
                             return Utilities.GetRandomFromEnumerable<CargoType>(intersection, rng);
                         }).ToList();
 
-                    Main._modEntry.Logger.Log($"[PersistentJobs]\ntrain car types: [ {string.Join(", ", trainCarsToLoad.Select(tc => tc.carType))} ]\ncargo types: [ {string.Join(", ", cargoTypes)} ]");
 
                     // populate all the info; we'll generate the jobs later
                     jobsToGenerate.Add((

@@ -14,7 +14,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             foreach (var destination in randomizedDestinations) {
                 if (DoesStationSupportCargoTypesAndTrainLength(trainLength, distinctCargoTypes, destination)) {
                     if (!destination.logicStation.yard.TransferInTracks.Any(t => t.IsFree() && t.GetTotalUsableTrackLength() > trainLength)) {
-                        UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a free and long enough trackat  destination {destination.logicStation.ID}, skipping destination");
+                        Main._modEntry.Logger.Log($"load: Couldn't find a free and long enough track at destination {destination.logicStation.ID}, skipping destination");
                     } else {
                         return destination;
                     }
@@ -33,7 +33,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var trainLengthSupportingWarehouseMachine = warehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.GetTotalUsableTrackLength() > trainLength);
             if (trainLengthSupportingWarehouseMachine == null) {
-                UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine track at destination {destination.logicStation.ID} that is long enough, skipping destination");
+                Main._modEntry.Logger.Log($"load: Couldn't find a warehouse machine track at destination {destination.logicStation.ID} that is long enough, skipping destination");
                 return false;
             }
 

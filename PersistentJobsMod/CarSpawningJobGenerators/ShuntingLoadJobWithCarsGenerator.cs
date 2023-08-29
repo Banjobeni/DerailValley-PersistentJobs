@@ -62,7 +62,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var startingStationWarehouseMachine = startingStationWarehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.GetTotalUsableTrackLength() > totalTrainLength);
             if (startingStationWarehouseMachine == null) {
-                UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that is long enough for the train!");
+                Main._modEntry.Logger.Log($"load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that is long enough for the train!");
                 return null;
             }
 
@@ -71,7 +71,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // choose starting tracks
             var startingTracksWithCargoLiveryCars = TryFindActualStartingTracksOrNull(startingStation, yardTracksOrganizer, cargoCarGroupsForTracks, random);
             if (startingTracksWithCargoLiveryCars == null) {
-                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find starting tracks with enough free space for train!");
+                Main._modEntry.Logger.Log("load: Couldn't find starting tracks with enough free space for train!");
                 return null;
             }
 
@@ -80,7 +80,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // choose random destination station that has at least 1 available track
             var destinationStation = DestinationStationRandomizer.GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(chosenCargoGroup.stations, totalTrainLength, distinctCargoTypes, random);
             if (destinationStation == null) {
-                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't find a compatible station with enough free space for train!");
+                Main._modEntry.Logger.Log("load: Couldn't find a compatible station with enough free space for train!");
                 return null;
             }
 
