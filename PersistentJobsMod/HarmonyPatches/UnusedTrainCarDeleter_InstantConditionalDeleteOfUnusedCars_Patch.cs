@@ -208,8 +208,17 @@ namespace PersistentJobsMod.HarmonyPatches {
                     foreach (var tc in trainCarsToDelete) {
                         ___unusedTrainCarsMarkedForDelete.Remove(tc);
                     }
-                    SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(trainCarsToDelete, true);
-                    Main._modEntry.Logger.Log($"deleted {trainCarsToDelete.Count} cars");
+
+                    var locosToDelete = trainCarsToDelete.Where(tc => CarTypes.IsAnyLocomotiveOrTender(tc.carLivery)).ToList();
+                    var carsToDelete = trainCarsToDelete.Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery)).ToList();
+
+                    if (trainCarsToDelete.Count != 0) {
+                        SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(new List<TrainCar>(trainCarsToDelete), false);
+                    }
+
+                    Main._modEntry.Logger.Log($"deleted {locosToDelete.Count} locomotives or tenders (coroutine)");
+                    Main._modEntry.Logger.Log($"deleted {carsToDelete.Count} cars (coroutine)");
+                    
                     return false;
                 } catch (Exception e) {
                     Main._modEntry.Logger.Error(
