@@ -5,6 +5,5 @@
 	"Version": "3.0.0",
 	"AssemblyName": "PersistentJobsMod.dll",
 	"EntryMethod": "PersistentJobsMod.Main.Load",
-	"LoadAfter": [ "PassengerJobs" ],
 	"Repository": "https://raw.githubusercontent.com/Banjobeni/DerailValley-PersistentJobs/master/Repository.json"
 }
