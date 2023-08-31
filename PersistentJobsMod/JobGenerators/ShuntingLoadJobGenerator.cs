@@ -204,7 +204,7 @@ namespace PersistentJobsMod.JobGenerators {
                         = Utilities.GetRandomFromEnumerable<StationController>(chosenCargoGroup.stations, rng);
                     var carsPerTrackDict = new Dictionary<Track, List<Car>>();
                     foreach (var trainCar in trainCarsToLoad) {
-                        var track = trainCar.logicCar.CurrentTrack;
+                        var track = trainCar.logicCar.FrontBogieTrack;
                         if (!carsPerTrackDict.ContainsKey(track)) {
                             carsPerTrackDict[track] = new List<Car>();
                         }

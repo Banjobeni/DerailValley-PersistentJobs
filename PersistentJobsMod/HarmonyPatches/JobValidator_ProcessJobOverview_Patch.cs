@@ -162,7 +162,7 @@ namespace PersistentJobsMod.HarmonyPatches {
 
         private static bool IsAnyTaskCarOnTrack(Task task, Track track) {
             var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
-            return cars.Any(car => car.CurrentTrack == track);
+            return cars.Any(car => car.FrontBogieTrack == track);
         }
 
         private static void ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {

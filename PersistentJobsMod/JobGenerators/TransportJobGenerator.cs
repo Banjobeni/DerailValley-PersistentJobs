@@ -118,7 +118,7 @@ namespace PersistentJobsMod.JobGenerators {
                     // populate all the info; we'll generate the jobs later
                     jobsToGenerate.Add((
                         startingStation,
-                        trainCars[0].logicCar.CurrentTrack,
+                        trainCars[0].logicCar.FrontBogieTrack,
                         destinationStation,
                         trainCars,
                         trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList()));

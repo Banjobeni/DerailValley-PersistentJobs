@@ -239,7 +239,7 @@ namespace PersistentJobsMod {
                         (list, kv) => {
                             list.AddRange(
                                 kv.Value.Select(tcs => EmptyHaulJobProceduralGenerator
-                                    .GenerateEmptyHaulJobWithExistingCars(kv.Key, tcs[0].logicCar.CurrentTrack, tcs, rng)));
+                                    .GenerateEmptyHaulJobWithExistingCars(kv.Key, tcs[0].logicCar.FrontBogieTrack, tcs, rng)));
                             return list;
                         });
                 } catch (Exception e) {
