@@ -1,4 +1,4 @@
-# [Persistent Jobs Mod](https://www.nexusmods.com/derailvalley/mods/794) for [Derail Valley](www.derailvalley.com)
+# [Persistent Jobs Mod](https://www.nexusmods.com/derailvalley/mods/794) for [Derail Valley](http://www.derailvalley.com)
 
 *I have been here before. I remember this job that I couldn't take last time. So glad it's still here!*
 
