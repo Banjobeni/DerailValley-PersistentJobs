@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using UnityModManagerNet;
 using HarmonyLib;
-using PersistentJobsMod.Persistence;
 
 namespace PersistentJobsMod {
     static class Main {
@@ -26,10 +25,6 @@ namespace PersistentJobsMod {
         }
 
         static bool OnToggle(UnityModManager.ModEntry modEntry, bool isTogglingOn) {
-            if (!isTogglingOn) {
-                StationIdCarSpawningPersistence.Instance.ClearStationsSpawnedCarsFlagForAllStations();
-            }
-
             if (_isModBroken) {
                 return !isTogglingOn;
             }
