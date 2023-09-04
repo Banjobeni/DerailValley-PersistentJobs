@@ -40,6 +40,7 @@ namespace PersistentJobsMod {
                 "type likely indicates an incompatibility between the mod and a recent game update. Please search the " +
                 "mod's Github issue tracker for a relevant report. If none is found, please open one. Include the " +
                 $"exception message printed above and your game's current build number (likely {UnityModManager.gameVersion}).");
+            UnityEngine.Debug.LogError("[PersistentJobsMod] Deactivating mod due to critical failure. See UnityModManager console or Player.log for details. The mod will stay inactive until the game is restarted.");
         }
     }
 }
