@@ -122,7 +122,7 @@
     <Compile Include="HarmonyPatches\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
     <Compile Include="JobGenerators\ShuntingUnloadJobProceduralGenerator.cs" />
-    <Compile Include="UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch.cs" />
+    <Compile Include="HarmonyPatches\UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
   <ItemGroup />

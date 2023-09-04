@@ -3,14 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using UnityEngine;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
+using UnityEngine;
 
-namespace PersistentJobsMod {
+namespace PersistentJobsMod.HarmonyPatches {
     // override/replacement for UnusedTrainCarDeleter.TrainCarsDeleteCheck coroutine
     // tries to generate new jobs for the train cars marked for deletion
     [HarmonyPatch]
