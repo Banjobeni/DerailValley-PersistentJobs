@@ -39,6 +39,11 @@ namespace PersistentJobsMod.JobGenerators {
             if (trainCars.Count < 2 * maxCountTracks) {
                 countTracks = rng.Next(0, Mathf.FloorToInt(1.5f * maxCountTracks)) % maxCountTracks + 1;
             }
+
+            if (countTracks > trainCars.Count) {
+                countTracks = trainCars.Count;
+            }
+
             Main._modEntry.Logger.Log($"unload: choosing {countTracks} destination tracks");
             var destinationTracks = new List<Track>();
             do {
