@@ -318,7 +318,7 @@ namespace PersistentJobsMod {
                 var trainSet = trainSetGroup.Key;
                 var deletableTrainCars = trainSetGroup.ToHashSet();
 
-                var joblessTrainCarsOfTrainSet = trainSet.cars.Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery) && SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(tc) == null).ToList();
+                var joblessTrainCarsOfTrainSet = trainSet.cars.Where(tc => CarTypes.IsRegularCar(tc.carLivery) && SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(tc) == null).ToList();
 
                 if (joblessTrainCarsOfTrainSet.All(deletableTrainCars.Contains)) {
                     allowedToDeleteTrainCars.AddRange(deletableTrainCars);
