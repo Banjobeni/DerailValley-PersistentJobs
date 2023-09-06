@@ -19,7 +19,7 @@ namespace PersistentJobsMod.HarmonyPatches {
                     }
 
                     Main._modEntry.Logger.Log("collecting deletion candidates...");
-                    var trainCarsToDelete = new List<TrainCar>();
+                    var trainCarsToDeleteCandidates = new List<TrainCar>();
                     for (var i = ___unusedTrainCarsMarkedForDelete.Count - 1; i >= 0; i--) {
                         var trainCar = ___unusedTrainCarsMarkedForDelete[i];
                         if (trainCar == null) {
@@ -31,9 +31,12 @@ namespace PersistentJobsMod.HarmonyPatches {
                             .GetValue<bool>(trainCar);
                         if (areDeleteConditionsFulfilled) {
                             ___unusedTrainCarsMarkedForDelete.RemoveAt(i);
-                            trainCarsToDelete.Add(trainCar);
+                            trainCarsToDeleteCandidates.Add(trainCar);
                         }
                     }
+
+                    var trainCarsToDelete = Utilities.FilterOutTrainCarsWhereOnlyPartOfConsistIsToBeDeleted(trainCarsToDeleteCandidates);
+
                     Main._modEntry.Logger.Log(
                         $"[PersistentJobs] found {trainCarsToDelete.Count} cars marked for deletion");
                     if (trainCarsToDelete.Count == 0) {

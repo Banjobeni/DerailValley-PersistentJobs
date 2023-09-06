@@ -66,20 +66,23 @@ namespace PersistentJobsMod.HarmonyPatches {
 
                 var trainCarCandidatesForDelete = new List<TrainCar>();
                 try {
+                    var trainCarCandidatesForDeleteCandidates = new List<TrainCar>();
                     for (var i = unusedTrainCarsMarkedForDelete.Count - 1; i >= 0; i--) {
                         var trainCar = unusedTrainCarsMarkedForDelete[i];
                         if (trainCar == null) {
                             unusedTrainCarsMarkedForDelete.RemoveAt(i);
                         } else if (AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar)) {
                             unusedTrainCarsMarkedForDelete.RemoveAt(i);
-                            trainCarCandidatesForDelete.Add(trainCar);
+                            trainCarCandidatesForDeleteCandidates.Add(trainCar);
                         }
                     }
                     Main._modEntry.Logger.Log(
-                        $"[PersistentJobs] found {trainCarCandidatesForDelete.Count} cars marked for deletion (coroutine)");
-                    if (trainCarCandidatesForDelete.Count == 0) {
+                        $"[PersistentJobs] found {trainCarCandidatesForDeleteCandidates.Count} cars marked for deletion (coroutine)");
+                    if (trainCarCandidatesForDeleteCandidates.Count == 0) {
                         continue;
                     }
+
+                    trainCarCandidatesForDelete = Utilities.FilterOutTrainCarsWhereOnlyPartOfConsistIsToBeDeleted(trainCarCandidatesForDeleteCandidates);
                 } catch (Exception e) {
                     Main._modEntry.Logger.Error(
                         $"Exception thrown during TrainCarsCreateJobOrDeleteCheck delete candidate collection:\n{e.ToString()}");

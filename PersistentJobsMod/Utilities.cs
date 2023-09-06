@@ -8,6 +8,7 @@ using DV.Logic.Job;
 using DV.ServicePenalty;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
+using DV.Utils;
 using HarmonyLib;
 using Random = System.Random;
 
@@ -271,11 +272,11 @@ namespace PersistentJobsMod {
         }
 
         // taken from StationProcedurationJobGenerator.GetRandomFromList
-        public static T GetRandomFromEnumerable<T>(IEnumerable<T> list, System.Random rng) {
+        public static T GetRandomFromEnumerable<T>(IEnumerable<T> list, Random rng) {
             return list.ElementAt(rng.Next(0, list.Count()));
         }
 
-        public static T GetRandomElement<T>(this System.Random rng, IReadOnlyList<T> list) {
+        public static T GetRandomElement<T>(this Random rng, IReadOnlyList<T> list) {
             var index = rng.Next(0, list.Count);
             return list[index];
         }
@@ -308,6 +309,23 @@ namespace PersistentJobsMod {
                 return rng.GetRandomElement(tracksWithFreeSpace);
             }
             return null;
+        }
+
+        public static List<TrainCar> FilterOutTrainCarsWhereOnlyPartOfConsistIsToBeDeleted(List<TrainCar> trainCarsToDelete) {
+            var allowedToDeleteTrainCars = new List<TrainCar>();
+
+            foreach (var trainSetGroup in trainCarsToDelete.GroupBy(tc => tc.trainset)) {
+                var trainSet = trainSetGroup.Key;
+                var deletableTrainCars = trainSetGroup.ToHashSet();
+
+                var joblessTrainCarsOfTrainSet = trainSet.cars.Where(tc => !CarTypes.IsAnyLocomotiveOrTender(tc.carLivery) && SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(tc) == null).ToList();
+
+                if (joblessTrainCarsOfTrainSet.All(deletableTrainCars.Contains)) {
+                    allowedToDeleteTrainCars.AddRange(deletableTrainCars);
+                }
+            }
+
+            return allowedToDeleteTrainCars;
         }
     }
 }
