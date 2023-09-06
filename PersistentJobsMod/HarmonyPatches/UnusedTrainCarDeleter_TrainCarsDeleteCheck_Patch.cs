@@ -45,9 +45,6 @@ namespace PersistentJobsMod.HarmonyPatches {
         }
 
         private static IEnumerator TrainCarsCreateJobOrDeleteCheck(UnusedTrainCarDeleter unusedTrainCarDeleter, float interval, float stagesInteropPeriod, List<TrainCar> unusedTrainCarsMarkedForDelete) {
-            var trainCarsToDelete = new List<TrainCar>();
-            var trainCarCandidatesForDelete = new List<TrainCar>();
-            
             for (; ; ) {
                 yield return WaitFor.SecondsRealtime(interval);
 
@@ -66,8 +63,9 @@ namespace PersistentJobsMod.HarmonyPatches {
                 }
 
                 Main._modEntry.Logger.Log("collecting deletion candidates... (coroutine)");
+
+                var trainCarCandidatesForDelete = new List<TrainCar>();
                 try {
-                    trainCarCandidatesForDelete.Clear();
                     for (var i = unusedTrainCarsMarkedForDelete.Count - 1; i >= 0; i--) {
                         var trainCar = unusedTrainCarsMarkedForDelete[i];
                         if (trainCar == null) {
@@ -341,8 +339,9 @@ namespace PersistentJobsMod.HarmonyPatches {
                 yield return WaitFor.SecondsRealtime(stagesInteropPeriod);
 
                 Main._modEntry.Logger.Log("deleting cars... (coroutine)");
+                
+                var trainCarsToDelete = new List<TrainCar>();
                 try {
-                    trainCarsToDelete.Clear();
                     for (var j = trainCarCandidatesForDelete.Count - 1; j >= 0; j--) {
                         var trainCar2 = trainCarCandidatesForDelete[j];
                         if (trainCar2 == null) {
