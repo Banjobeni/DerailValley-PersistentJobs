@@ -241,6 +241,8 @@ namespace PersistentJobsMod {
             if (tracksWithFreeSpace.Count > 0) {
                 return rng.GetRandomElement(tracksWithFreeSpace);
             }
+
+            Debug.LogWarning($"[PersistentJobsMod] None of the queried tracks have {requiredLength:F1}m of free space: {string.Join(", ", tracks.Select(t => $"{t.ID} ({yto.GetFreeSpaceOnTrack(t):F1}m)"))}");
             return null;
         }
 
