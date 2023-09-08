@@ -4,7 +4,7 @@ using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using PersistentJobsMod.Persistence;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
     [HarmonyPatch(typeof(CarsSaveManager), "Load")]
     class CarsSaveManager_Load_Patch {

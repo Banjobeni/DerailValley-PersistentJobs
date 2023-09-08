@@ -2,7 +2,7 @@
 using System.Reflection;
 using HarmonyLib;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.Distance {
     /// <summary>expands the distance at which the job generation trigger is rearmed</summary>
     [HarmonyPatch(typeof(StationJobGenerationRange))]
     [HarmonyPatchAll]

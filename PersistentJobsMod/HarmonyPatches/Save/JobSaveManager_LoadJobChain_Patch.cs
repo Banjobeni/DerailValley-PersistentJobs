@@ -3,7 +3,7 @@ using DV.ThingTypes;
 using HarmonyLib;
 using UnityEngine;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>reserves tracks for taken jobs when loading save file</summary>
     [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
     class JobSaveManager_LoadJobChain_Patch {

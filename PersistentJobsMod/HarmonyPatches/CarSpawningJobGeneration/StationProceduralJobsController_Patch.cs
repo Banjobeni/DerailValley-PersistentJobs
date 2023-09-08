@@ -12,7 +12,7 @@ using PersistentJobsMod.Persistence;
 using UnityEngine;
 using Random = System.Random;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.CarSpawningJobGeneration {
     [UsedImplicitly]
     [HarmonyPatch(typeof(StationProceduralJobsController))]
     public static class StationProceduralJobsController_Patch {

@@ -10,7 +10,7 @@ using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
 using UnityEngine;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
     // override/replacement for UnusedTrainCarDeleter.TrainCarsDeleteCheck coroutine
     // tries to generate new jobs for the train cars marked for deletion
     [HarmonyPatch]

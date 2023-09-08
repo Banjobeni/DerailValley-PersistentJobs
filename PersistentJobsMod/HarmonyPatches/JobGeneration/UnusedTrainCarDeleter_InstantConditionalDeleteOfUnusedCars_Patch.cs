@@ -6,7 +6,7 @@ using DV.Utils;
 using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
     /// <summary>tries to generate new jobs for the train cars marked for deletion</summary>
     [HarmonyPatch(typeof(UnusedTrainCarDeleter), "InstantConditionalDeleteOfUnusedCars")]
     class UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch {

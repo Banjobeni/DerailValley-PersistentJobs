@@ -7,7 +7,7 @@ using DV.Utils;
 using HarmonyLib;
 using UnityEngine;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
     [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
     class JobValidator_ProcessJobOverview_Patch {
