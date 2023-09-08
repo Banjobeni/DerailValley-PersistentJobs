@@ -106,6 +106,7 @@
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_ReserveRequiredTracks_Patch.cs" />
     <Compile Include="HarmonyPatches\JobGeneration\UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch.cs" />
     <Compile Include="HarmonyPatches\Save\WorldStreaminInit_Patch.cs" />
+    <Compile Include="HarmonyPatches\TrackReservations\YardTracksOrganizer_Patches.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
     <Compile Include="HarmonyPatches\Save\JobSaveManager_LoadJobChain_Patch.cs" />
     <Compile Include="HarmonyPatches\JobValidators\JobValidator_ProcessJobOverview_Patch.cs" />
