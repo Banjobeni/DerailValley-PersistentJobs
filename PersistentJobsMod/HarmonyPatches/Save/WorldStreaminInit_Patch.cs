@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using PersistentJobsMod.Persistence;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.Save {
     [HarmonyPatch]
     public static class WorldStreaminInit_Patch {
         [HarmonyPatch(typeof(WorldStreamingInit), "LoadingRoutine")]

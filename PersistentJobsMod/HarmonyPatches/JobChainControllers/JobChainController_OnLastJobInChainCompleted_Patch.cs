@@ -8,7 +8,7 @@ using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
 using UnityEngine;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     /// <summary>
     /// unload: divert cars that can be loaded at the current station for later generation of ShuntingLoad jobs
     /// load: generates a corresponding transport job

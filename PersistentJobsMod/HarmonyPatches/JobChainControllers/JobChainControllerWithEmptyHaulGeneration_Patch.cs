@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     [HarmonyPatch]
     public static class JobChainControllerWithEmptyHaulGeneration_Patch {
         [HarmonyPatch(typeof(JobChainControllerWithEmptyHaulGeneration), "OnLastJobInChainCompleted")]

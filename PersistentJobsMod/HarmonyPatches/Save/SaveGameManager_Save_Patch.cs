@@ -4,7 +4,7 @@ using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using PersistentJobsMod.Persistence;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.Save {
     [HarmonyPatch(typeof(SaveGameManager), "Save")]
     class SaveGameManager_Save_Patch {
         static void Prefix(SaveGameManager __instance) {

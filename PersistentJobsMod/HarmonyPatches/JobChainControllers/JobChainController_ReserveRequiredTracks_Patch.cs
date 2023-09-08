@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 
-namespace PersistentJobsMod.HarmonyPatches {
+namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     [HarmonyPatch(typeof(JobChainController), "ReserveRequiredTracks")]
     class JobChainController_ReserveRequiredTracks_Patch {
         static bool Prefix() {
