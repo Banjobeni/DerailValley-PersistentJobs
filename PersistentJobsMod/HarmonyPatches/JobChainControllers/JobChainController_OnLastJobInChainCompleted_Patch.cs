@@ -16,15 +16,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     /// </summary>
     [HarmonyPatch(typeof(JobChainController), "OnLastJobInChainCompleted")]
     class JobChainController_OnLastJobInChainCompleted_Patch {
-        static void Prefix(JobChainController __instance,
+        public static void Prefix(JobChainController __instance,
                 List<StaticJobDefinition> ___jobChain,
                 Job lastJobInChain) {
             if (!Main._modEntry.Active) {
-                return;
-            }
-
-            if (__instance.GetType() != typeof(JobChainController) || ___jobChain.Count != 1) {
-                // we only generate single-job-JobChainControllers in this mod. other types may come from a time where the mod wasn't installed or active.
                 return;
             }
 
