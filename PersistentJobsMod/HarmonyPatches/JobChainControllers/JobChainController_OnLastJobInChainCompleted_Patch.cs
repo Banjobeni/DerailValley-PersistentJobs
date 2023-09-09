@@ -16,15 +16,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     /// </summary>
     [HarmonyPatch(typeof(JobChainController), "OnLastJobInChainCompleted")]
     class JobChainController_OnLastJobInChainCompleted_Patch {
-        static void Prefix(JobChainController __instance,
+        public static void Prefix(JobChainController __instance,
                 List<StaticJobDefinition> ___jobChain,
                 Job lastJobInChain) {
+            Debug.Log($"[PersistentJobsMod] JobChainController_OnLastJobInChainCompleted_Patch, Prefix");
             if (!Main._modEntry.Active) {
-                return;
-            }
-
-            if (__instance.GetType() != typeof(JobChainController) || ___jobChain.Count != 1) {
-                // we only generate single-job-JobChainControllers in this mod. other types may come from a time where the mod wasn't installed or active.
                 return;
             }
 
@@ -36,6 +32,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 }
 
                 if (lastJobInChain.jobType == JobType.ShuntingLoad && lastJobDefinition is StaticShuntingLoadJobDefinition shuntingLoadJobDefinition) {
+                    Debug.Log("[PersistentJobsMod] JobChainController_OnLastJobInChainCompleted_Patch, ShuntingLoad");
                     var subsequentJobChainController = CreateSubsequentTransportJob(__instance, shuntingLoadJobDefinition);
 
                     FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
@@ -82,6 +79,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
         private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob) {
             if (subsequentJobChainController != null) {
+                Debug.Log("[PersistentJobsMod] JobChainController_OnLastJobInChainCompleted_Patch, Finish, subsequentJobChainController != null");
                 foreach (var tc in subsequentJobChainController.trainCarsForJobChain) {
                     previousJobChainController.trainCarsForJobChain.Remove(tc);
                 }
@@ -93,6 +91,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 } else {
                     Main._modEntry.Logger.Log($"Completion of job {previousJob.ID} generated subsequent job chain but could not generate first job from it {subsequentJobChainController.jobChainGO.name}");
                 }
+            } else {
+                Debug.Log("[PersistentJobsMod] JobChainController_OnLastJobInChainCompleted_Patch, Finish, subsequentJobChainController == null");
             }
         }
     }
