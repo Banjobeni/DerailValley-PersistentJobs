@@ -4,7 +4,6 @@ using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using UnityEngine;
-using Random = System.Random;
 
 namespace PersistentJobsMod.JobGenerators {
     static class ShuntingUnloadJobProceduralGenerator {
@@ -14,7 +13,7 @@ namespace PersistentJobsMod.JobGenerators {
                 StationController destinationStation,
                 List<TrainCar> trainCars,
                 List<CargoType> transportedCargoPerCar,
-                System.Random rng,
+                System.Random random,
                 bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log("unload: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
@@ -29,15 +28,15 @@ namespace PersistentJobsMod.JobGenerators {
                 Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
-            var loadMachine = Utilities.GetRandomFromEnumerable(supportedWMCs, rng).warehouseMachine;
+            var loadMachine = Utilities.GetRandomFromEnumerable(supportedWMCs, random).warehouseMachine;
 
             // choose destination tracks
             var maxCountTracks = destinationStation.proceduralJobsRuleset.maxShuntingStorageTracks;
-            var countTracks = rng.Next(1, maxCountTracks + 1);
+            var countTracks = random.Next(1, maxCountTracks + 1);
 
             // bias toward less than max number of tracks for shorter trains
             if (trainCars.Count < 2 * maxCountTracks) {
-                countTracks = rng.Next(0, Mathf.FloorToInt(1.5f * maxCountTracks)) % maxCountTracks + 1;
+                countTracks = random.Next(0, Mathf.FloorToInt(1.5f * maxCountTracks)) % maxCountTracks + 1;
             }
 
             if (countTracks > trainCars.Count) {
@@ -49,7 +48,7 @@ namespace PersistentJobsMod.JobGenerators {
             do {
                 destinationTracks.Clear();
                 for (var i = 0; i < countTracks; i++) {
-                    var track = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(), approxTrainLength / (float)countTracks, new Random());
+                    var track = Utilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(), approxTrainLength / (float)countTracks, random);
                     if (track == null) {
                         break;
                     }
@@ -57,7 +56,7 @@ namespace PersistentJobsMod.JobGenerators {
                 }
             } while (destinationTracks.Count < countTracks--);
             if (destinationTracks.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. " + "Found no StorageTrack with enough free space!");
+                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find enough StorageTracks in {destinationStation.logicStation.ID} that are long enough!");
                 return null;
             }
 

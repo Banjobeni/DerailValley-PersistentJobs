@@ -4,7 +4,6 @@ using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using UnityEngine;
-using Random = System.Random;
 
 namespace PersistentJobsMod.JobGenerators {
     static class ShuntingLoadJobGenerator {
@@ -14,7 +13,7 @@ namespace PersistentJobsMod.JobGenerators {
                 StationController destStation,
                 List<TrainCar> trainCars,
                 List<CargoType> transportedCargoPerCar,
-                System.Random rng,
+                System.Random random,
                 bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log("load: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
@@ -30,18 +29,7 @@ namespace PersistentJobsMod.JobGenerators {
                 Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
-            var loadMachine = Utilities.GetRandomFromEnumerable(supportedWMCs, rng).warehouseMachine;
-
-            // choose destination track
-            Main._modEntry.Logger.Log("load: choosing destination track");
-            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(startingStation.logicStation.yard.TransferOutTracks), approxTrainLength, new Random());
-            if (destinationTrack == null) {
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, startingStation.logicStation.yard.TransferOutTracks, approxTrainLength, new Random());
-            }
-            if (destinationTrack == null) {
-                Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. " + "Found no TransferOutTrack with enough free space!");
-                return null;
-            }
+            var warehouseMachine = Utilities.GetRandomFromEnumerable(supportedWMCs, random).warehouseMachine;
 
             Main._modEntry.Logger.Log("load: calculating time/wage/licenses");
             var transportedCarTypes = (from tc in trainCars select tc.carType)
@@ -62,9 +50,9 @@ namespace PersistentJobsMod.JobGenerators {
             return GenerateShuntingLoadChainController(
                 startingStation,
                 carsPerStartingTrack,
-                loadMachine,
+                warehouseMachine,
                 destStation,
-                destinationTrack,
+                warehouseMachine.WarehouseTrack,
                 trainCars,
                 transportedCargoPerCar,
                 Enumerable.Repeat(1.0f, trainCars.Count).ToList(),
