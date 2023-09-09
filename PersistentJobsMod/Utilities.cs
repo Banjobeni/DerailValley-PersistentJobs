@@ -8,6 +8,7 @@ using DV.Logic.Job;
 using DV.ServicePenalty;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
+using DV.Utils;
 using HarmonyLib;
 using Random = System.Random;
 
@@ -59,10 +60,10 @@ namespace PersistentJobsMod {
             Main._modEntry.Logger.Log($"Creating CarDamageModel for TrainCar[{trainCar.logicCar.ID}]...");
 
             var carDamageModel = trainCar.gameObject.AddComponent<CarDamageModel>();
-            
+
             Traverse.Create(trainCar).Field("carDmg").SetValue(carDamageModel);
             carDamageModel.OnCreated(trainCar);
-            
+
             var updateCarHealthDataMethodTraverse = Traverse.Create(trainPlatesController).Method("UpdateCarHealthData", new Type[] { typeof(float) });
             updateCarHealthDataMethodTraverse.GetValue(carDamageModel.EffectiveHealthPercentage100Notation);
             carDamageModel.CarEffectiveHealthStateUpdate += carHealthPercentage => updateCarHealthDataMethodTraverse.GetValue(carHealthPercentage);
@@ -170,75 +171,8 @@ namespace PersistentJobsMod {
         public static List<CargoType> GetCargoTypesForCarType(TrainCarType trainCarType) {
             var trainCarTypeV2 = trainCarType.ToV2().parentType;
             var cargoTypeV2s = Globals.G.Types.CarTypeToLoadableCargo[trainCarTypeV2];
-            return cargoTypeV2s.Select(ct => ct.v1).ToList();;
+            return cargoTypeV2s.Select(ct => ct.v1).ToList();
         }
-
-        ////// based on StationProceduralJobGenerator.GenerateBaseCargoTrainData
-        ////public static (
-        ////    List<CarTypesPerCargoType>,
-        ////    List<TrainCarType>,
-        ////    CargoGroup
-        ////    ) GenerateBaseCargoTrainData(int minCountCars,
-        ////        int maxCountCars,
-        ////        List<CargoGroup> availableCargoGroups,
-        ////        System.Random rng) {
-        ////    List<CarTypesPerCargoType> carTypesPerCargoTypes = new List<CarTypesPerCargoType>();
-        ////    List<TrainCarType> allCarTypes = new List<TrainCarType>();
-        ////    int countCarsInTrain = rng.Next(minCountCars, maxCountCars + 1);
-        ////    CargoGroup pickedCargoGroup = GetRandomFromEnumerable<CargoGroup>(availableCargoGroups, rng);
-        ////    List<CargoType> pickedCargoTypes = pickedCargoGroup.cargoTypes;
-        ////    pickedCargoTypes = GetMultipleRandomsFromList<CargoType>(
-        ////        pickedCargoTypes,
-        ////        Math.Min(countCarsInTrain, rng.Next(1, pickedCargoTypes.Count + 1)),
-        ////        rng
-        ////    );
-        ////    int countCargoTypes = pickedCargoTypes.Count;
-        ////    int countCarsPerCargoType = countCarsInTrain / countCargoTypes;
-        ////    int countCargoTypesWithExtraCar = countCarsInTrain % countCargoTypes;
-        ////    for (int i = 0; i < countCargoTypes; i++) {
-        ////        int countCars = i < countCargoTypesWithExtraCar ? countCarsPerCargoType + 1 : countCarsPerCargoType;
-        ////        List<CargoContainerType> cargoContainerTypesThatSupportCargoType
-        ////            = CargoTypes.GetCarContainerTypesThatSupportCargoType(pickedCargoTypes[i]);
-        ////        List<TrainCarType> trainCarTypesThatAreSpecificContainerType
-        ////            = CargoTypes.GetTrainCarTypesThatAreSpecificContainerType(
-        ////                GetRandomFromEnumerable<CargoContainerType>(cargoContainerTypesThatSupportCargoType, rng)
-        ////            );
-        ////        List<TrainCarType> trainCarTypes = new List<TrainCarType>();
-        ////        for (int j = 0; j < countCars; j++) {
-        ////            trainCarTypes.Add(
-        ////                GetRandomFromEnumerable<TrainCarType>(trainCarTypesThatAreSpecificContainerType, rng));
-        ////        }
-        ////        carTypesPerCargoTypes
-        ////            .Add(new CarTypesPerCargoType(trainCarTypes, pickedCargoTypes[i], (float)trainCarTypes.Count));
-        ////        allCarTypes.AddRange(trainCarTypes);
-        ////    }
-        ////    return (carTypesPerCargoTypes, allCarTypes, pickedCargoGroup);
-        ////}
-
-        ////public static (
-        ////    List<CargoType>,
-        ////    CargoGroup
-        ////    ) GenerateCargoTypesForExistingCars(List<TrainCar> orderedTrainCars,
-        ////        List<CargoGroup> availableCargoGroups,
-        ////        System.Random rng) {
-        ////    List<CarsPerCargoType> carsPerCargoTypes = new List<CarsPerCargoType>();
-        ////    List<List<CargoType>> orderedCargoTypesPerTrainCar
-        ////        = (from tc in orderedTrainCars select GetCargoTypesForCarType(tc.carType)).ToList();
-
-        ////    // find cargo groups that satisfy at least one cargo type for every train car
-        ////    List<CargoGroup> filteredCargoGroups = availableCargoGroups
-        ////        .Where(cg => orderedCargoTypesPerTrainCar.All(cts => cts.Intersect(cg.cargoTypes).Count() > 0))
-        ////        .ToList();
-        ////    if (filteredCargoGroups.Count == 0) {
-        ////        return (null, null);
-        ////    }
-        ////    CargoGroup pickedCargoGroup = GetRandomFromEnumerable<CargoGroup>(filteredCargoGroups, rng);
-        ////    List<CargoType> pickedCargoTypes = pickedCargoGroup.cargoTypes;
-        ////    List<CargoType> orderedCargoTypes = orderedCargoTypesPerTrainCar.Select(
-        ////        cts => GetRandomFromEnumerable<CargoType>(cts.Intersect(pickedCargoTypes).ToList(), rng)
-        ////    ).ToList();
-        ////    return (orderedCargoTypes, pickedCargoGroup);
-        ////}
 
         public static void TaskDoDFS(Task task, Action<Task> action) {
             if (task is ParallelTasks || task is SequentialTasks) {
@@ -271,11 +205,11 @@ namespace PersistentJobsMod {
         }
 
         // taken from StationProcedurationJobGenerator.GetRandomFromList
-        public static T GetRandomFromEnumerable<T>(IEnumerable<T> list, System.Random rng) {
+        public static T GetRandomFromEnumerable<T>(IEnumerable<T> list, Random rng) {
             return list.ElementAt(rng.Next(0, list.Count()));
         }
 
-        public static T GetRandomElement<T>(this System.Random rng, IReadOnlyList<T> list) {
+        public static T GetRandomElement<T>(this Random rng, IReadOnlyList<T> list) {
             var index = rng.Next(0, list.Count);
             return list[index];
         }
@@ -308,6 +242,27 @@ namespace PersistentJobsMod {
                 return rng.GetRandomElement(tracksWithFreeSpace);
             }
             return null;
+        }
+
+        public static List<TrainCar> FilterOutTrainCarsWhereOnlyPartOfConsistIsToBeDeleted(List<TrainCar> registeredToDeleteTrainCars) {
+            var allowedToDeleteTrainCars = new List<TrainCar>();
+
+            foreach (var trainSetGroup in registeredToDeleteTrainCars.GroupBy(tc => tc.trainset)) {
+                var trainSet = trainSetGroup.Key;
+                var deletableTrainCars = trainSetGroup.ToHashSet();
+
+                var joblessTrainCarsOfTrainSet = trainSet.cars.Where(tc => CarTypes.IsRegularCar(tc.carLivery) && SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(tc) == null).ToHashSet();
+
+                var joblessButNotRegisteredForDeleteCars = joblessTrainCarsOfTrainSet.Except(deletableTrainCars).ToList();
+
+                if (joblessButNotRegisteredForDeleteCars.Any()) {
+                    Main._modEntry.Logger.Log($"Prevented reassigning the train cars {string.Join(", ", deletableTrainCars.Select(tc => tc.ID))} to new jobs because the other jobless train cars in the same consist {string.Join(", ", joblessButNotRegisteredForDeleteCars.Select(tc => tc.ID))} are not registered for deletion yet");
+                } else {
+                    allowedToDeleteTrainCars.AddRange(deletableTrainCars);
+                }
+            }
+
+            return allowedToDeleteTrainCars;
         }
     }
 }
