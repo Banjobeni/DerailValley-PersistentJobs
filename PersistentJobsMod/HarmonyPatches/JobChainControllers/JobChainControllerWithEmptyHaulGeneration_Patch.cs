@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
-using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     [HarmonyPatch]
@@ -10,7 +9,6 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
         [HarmonyPatch(typeof(JobChainControllerWithEmptyHaulGeneration), "OnLastJobInChainCompleted")]
         [HarmonyPrefix]
         public static bool OnLastJobInChainCompleted_Prefix(JobChainControllerWithEmptyHaulGeneration __instance, List<StaticJobDefinition> ___jobChain, DV.Logic.Job.Job lastJobInChain) {
-            Debug.Log($"[PersistentJobsMod] JobChainControllerWithEmptyHaulGeneration_Patch, OnLastJobInChainCompleted_Prefix");
             if (!Main._modEntry.Active) {
                 return true;
             }
