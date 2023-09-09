@@ -11,23 +11,21 @@ namespace PersistentJobsMod.JobGenerators {
             StationController destStation,
             List<TrainCar> trainCars,
             List<CargoType> transportedCargoPerCar,
-            System.Random rng,
+            System.Random random,
             bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log("transport: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
 
             Main._modEntry.Logger.Log("transport: choosing destination track");
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
-            var destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, yto.FilterOutOccupiedTracks(destStation.logicStation.yard.TransferInTracks), approxTrainLength, rng);
+            var destinationTrack = Utilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
+
             if (destinationTrack == null) {
-                destinationTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, rng);
-            }
-            if (destinationTrack == null) {
-                Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. " + "Found no TransferInTrack with enough free space!");
+                Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. Could not find any TransferInTrack in {destStation.logicStation.ID} that is long enough!");
                 return null;
             }
-            var transportedCarTypes = (from tc in trainCars select tc.carType)
-                .ToList<TrainCarType>();
+
+            var transportedCarTypes = trainCars.Select(tc => tc.carType).ToList();
 
             Main._modEntry.Logger.Log("transport: calculating time/wage/licenses");
             float bonusTimeLimit;
