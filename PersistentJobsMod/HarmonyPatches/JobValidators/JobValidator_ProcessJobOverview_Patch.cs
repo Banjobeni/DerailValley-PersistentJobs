@@ -5,6 +5,7 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.ModInteraction;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
@@ -77,12 +78,16 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     // their destination track task will be changed to the warehouse track
                     Main._modEntry.Logger.Log($"skipping track reservation for Job[{job.ID}] because it's a shunting load job");
                 } else {
-                    ReserveOrReplaceRequiredTracks(jobChainController);
+                    var didAnyTrackChange = ReserveOrReplaceRequiredTracks(jobChainController);
+                    if (didAnyTrackChange) {
+                        PersistentJobsModInteractionFeatures.InvokeJobTrackChanged(job);
+                    }
                 }
 
                 // for shunting load jobs, don't require player to spot the train on a track after loading
                 if (job.jobType == JobType.ShuntingLoad) {
                     ReplaceShuntingLoadDestination(job);
+                    PersistentJobsModInteractionFeatures.InvokeJobTrackChanged(job);
                 }
             } catch (Exception e) {
                 Main._modEntry.Logger.Error($"Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{e.ToString()}");
@@ -165,14 +170,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return cars.Any(car => car.FrontBogieTrack == track);
         }
 
-        private static void ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {
-            var jobChain = Traverse.Create(jobChainController)
-                .Field("jobChain")
-                .GetValue<List<StaticJobDefinition>>();
-            var jobDefToCurrentlyReservedTracks
-                = Traverse.Create(jobChainController)
-                    .Field("jobDefToCurrentlyReservedTracks")
-                    .GetValue<Dictionary<StaticJobDefinition, List<TrackReservation>>>();
+        private static bool ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {
+            var jobChain = Traverse.Create(jobChainController).Field("jobChain").GetValue<List<StaticJobDefinition>>();
+            var jobDefToCurrentlyReservedTracks = Traverse.Create(jobChainController).Field("jobDefToCurrentlyReservedTracks").GetValue<Dictionary<StaticJobDefinition, List<TrackReservation>>>();
+
+            bool didAnyTrackChange = false;
+
             for (var i = 0; i < jobChain.Count; i++) {
                 var key = jobChain[i];
                 if (jobDefToCurrentlyReservedTracks.ContainsKey(key)) {
@@ -243,6 +246,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                                     }
                                 });
                             }
+
+                            didAnyTrackChange = true;
                         }
                     }
                 } else {
@@ -251,6 +256,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                         jobChain[i]);
                 }
             }
+
+            return didAnyTrackChange;
         }
 
         private static Track GetReplacementTrack(Track oldTrack, float trainLength) {

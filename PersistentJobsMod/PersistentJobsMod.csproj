@@ -112,6 +112,7 @@
     <Compile Include="HarmonyPatches\JobValidators\JobValidator_ProcessJobOverview_Patch.cs" />
     <Compile Include="Licensing\CargoGroupsAndCarCountProvider.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="ModInteraction\PersistentJobsModInteractionFeatures.cs" />
     <Compile Include="Persistence\StationIdCarSpawningPersistence.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SaveDataConstants.cs" />
