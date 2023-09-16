@@ -6,7 +6,7 @@ namespace PersistentJobsMod.Extensions {
     public static class TrackExtension {
         public static List<Job> GetJobsOfCarsFullyOnTrack(this Track track) {
             var cars = track.GetCarsFullyOnTrack();
-            var jobs = cars.Select(c => JobsManager.Instance.GetJobOfCar(IdGenerator.Instance.logicCarToTrainCar[c])).Distinct().ToList();
+            var jobs = cars.Select(c => JobsManager.Instance.GetJobOfCar(IdGenerator.Instance.logicCarToTrainCar[c])).Where(j => j != null).Distinct().ToList();
             return jobs;
         }
 
