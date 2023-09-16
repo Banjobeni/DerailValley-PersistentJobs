@@ -95,11 +95,13 @@
   <ItemGroup>
     <Compile Include="CarSpawningJobGenerators\CargoCarGroup.cs" />
     <Compile Include="CarSpawningJobGenerators\CargoCarGroupsRandomizer.cs" />
+    <Compile Include="CarSpawningJobGenerators\CarSpawningJobGenerator.cs" />
     <Compile Include="CarSpawningJobGenerators\DestinationStationRandomizer.cs" />
     <Compile Include="CarSpawningJobGenerators\ShuntingLoadJobWithCarsGenerator.cs" />
     <Compile Include="CarSpawningJobGenerators\TransportJobWithCarsGenerator.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
+    <Compile Include="ExceptionCatchingCoroutineIterator.cs" />
     <Compile Include="Extensions\TrackExtension.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainControllerWithEmptyHaulGeneration_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
