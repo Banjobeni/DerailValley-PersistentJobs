@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using CommandTerminal;
-using DV.Logic.Job;
-using DV.ThingTypes;
 using HarmonyLib;
 using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using PersistentJobsMod.Persistence;
@@ -72,26 +70,23 @@ namespace PersistentJobsMod {
         [RegisterCommand("PJ.ExpireAllAvailableJobs", Help = "PersistentJobsMod: Expire all available (not accepted) jobs such that the cars of those jobs will be jobless. Use the station ID as argument to restrict it to jobs in that station.", MinArgCount = 0, MaxArgCount = 1)]
         public static void ExpireAllJobs(CommandArg[] args) {
             if (args.Length == 0) {
-                var jobs = Traverse.Create(JobsManager.Instance).Field("allJobs").GetValue<List<Job>>().ToList();
-                foreach (var job in jobs) {
-                    if (job.State == JobState.Available) {
-                        job.ExpireJob();
-                    }
+                foreach (var stationController in StationController.allStations) {
+                    var availableJobs = Traverse.Create(stationController.logicStation).Field("availableJobs").GetValue<List<DV.Logic.Job.Job>>();
+                    Debug.Log($"Expiring {availableJobs.Count} jobs in {stationController.logicStation.ID}");
+
+                    stationController.ExpireAllAvailableJobsInStation();
                 }
             } else {
                 var stationID = args[0].String;
                 var stationController = StationController.allStations.FirstOrDefault(s => s.logicStation.ID == stationID);
                 if (stationController == null) {
                     Debug.Log("Could not find station with that ID");
+                    return;
                 }
 
-                var jobChainControllers = Traverse.Create(stationController).Field("jobChainControllers").GetValue<List<JobChainController>>().ToList();
-                foreach (var jobChainController in jobChainControllers) {
-                    var currentJob = jobChainController.currentJobInChain;
-                    if (currentJob.State == JobState.Available) {
-                        currentJob.ExpireJob();
-                    }
-                }
+                var availableJobs = Traverse.Create(stationController.logicStation).Field("availableJobs").GetValue<List<DV.Logic.Job.Job>>();
+                Debug.Log($"Expiring {availableJobs.Count} jobs in {stationController.logicStation.ID}");
+                stationController.ExpireAllAvailableJobsInStation();
             }
         }
     }
