@@ -82,7 +82,7 @@ namespace PersistentJobsMod.JobGenerators {
             Utilities.CalculateShuntingBonusTimeLimitAndWage(
                 JobType.ShuntingLoad,
                 destinationTracks.Count,
-                (from tc in trainCars select tc.carType).ToList<TrainCarType>(),
+                trainCars.Select(tc => tc.carLivery).ToList(),
                 transportedCargoPerCar,
                 out bonusTimeLimit,
                 out initialWage

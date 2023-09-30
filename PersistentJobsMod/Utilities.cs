@@ -7,7 +7,6 @@ using UnityEngine;
 using DV.Logic.Job;
 using DV.ServicePenalty;
 using DV.ThingTypes;
-using DV.ThingTypes.TransitionHelpers;
 using DV.Utils;
 using HarmonyLib;
 using PersistentJobsMod.Extensions;
@@ -115,7 +114,7 @@ namespace PersistentJobsMod {
         public static void CalculateTransportBonusTimeLimitAndWage(JobType jobType,
             StationController startingStation,
             StationController destStation,
-            List<TrainCarType> transportedCarTypes,
+            List<TrainCarLivery> transportedCarLiveries,
             List<CargoType> transportedCargoTypes,
             out float bonusTimeLimit,
             out float initialWage) {
@@ -125,13 +124,13 @@ namespace PersistentJobsMod {
             initialWage = JobPaymentCalculator.CalculateJobPayment(
                 jobType,
                 distanceBetweenStations,
-                ExtractPaymentCalculationData(transportedCarTypes, transportedCargoTypes)
+                ExtractPaymentCalculationData(transportedCarLiveries, transportedCargoTypes)
             );
         }
 
         public static void CalculateShuntingBonusTimeLimitAndWage(JobType jobType,
             int numberOfTracks,
-            List<TrainCarType> transportedCarTypes,
+            List<TrainCarLivery> transportedCarLiveries,
             List<CargoType> transportedCargoTypes,
             out float bonusTimeLimit,
             out float initialWage) {
@@ -141,19 +140,18 @@ namespace PersistentJobsMod {
             initialWage = JobPaymentCalculator.CalculateJobPayment(
                 jobType,
                 distance,
-                ExtractPaymentCalculationData(transportedCarTypes, transportedCargoTypes)
+                ExtractPaymentCalculationData(transportedCarLiveries, transportedCargoTypes)
             );
         }
 
         // based off EmptyHaulJobProceduralGenerator.ExtractEmptyHaulPaymentCalculationData
-        private static PaymentCalculationData ExtractPaymentCalculationData(List<TrainCarType> orderedCarTypes,
+        private static PaymentCalculationData ExtractPaymentCalculationData(List<TrainCarLivery> orderedCarLiveries,
             List<CargoType> orderedCargoTypes) {
-            if (orderedCarTypes == null) {
+            if (orderedCarLiveries == null) {
                 return null;
             }
             var trainCarTypeToCount = new Dictionary<TrainCarLivery, int>();
-            foreach (var trainCarType in orderedCarTypes) {
-                var trainCarLivery = trainCarType.ToV2();
+            foreach (var trainCarLivery in orderedCarLiveries) {
                 if (!trainCarTypeToCount.ContainsKey(trainCarLivery)) {
                     trainCarTypeToCount[trainCarLivery] = 0;
                 }
@@ -169,8 +167,7 @@ namespace PersistentJobsMod {
             return new PaymentCalculationData(trainCarTypeToCount, cargoTypeToCount);
         }
 
-        public static List<CargoType> GetCargoTypesForCarType(TrainCarType trainCarType) {
-            var trainCarTypeV2 = trainCarType.ToV2().parentType;
+        public static List<CargoType> GetCargoTypesForCarType(TrainCarType_v2 trainCarTypeV2) {
             var cargoTypeV2s = Globals.G.Types.CarTypeToLoadableCargo[trainCarTypeV2];
             return cargoTypeV2s.Select(ct => ct.v1).ToList();
         }

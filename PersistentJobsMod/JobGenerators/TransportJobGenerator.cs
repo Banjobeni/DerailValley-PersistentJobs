@@ -25,7 +25,7 @@ namespace PersistentJobsMod.JobGenerators {
                 return null;
             }
 
-            var transportedCarTypes = trainCars.Select(tc => tc.carType).ToList();
+            var transportedCarLiveries = trainCars.Select(tc => tc.carLivery).ToList();
 
             Main._modEntry.Logger.Log("transport: calculating time/wage/licenses");
             float bonusTimeLimit;
@@ -34,7 +34,7 @@ namespace PersistentJobsMod.JobGenerators {
                 JobType.Transport,
                 startingStation,
                 destStation,
-                transportedCarTypes,
+                transportedCarLiveries,
                 transportedCargoPerCar,
                 out bonusTimeLimit,
                 out initialWage

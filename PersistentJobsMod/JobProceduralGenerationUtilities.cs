@@ -80,7 +80,7 @@ namespace PersistentJobsMod {
                         // ensure all trainCars will have at least one cargoType to haul
                         var outboundCargoTypesPerTrainCar
                             = (from tc in cgsPerTcs.Item1
-                               select Utilities.GetCargoTypesForCarType(tc.carType).Intersect(cg.cargoTypes));
+                               select Utilities.GetCargoTypesForCarType(tc.carLivery.parentType).Intersect(cg.cargoTypes));
                         if (outboundCargoTypesPerTrainCar.All(cgs => cgs.Count() > 0)) {
                             cgsPerTcs.Item2.Add(cg);
                         }
