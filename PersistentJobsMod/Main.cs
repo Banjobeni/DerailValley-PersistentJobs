@@ -1,9 +1,10 @@
 ﻿using System.Reflection;
 using UnityModManagerNet;
 using HarmonyLib;
+using PersistentJobsMod.Model;
 
 namespace PersistentJobsMod {
-    static class Main {
+    public static class Main {
         public static UnityModManager.ModEntry _modEntry;
         public static bool _overrideTrackReservation = false;
         public static float _initialDistanceRegular = 0f;
@@ -15,13 +16,15 @@ namespace PersistentJobsMod {
             get { return _initialDistanceRegular; }
         }
 
-        static void Load(UnityModManager.ModEntry modEntry) {
+        public static void Load(UnityModManager.ModEntry modEntry) {
             Main._modEntry = modEntry;
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             modEntry.OnToggle = OnToggle;
+
+            WorldStreamingInit.LoadingFinished += WorldStreamingInitLoadingFinished;
         }
 
         static bool OnToggle(UnityModManager.ModEntry modEntry, bool isTogglingOn) {
@@ -30,6 +33,11 @@ namespace PersistentJobsMod {
             }
 
             return true;
+        }
+
+        private static void WorldStreamingInitLoadingFinished() {
+            DetailedCargoGroups.Initialize();
+            EmptyTrainCarTypeDestinations.Initialize();
         }
 
         public static void OnCriticalFailure() {

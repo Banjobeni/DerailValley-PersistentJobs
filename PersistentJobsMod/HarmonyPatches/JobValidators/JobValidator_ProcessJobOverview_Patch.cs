@@ -11,8 +11,8 @@ using UnityEngine;
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
     [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
-    class JobValidator_ProcessJobOverview_Patch {
-        static bool Prefix(DV.Printers.PrinterController ___bookletPrinter,
+    public static class JobValidator_ProcessJobOverview_Patch {
+        public static bool Prefix(DV.Printers.PrinterController ___bookletPrinter,
             JobOverview jobOverview) {
             try {
                 if (!Main._modEntry.Active) {
@@ -22,7 +22,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 var job = jobOverview.job;
                 var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
                 var stationController = allStations.FirstOrDefault(
-                    (StationController st) => st.logicStation.availableJobs.Contains(job)
+                    st => st.logicStation.availableJobs.Contains(job)
                 );
 
                 if (___bookletPrinter.IsOnCooldown || job.State != JobState.Available || stationController == null) {
@@ -34,11 +34,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     var wt = job.tasks.Aggregate(
                         null as Task,
                         (found, outerTask) => found == null
-                            ? Utilities.TaskFindDFS(outerTask, innerTask => innerTask is WarehouseTask)
+                            ? Utilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
                             : found) as WarehouseTask;
                     var wm = wt != null ? wt.warehouseMachine : null;
                     if (wm != null && job.tasks.Any(
-                            outerTask => Utilities.TaskAnyDFS(
+                            outerTask => Utilities.TaskAnyDfs(
                                 outerTask,
                                 innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) {
                         ___bookletPrinter.PlayErrorSound();
@@ -52,7 +52,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     .Field("stationRange")
                     .GetValue<StationJobGenerationRange>();
                 if (!job.tasks.Any(
-                        outerTask => Utilities.TaskAnyDFS(
+                        outerTask => Utilities.TaskAnyDfs(
                             outerTask,
                             innerTask => AreTaskCarsInRange(innerTask, stationRange)))) {
                     job.ExpireJob();
@@ -90,7 +90,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     PersistentJobsModInteractionFeatures.InvokeJobTrackChanged(job);
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{e.ToString()}");
+                Main._modEntry.Logger.Error($"Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{e}");
                 Main.OnCriticalFailure();
             }
             return true;
@@ -120,7 +120,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 return;
             }
 
-            while (cursor != null && Utilities.TaskAnyDFS(
+            while (cursor != null && Utilities.TaskAnyDfs(
                        cursor.Value,
                        t => t.InstanceTaskType != TaskType.Warehouse)) {
                 Main._modEntry.Logger.Log("    searching for warehouse task...");
@@ -134,7 +134,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             // cursor points at the parallel task of warehouse tasks
             // replace the destination track of all following tasks with the warehouse track
-            var wt = (Utilities.TaskFindDFS(
+            var wt = (Utilities.TaskFindDfs(
                 cursor.Value,
                 t => t.InstanceTaskType == TaskType.Warehouse) as WarehouseTask);
             var wm = wt != null ? wt.warehouseMachine : null;
@@ -146,7 +146,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             while ((cursor = cursor.Next) != null) {
                 Main._modEntry.Logger.Log("    replace destination tracks...");
-                Utilities.TaskDoDFS(
+                Utilities.TaskDoDfs(
                     cursor.Value,
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
@@ -156,12 +156,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
         private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
             var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
-            var carInRangeOfStation = cars.FirstOrDefault((Car c) => {
-                var trainCar = SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c];
-                var distance =
-                    (trainCar.transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude;
-                return trainCar != null && distance <= Main._initialDistanceRegular;
-            });
+            var carInRangeOfStation = cars.FirstOrDefault(c => (SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c].transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular);
             return carInRangeOfStation != null;
         }
 
@@ -178,8 +173,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             for (var i = 0; i < jobChain.Count; i++) {
                 var key = jobChain[i];
-                if (jobDefToCurrentlyReservedTracks.ContainsKey(key)) {
-                    var trackReservations = jobDefToCurrentlyReservedTracks[key];
+                if (jobDefToCurrentlyReservedTracks.TryGetValue(key, out var trackReservations)) {
                     for (var j = 0; j < trackReservations.Count; j++) {
                         var reservedTrack = trackReservations[j].track;
                         var reservedLength = trackReservations[j].reservedLength;
@@ -237,7 +231,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
                             // update task data
                             foreach (var task in key.job.tasks) {
-                                Utilities.TaskDoDFS(task, t => {
+                                Utilities.TaskDoDfs(task, t => {
                                     if (t is TransportTask) {
                                         var destinationTrack = Traverse.Create(t).Field("destinationTrack");
                                         if (destinationTrack.GetValue<Track>() == reservedTrack) {
@@ -271,21 +265,21 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             var stationYard = stationController.logicStation.yard;
             if (stationYard.StorageTracks.Contains(oldTrack)) {
                 // shunting unload, logistical haul
-                preferredTracks = new List<Track>[] {
+                preferredTracks = new[] {
                     stationYard.StorageTracks,
                     stationYard.TransferOutTracks,
                     stationYard.TransferInTracks
                 };
             } else if (stationYard.TransferInTracks.Contains(oldTrack)) {
                 // freight haul
-                preferredTracks = new List<Track>[] {
+                preferredTracks = new[] {
                     stationYard.TransferInTracks,
                     stationYard.TransferOutTracks,
                     stationYard.StorageTracks
                 };
             } else if (stationYard.TransferOutTracks.Contains(oldTrack)) {
                 // shunting load
-                preferredTracks = new List<Track>[] {
+                preferredTracks = new[] {
                     stationYard.TransferOutTracks,
                     stationYard.StorageTracks,
                     stationYard.TransferInTracks

@@ -1,17 +1,15 @@
 ﻿using System;
 using HarmonyLib;
-using JetBrains.Annotations;
 using PersistentJobsMod.CarSpawningJobGenerators;
 using PersistentJobsMod.Persistence;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.CarSpawningJobGeneration {
-    [UsedImplicitly]
     [HarmonyPatch(typeof(StationProceduralJobsController))]
     public static class StationProceduralJobsController_Patch {
         [HarmonyPatch(nameof(StationProceduralJobsController.TryToGenerateJobs))]
         [HarmonyPrefix]
-        static bool TryToGenerateJobs_Prefix(StationProceduralJobsController __instance, StationProceduralJobsRuleset ___generationRuleset, ref Coroutine ___generationCoro) {
+        public static bool TryToGenerateJobs_Prefix(StationProceduralJobsController __instance, StationProceduralJobsRuleset ___generationRuleset, ref Coroutine ___generationCoro) {
             if (!Main._modEntry.Active) {
                 return true;
             }

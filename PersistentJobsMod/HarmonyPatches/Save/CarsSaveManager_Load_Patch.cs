@@ -7,8 +7,8 @@ using PersistentJobsMod.Persistence;
 namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
     [HarmonyPatch(typeof(CarsSaveManager), "Load")]
-    class CarsSaveManager_Load_Patch {
-        static void Postfix() {
+    public static class CarsSaveManager_Load_Patch {
+        public static void Postfix() {
             try {
                 var saveData = SaveGameManager.Instance.data.GetJObject(SaveDataConstants.SAVE_DATA_PRIMARY_KEY);
 

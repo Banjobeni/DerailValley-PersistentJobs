@@ -7,6 +7,8 @@ using PersistentJobsMod.Licensing;
 using System.Collections.Generic;
 using System.Linq;
 using PersistentJobsMod.JobGenerators;
+using UnityEngine;
+using Random = System.Random;
 
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class ShuntingLoadJobWithCarsGenerator {
@@ -32,7 +34,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             }
         }
 
-        public static JobChainController TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, System.Random random) {
+        public static JobChainController TryGenerateJobChainController(StationController startingStation, bool forceLicenseReqs, Random random) {
             Main._modEntry.Logger.Log($"{nameof(ShuntingLoadJobWithCarsGenerator)}: trying to generate job at {startingStation.logicStation.ID}");
 
             var yardTracksOrganizer = YardTracksOrganizer.Instance;
@@ -48,7 +50,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var chosenCargoGroup = random.GetRandomElement(availableCargoGroups);
             Main._modEntry.Logger.Log($"load: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
 
-            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup, carCount, random);
+            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup.cargoTypes, carCount, random);
 
             var totalTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList(), true);
 
@@ -56,7 +58,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var startingStationWarehouseMachines = startingStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(distinctCargoTypes);
             if (startingStationWarehouseMachines.Count == 0) {
-                UnityEngine.Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
+                Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
                 return null;
             }
 
@@ -109,17 +111,33 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 carsPerStartingTrack.Add(new CarsPerTrack(startingTrack, (from car in spawnedCars select car.logicCar).ToList()));
             }
 
+            var cargoTypesPerTrainCar = cargoTypeLiveryCars.Select(clc => clc.CargoType).ToList();
+
+            // TODO fix intersect. a warehouse machine should be able to handle *all* cargo types, no?
+            // choose warehouse machine
+            Main._modEntry.Logger.Log("load: choosing warehouse machine");
+            var warehouseMachines = startingStation.warehouseMachineControllers
+                .Where(wm => wm.supportedCargoTypes.Intersect(cargoTypesPerTrainCar).Any())
+                .ToList();
+            if (warehouseMachines.Count == 0) {
+                Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
+                return null;
+            }
+
+            var warehouseMachine = random.GetRandomElement(warehouseMachines).warehouseMachine;
+
             var jcc = ShuntingLoadJobGenerator.TryGenerateJobChainController(
                 startingStation,
                 carsPerStartingTrack,
+                warehouseMachine,
                 destinationStation,
                 orderedTrainCars,
-                cargoTypeLiveryCars.Select(clc => clc.CargoType).ToList(),
+                cargoTypesPerTrainCar,
                 random,
                 true);
 
             if (jcc == null) {
-                UnityEngine.Debug.LogWarning("[PersistentJobs] load: Couldn't generate job chain. Deleting spawned trainCars!");
+                Debug.LogWarning("[PersistentJobs] load: Couldn't generate job chain. Deleting spawned trainCars!");
                 SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                 return null;
             }

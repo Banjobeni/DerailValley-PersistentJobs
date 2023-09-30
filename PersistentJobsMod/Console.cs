@@ -7,6 +7,7 @@ using HarmonyLib;
 using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using PersistentJobsMod.Persistence;
 using UnityEngine;
+using Random = System.Random;
 
 namespace PersistentJobsMod {
     public static class Console {
@@ -33,8 +34,9 @@ namespace PersistentJobsMod {
             }
         }
 
-        [RegisterCommand("PJ.RegenerateJobsImmediately", Help = "PersistentJobsMod: Regenerate jobs for train cars immediately. Only train cars out of range for the player (those that vanilla would normally delete) will be considered", MinArgCount = 0, MaxArgCount = 0)]
+        [RegisterCommand("PJ.RegenerateJobsImmediately", Help = "PersistentJobsMod: Regenerate jobs immediately for train cars that are registered to be deleted by vanilla.", MinArgCount = 0, MaxArgCount = 0)]
         public static void RegenerateJobsImmediately(CommandArg[] args) {
+            UnusedTrainCarDeleter_Patches.ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter.Instance, Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>(), true);
             UnusedTrainCarDeleter.Instance.InstantConditionalDeleteOfUnusedCars();
         }
 
@@ -47,9 +49,7 @@ namespace PersistentJobsMod {
                 return;
             }
 
-            var consistTrainCars = trainCar.trainset.cars.Where(tc => CarTypes.IsRegularCar(tc.carLivery) && JobsManager.Instance.GetJobOfCar(tc) == null).ToList();
-
-            var reassignedTrainCars = UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch.TryToReassignJobsToTrainCarsAndReturnAssignedTrainCars(consistTrainCars);
+            var reassignedTrainCars = UnusedTrainCarDeleter_Patches.ReassignJoblessRegularTrainCarsToJobs(new[] { trainCar.trainset }, new Random());
 
             if (reassignedTrainCars.Any()) {
                 var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
@@ -59,7 +59,7 @@ namespace PersistentJobsMod {
                 }
                 Debug.Log($"Assigned {string.Join(", ", reassignedTrainCars.Select(tc => tc.ID))} to new job(s)");
             } else {
-                Debug.Log($"None of {string.Join(", ", consistTrainCars.Select(tc => tc.ID))} could be assigned to new jobs");
+                Debug.Log($"None of {string.Join(", ", trainCar.trainset.cars.Select(tc => tc.ID))} could be assigned to new jobs");
             }
         }
 
@@ -67,6 +67,32 @@ namespace PersistentJobsMod {
         public static void ListCarsRegisteredForDeletion(CommandArg[] args) {
             var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
             Debug.Log(string.Join(", ", unusedTrainCarsMarkedForDelete.Select(tc => tc.ID)));
+        }
+
+        [RegisterCommand("PJ.ExpireAllAvailableJobs", Help = "PersistentJobsMod: Expire all available (not accepted) jobs such that the cars of those jobs will be jobless. Use the station ID as argument to restrict it to jobs in that station.", MinArgCount = 0, MaxArgCount = 1)]
+        public static void ExpireAllJobs(CommandArg[] args) {
+            if (args.Length == 0) {
+                var jobs = Traverse.Create(JobsManager.Instance).Field("allJobs").GetValue<List<Job>>().ToList();
+                foreach (var job in jobs) {
+                    if (job.State == JobState.Available) {
+                        job.ExpireJob();
+                    }
+                }
+            } else {
+                var stationID = args[0].String;
+                var stationController = StationController.allStations.FirstOrDefault(s => s.logicStation.ID == stationID);
+                if (stationController == null) {
+                    Debug.Log("Could not find station with that ID");
+                }
+
+                var jobChainControllers = Traverse.Create(stationController).Field("jobChainControllers").GetValue<List<JobChainController>>().ToList();
+                foreach (var jobChainController in jobChainControllers) {
+                    var currentJob = jobChainController.currentJobInChain;
+                    if (currentJob.State == JobState.Available) {
+                        currentJob.ExpireJob();
+                    }
+                }
+            }
         }
     }
 }

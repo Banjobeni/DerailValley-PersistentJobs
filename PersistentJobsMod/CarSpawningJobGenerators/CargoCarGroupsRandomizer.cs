@@ -7,14 +7,22 @@ using DV.ThingTypes.TransitionHelpers;
 
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class CargoCarGroupsRandomizer {
-        public static List<CargoCarGroup> GetCargoCarGroups(CargoGroup cargoGroup, int carCount, Random random) {
-            var chosenCargoTypes = ChooseCargoTypes(cargoGroup.cargoTypes, random);
+        public static List<CargoCarGroup> GetCargoCarGroups(List<CargoType> cargoTypes, int carCount, Random random) {
+            var chosenCargoTypes = ChooseCargoTypes(cargoTypes, random);
             Main._modEntry.Logger.Log($"CargoCarGroupsRandomizer: chose cargo types ({string.Join("/", chosenCargoTypes)})");
 
             var cargoCarGroups = ChooseCargoCarGroups(chosenCargoTypes, carCount, random);
             Main._modEntry.Logger.Log($"CargoCarGroupsRandomizer: chose cargo car groups ({string.Join(", ", cargoCarGroups.Select(g => $"{g.CarLiveries.Count} x {g.CargoType}"))})");
 
             return cargoCarGroups;
+        }
+
+        public static IReadOnlyList<CargoType> ChooseCargoTypesForNumberOfCars(IReadOnlyList<CargoType> cargoTypes, int carCount, Random random) {
+            var chosenCargoTypes = ChooseCargoTypes(cargoTypes, random);
+            return Enumerable.Range(0, carCount)
+                .Select(_ => random.GetRandomElement(chosenCargoTypes))
+                .OrderBy(ct => chosenCargoTypes.IndexOf(ct))
+                .ToList();
         }
 
         private static List<CargoCarGroup> ChooseCargoCarGroups(List<CargoType> cargoTypes, int carCount, Random random) {
@@ -32,7 +40,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             return chosenTrainCarLivery;
         }
 
-        private static List<CargoType> ChooseCargoTypes(List<CargoType> cargoTypes, Random random) {
+        private static List<CargoType> ChooseCargoTypes(IReadOnlyList<CargoType> cargoTypes, Random random) {
             if (random.NextDouble() < 0.5 || cargoTypes.Count == 1) {
                 // take only one cargo type
                 return new[] { random.GetRandomElement(cargoTypes) }.ToList();

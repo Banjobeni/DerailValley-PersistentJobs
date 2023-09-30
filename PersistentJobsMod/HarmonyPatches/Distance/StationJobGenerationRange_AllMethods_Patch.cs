@@ -6,8 +6,8 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
     /// <summary>expands the distance at which the job generation trigger is rearmed</summary>
     [HarmonyPatch(typeof(StationJobGenerationRange))]
     [HarmonyPatchAll]
-    class StationJobGenerationRange_AllMethods_Patch {
-        static void Prefix(StationJobGenerationRange __instance, MethodBase __originalMethod) {
+    public static class StationJobGenerationRange_AllMethods_Patch {
+        public static void Prefix(StationJobGenerationRange __instance, MethodBase __originalMethod) {
             try {
                 // backup existing values before overwriting
                 if (Main._initialDistanceRegular < 1f) {
@@ -28,7 +28,7 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
                     __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during StationJobGenerationRange.{__originalMethod.Name} prefix patch:\n{e.ToString()}");
+                Main._modEntry.Logger.Error($"Exception thrown during StationJobGenerationRange.{__originalMethod.Name} prefix patch:\n{e}");
                 Main.OnCriticalFailure();
             }
         }

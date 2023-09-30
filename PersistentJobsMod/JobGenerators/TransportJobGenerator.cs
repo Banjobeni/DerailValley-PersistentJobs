@@ -6,18 +6,19 @@ using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
     static class TransportJobGenerator {
-        public static JobChainController TryGenerateJobChainController(StationController startingStation,
-            Track startingTrack,
-            StationController destStation,
-            List<TrainCar> trainCars,
-            List<CargoType> transportedCargoPerCar,
-            System.Random random,
-            bool forceCorrectCargoStateOnCars = false) {
+        public static JobChainController TryGenerateJobChainController(
+                StationController startingStation,
+                Track startingTrack,
+                StationController destStation,
+                IReadOnlyList<TrainCar> trainCars,
+                List<CargoType> transportedCargoPerCar,
+                System.Random random,
+                bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log("transport: generating with pre-spawned cars");
             var yto = YardTracksOrganizer.Instance;
 
             Main._modEntry.Logger.Log("transport: choosing destination track");
-            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.ToList(), true);
             var destinationTrack = Utilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
@@ -47,7 +48,7 @@ namespace PersistentJobsMod.JobGenerators {
                 startingTrack,
                 destStation,
                 destinationTrack,
-                trainCars,
+                trainCars.ToList(),
                 transportedCargoPerCar,
                 trainCars.Select(
                     tc => tc.logicCar.CurrentCargoTypeInCar == CargoType.None ? 1.0f : tc.logicCar.LoadedCargoAmount).ToList(),
@@ -97,52 +98,6 @@ namespace PersistentJobsMod.JobGenerators {
             staticTransportJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;
             jobChainController.AddJobDefinitionToChain(staticTransportJobDefinition);
             return jobChainController;
-        }
-
-        public static List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)>
-            ComputeJobInfosFromCargoGroupsPerTrainCarSetPerStation(Dictionary<StationController, List<(List<TrainCar>, List<CargoGroup>)>> cgsPerTcsPerSc,
-                System.Random rng) {
-            var jobsToGenerate
-                = new List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)>();
-
-            foreach (var startingStation in cgsPerTcsPerSc.Keys) {
-                var cgsPerTcs = cgsPerTcsPerSc[startingStation];
-
-                foreach ((var trainCars, var cargoGroups) in cgsPerTcs) {
-                    var chosenCargoGroup = Utilities.GetRandomFromEnumerable(cargoGroups, rng);
-                    var destinationStation
-                        = Utilities.GetRandomFromEnumerable(chosenCargoGroup.stations, rng);
-
-                    // populate all the info; we'll generate the jobs later
-                    jobsToGenerate.Add((
-                        startingStation,
-                        trainCars[0].logicCar.FrontBogieTrack,
-                        destinationStation,
-                        trainCars,
-                        trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList()));
-                }
-            }
-
-            return jobsToGenerate;
-        }
-
-        public static IEnumerable<JobChainController> doJobGeneration(List<(StationController, Track, StationController, List<TrainCar>, List<CargoType>)> jobInfos,
-            System.Random rng,
-            bool forceCorrectCargoStateOnCars = true) {
-            return jobInfos.Select((definition) => {
-                // I miss having a spread operator :(
-                (var ss, var st, var ds, _, _) = definition;
-                (_, _, _, var tcs, var cts) = definition;
-
-                return (JobChainController)TryGenerateJobChainController(
-                    ss,
-                    st,
-                    ds,
-                    tcs,
-                    cts,
-                    rng,
-                    forceCorrectCargoStateOnCars);
-            });
         }
     }
 }

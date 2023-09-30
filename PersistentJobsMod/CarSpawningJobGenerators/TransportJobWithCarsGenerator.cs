@@ -8,7 +8,6 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class TransportJobWithCarsGenerator {
         public static JobChainController TryGenerateJobChainController(StationController startingStation, bool requirePlayerLicensesCompatible, System.Random random) {
             Main._modEntry.Logger.Log("transport: generating with car spawning");
-            var yardTracksOrganizer = YardTracksOrganizer.Instance;
 
             var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.outputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cargo, random);
 
@@ -21,7 +20,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var chosenCargoGroup = random.GetRandomElement(availableCargoGroups);
             Main._modEntry.Logger.Log($"transport: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
 
-            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup, carCount, random);
+            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup.cargoTypes, carCount, random);
 
             var trainCarLiveries = cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList();
 
@@ -52,7 +51,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             // spawn trainCars
             Main._modEntry.Logger.Log("transport: spawning trainCars");
             var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
-            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, true);
+            var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, applyHandbrakeOnLastCars: true);
             if (orderedTrainCars == null) {
                 Main._modEntry.Logger.Log("transport: Failed to spawn trainCars!");
                 return null;

@@ -102,18 +102,24 @@
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="ExceptionCatchingCoroutineIterator.cs" />
+    <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\TrackExtension.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainControllerWithEmptyHaulGeneration_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_ReserveRequiredTracks_Patch.cs" />
-    <Compile Include="HarmonyPatches\JobGeneration\UnusedTrainCarDeleter_InstantConditionalDeleteOfUnusedCars_Patch.cs" />
+    <Compile Include="HarmonyPatches\JobGeneration\UnusedTrainCarDeleter_Patches.cs" />
     <Compile Include="HarmonyPatches\Save\WorldStreaminInit_Patch.cs" />
     <Compile Include="HarmonyPatches\TrackReservations\YardTracksOrganizer_Patches.cs" />
+    <Compile Include="JobGenerators\EmptyHaulJobGenerator.cs" />
     <Compile Include="JobProceduralGenerationUtilities.cs" />
     <Compile Include="HarmonyPatches\Save\JobSaveManager_LoadJobChain_Patch.cs" />
     <Compile Include="HarmonyPatches\JobValidators\JobValidator_ProcessJobOverview_Patch.cs" />
     <Compile Include="Licensing\CargoGroupsAndCarCountProvider.cs" />
+    <Compile Include="Licensing\LicensesUtilities.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="Model\DetailedCargoGroup.cs" />
+    <Compile Include="Model\EmptyTrainCarTypeDestinations.cs" />
+    <Compile Include="Model\IReassignableTrainCarRelationWithMaxTrackLength.cs" />
     <Compile Include="ModInteraction\PersistentJobsModInteractionFeatures.cs" />
     <Compile Include="Persistence\StationIdCarSpawningPersistence.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -126,7 +132,6 @@
     <Compile Include="HarmonyPatches\CarSpawningJobGeneration\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
     <Compile Include="JobGenerators\ShuntingUnloadJobProceduralGenerator.cs" />
-    <Compile Include="HarmonyPatches\JobGeneration\UnusedTrainCarDeleter_TrainCarsDeleteCheck_Patch.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
   <ItemGroup />

@@ -64,7 +64,7 @@ namespace PersistentJobsMod {
             Traverse.Create(trainCar).Field("carDmg").SetValue(carDamageModel);
             carDamageModel.OnCreated(trainCar);
 
-            var updateCarHealthDataMethodTraverse = Traverse.Create(trainPlatesController).Method("UpdateCarHealthData", new Type[] { typeof(float) });
+            var updateCarHealthDataMethodTraverse = Traverse.Create(trainPlatesController).Method("UpdateCarHealthData", new[] { typeof(float) });
             updateCarHealthDataMethodTraverse.GetValue(carDamageModel.EffectiveHealthPercentage100Notation);
             carDamageModel.CarEffectiveHealthStateUpdate += carHealthPercentage => updateCarHealthDataMethodTraverse.GetValue(carHealthPercentage);
 
@@ -83,7 +83,7 @@ namespace PersistentJobsMod {
             Traverse.Create(trainCar).Property("cargoDamage").SetValue(cargoDamageModel);
             cargoDamageModel.OnCreated(trainCar);
 
-            var updateCargoHealthDataMethodTraverse = Traverse.Create(trainPlatesCtrl).Method("UpdateCargoHealthData", new Type[] { typeof(float) });
+            var updateCargoHealthDataMethodTraverse = Traverse.Create(trainPlatesCtrl).Method("UpdateCargoHealthData", new[] { typeof(float) });
             updateCargoHealthDataMethodTraverse.GetValue(cargoDamageModel.EffectiveHealthPercentage100Notation);
             cargoDamageModel.CargoEffectiveHealthStateUpdate += cargoHealthPercentage => updateCargoHealthDataMethodTraverse.GetValue(cargoHealthPercentage);
 
@@ -120,7 +120,7 @@ namespace PersistentJobsMod {
             out float initialWage) {
             var distanceBetweenStations
                 = JobPaymentCalculator.GetDistanceBetweenStations(startingStation, destStation);
-            bonusTimeLimit = JobPaymentCalculator.CalculateHaulBonusTimeLimit(distanceBetweenStations, false);
+            bonusTimeLimit = JobPaymentCalculator.CalculateHaulBonusTimeLimit(distanceBetweenStations);
             initialWage = JobPaymentCalculator.CalculateJobPayment(
                 jobType,
                 distanceBetweenStations,
@@ -135,7 +135,7 @@ namespace PersistentJobsMod {
             out float bonusTimeLimit,
             out float initialWage) {
             // scalar value 500 taken from StationProceduralJobGenerator
-            var distance = (float)numberOfTracks * 500f;
+            var distance = numberOfTracks * 500f;
             bonusTimeLimit = JobPaymentCalculator.CalculateShuntingBonusTimeLimit(numberOfTracks);
             initialWage = JobPaymentCalculator.CalculateJobPayment(
                 jobType,
@@ -168,43 +168,38 @@ namespace PersistentJobsMod {
         }
 
         public static List<CargoType> GetCargoTypesForCarType(TrainCarType_v2 trainCarTypeV2) {
-            var cargoTypeV2s = Globals.G.Types.CarTypeToLoadableCargo[trainCarTypeV2];
-            return cargoTypeV2s.Select(ct => ct.v1).ToList();
+            var cargoTypes = Globals.G.Types.CarTypeToLoadableCargo[trainCarTypeV2];
+            return cargoTypes.Select(ct => ct.v1).ToList();
         }
 
-        public static void TaskDoDFS(Task task, Action<Task> action) {
+        public static void TaskDoDfs(Task task, Action<Task> action) {
             if (task is ParallelTasks || task is SequentialTasks) {
                 Traverse.Create(task)
                     .Field("tasks")
                     .GetValue<IEnumerable<Task>>()
-                    .Do(t => TaskDoDFS(t, action));
+                    .Do(t => TaskDoDfs(t, action));
             }
             action(task);
         }
 
-        public static bool TaskAnyDFS(Task task, Func<Task, bool> predicate) {
+        public static bool TaskAnyDfs(Task task, Func<Task, bool> predicate) {
             if (task is ParallelTasks || task is SequentialTasks) {
                 return Traverse.Create(task)
                     .Field("tasks")
                     .GetValue<IEnumerable<Task>>()
-                    .Any(t => TaskAnyDFS(t, predicate));
+                    .Any(t => TaskAnyDfs(t, predicate));
             }
             return predicate(task);
         }
 
-        public static Task TaskFindDFS(Task task, Func<Task, bool> predicate) {
+        public static Task TaskFindDfs(Task task, Func<Task, bool> predicate) {
             if (task is ParallelTasks || task is SequentialTasks) {
                 return Traverse.Create(task)
                     .Field("tasks")
                     .GetValue<IEnumerable<Task>>()
-                    .Aggregate(null as Task, (found, t) => found == null ? TaskFindDFS(t, predicate) : found);
+                    .Aggregate(null as Task, (found, t) => found == null ? TaskFindDfs(t, predicate) : found);
             }
             return predicate(task) ? task : null;
-        }
-
-        // taken from StationProcedurationJobGenerator.GetRandomFromList
-        public static T GetRandomFromEnumerable<T>(IEnumerable<T> list, Random rng) {
-            return list.ElementAt(rng.Next(0, list.Count()));
         }
 
         public static T GetRandomElement<T>(this Random rng, IReadOnlyList<T> list) {
@@ -213,7 +208,7 @@ namespace PersistentJobsMod {
         }
 
         // taken from StationProcedurationJobGenerator.GetMultipleRandomsFromList
-        public static List<T> GetMultipleRandomsFromList<T>(this Random rng, List<T> list, int countToGet) {
+        public static List<T> GetMultipleRandomsFromList<T>(this Random rng, IReadOnlyList<T> list, int countToGet) {
             var list2 = new List<T>(list);
             if (countToGet > list2.Count) {
                 Debug.LogError("Trying to get more random items from list than it contains. Returning all items from list.");
@@ -228,7 +223,7 @@ namespace PersistentJobsMod {
             return list3;
         }
 
-        public static List<T> GetRandomPermutation<T>(this Random rng, List<T> list) {
+        public static List<T> GetRandomPermutation<T>(this Random rng, IReadOnlyList<T> list) {
             return GetMultipleRandomsFromList(rng, list, list.Count);
         }
 

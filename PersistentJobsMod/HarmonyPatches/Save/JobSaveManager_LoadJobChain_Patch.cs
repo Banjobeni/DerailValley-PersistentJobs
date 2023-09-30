@@ -6,8 +6,8 @@ using UnityEngine;
 namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>reserves tracks for taken jobs when loading save file</summary>
     [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
-    class JobSaveManager_LoadJobChain_Patch {
-        static void Postfix(JobChainSaveData chainSaveData) {
+    public static class JobSaveManager_LoadJobChain_Patch {
+        public static void Postfix(JobChainSaveData chainSaveData) {
             try {
                 if (chainSaveData.jobTaken) {
                     // reserve space for this job

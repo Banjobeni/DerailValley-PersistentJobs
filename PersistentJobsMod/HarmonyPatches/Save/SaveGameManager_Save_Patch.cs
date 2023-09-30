@@ -6,8 +6,8 @@ using PersistentJobsMod.Persistence;
 
 namespace PersistentJobsMod.HarmonyPatches.Save {
     [HarmonyPatch(typeof(SaveGameManager), "Save")]
-    class SaveGameManager_Save_Patch {
-        static void Prefix(SaveGameManager __instance) {
+    public static class SaveGameManager_Save_Patch {
+        public static void Prefix(SaveGameManager __instance) {
             try {
                 var spawnBlockSaveData = new JArray(StationIdCarSpawningPersistence.Instance.GetAllSetStationSpawnedCarFlags().Select(id => new JValue(id)));
 

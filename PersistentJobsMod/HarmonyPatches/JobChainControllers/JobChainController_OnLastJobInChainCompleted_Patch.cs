@@ -15,7 +15,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     /// transport: generates a corresponding unload job
     /// </summary>
     [HarmonyPatch(typeof(JobChainController), "OnLastJobInChainCompleted")]
-    class JobChainController_OnLastJobInChainCompleted_Patch {
+    static class JobChainController_OnLastJobInChainCompleted_Patch {
         public static void Prefix(JobChainController __instance,
                 List<StaticJobDefinition> ___jobChain,
                 Job lastJobInChain) {
@@ -46,7 +46,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                     Debug.LogError($"[PersistentJobs] Cannot handle unexpected job type {lastJobInChain.jobType} and {lastJobDefinition.GetType()} combination.");
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during {nameof(JobChainController_OnLastJobInChainCompleted_Patch)}.{nameof(Prefix)} patch:\n{e.ToString()}");
+                Main._modEntry.Logger.Error($"Exception thrown during {nameof(JobChainController_OnLastJobInChainCompleted_Patch)}.{nameof(Prefix)} patch:\n{e}");
                 Main.OnCriticalFailure();
             }
         }
@@ -70,9 +70,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
             var rng = new System.Random(Environment.TickCount);
 
-            var perCarCargoTypes = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
-
-            return ShuntingUnloadJobProceduralGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, perCarCargoTypes, rng);
+            return ShuntingUnloadJobProceduralGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, rng);
         }
 
         private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob) {
