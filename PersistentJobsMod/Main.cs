@@ -6,7 +6,6 @@ using PersistentJobsMod.Model;
 namespace PersistentJobsMod {
     public static class Main {
         public static UnityModManager.ModEntry _modEntry;
-        public static bool _overrideTrackReservation = false;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
 

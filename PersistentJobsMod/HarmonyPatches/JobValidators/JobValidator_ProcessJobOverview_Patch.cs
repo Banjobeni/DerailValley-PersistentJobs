@@ -60,17 +60,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 }
 
                 // reserve space for this job
-                var stationJobControllers
-                    = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>();
-                JobChainController jobChainController = null;
-                for (var i = 0; i < stationJobControllers.Length && jobChainController == null; i++) {
-                    foreach (var jcc in stationJobControllers[i].GetCurrentJobChains()) {
-                        if (jcc.currentJobInChain == job) {
-                            jobChainController = jcc;
-                            break;
-                        }
-                    }
-                }
+                var stationJobControllers = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>();
+
+                var jobChainController = stationJobControllers.SelectMany(sjc => sjc.GetCurrentJobChains()).FirstOrDefault(jcc => jcc.currentJobInChain == job);
+
                 if (jobChainController == null) {
                     Debug.LogWarning($"[PersistentJobs] could not find JobChainController for Job[{job.ID}]");
                 } else if (job.jobType == JobType.ShuntingLoad) {

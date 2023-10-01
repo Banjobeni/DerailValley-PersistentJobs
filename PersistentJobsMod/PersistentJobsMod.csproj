@@ -104,6 +104,7 @@
     <Compile Include="ExceptionCatchingCoroutineIterator.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\TrackExtension.cs" />
+    <Compile Include="TranspilingUtilities.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainControllerWithEmptyHaulGeneration_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_ReserveRequiredTracks_Patch.cs" />
@@ -127,7 +128,7 @@
     <Compile Include="HarmonyPatches\Save\CarsSaveManager_Load_Patch.cs" />
     <Compile Include="HarmonyPatches\Save\SaveGameManager_Save_Patch.cs" />
     <Compile Include="JobGenerators\ShuntingLoadJobGenerator.cs" />
-    <Compile Include="HarmonyPatches\Distance\StationController_ExpireAllAvailableJobsInStation_Patch.cs" />
+    <Compile Include="HarmonyPatches\Distance\StationController_Patches.cs" />
     <Compile Include="HarmonyPatches\Distance\StationJobGenerationRange_AllMethods_Patch.cs" />
     <Compile Include="HarmonyPatches\CarSpawningJobGeneration\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
