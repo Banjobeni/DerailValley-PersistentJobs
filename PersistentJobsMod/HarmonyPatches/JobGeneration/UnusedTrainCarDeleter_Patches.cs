@@ -530,13 +530,16 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private enum TrainCarReassignStatus {
+            HasJob,
             Empty,
             Loaded,
             NonRegularTrainCar,
         }
 
         private static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar) {
-            if (CarTypes.IsRegularCar(trainCar.carLivery)) {
+            if (JobsManager.Instance.GetJobOfCar(trainCar) != null) {
+                return TrainCarReassignStatus.HasJob;
+            } else if (CarTypes.IsRegularCar(trainCar.carLivery)) {
                 if (trainCar.LoadedCargoAmount < 0.001f) {
                     return TrainCarReassignStatus.Empty;
                 } else {
