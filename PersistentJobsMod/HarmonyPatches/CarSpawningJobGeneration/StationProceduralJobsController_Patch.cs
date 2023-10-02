@@ -24,8 +24,7 @@ namespace PersistentJobsMod.HarmonyPatches.CarSpawningJobGeneration {
                     ___generationCoro = __instance.StartCoroutine(CarSpawningJobGenerator.GenerateProceduralJobsCoroutine(__instance, ___generationRuleset));
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during {nameof(StationProceduralJobsController_Patch)} prefix:\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, nameof(StationProceduralJobsController_Patch) + "." + nameof(TryToGenerateJobs_Prefix));
             }
 
             return false;

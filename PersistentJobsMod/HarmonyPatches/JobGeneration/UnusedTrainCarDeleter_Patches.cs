@@ -45,9 +45,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                         ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(unusedTrainCarDeleter, ___unusedTrainCarsMarkedForDelete, false);
                     }
                 } catch (Exception e) {
-                    Main._modEntry.Logger.Error(
-                        $"Exception thrown during TrainCarsCreateJobOrDeleteCheck delete candidate collection:\n{e}");
-                    Main.OnCriticalFailure();
+                    Main.HandleUnhandledException(e, nameof(UnusedTrainCarDeleter_Patches) + "." + nameof(TrainCarsCreateJobOrDeleteCheck));
                 }
             }
             // ReSharper disable once IteratorNeverReturns
@@ -65,8 +63,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 return false;
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during {nameof(UnusedTrainCarDeleter_Patches)}.{nameof(InstantConditionalDeleteOfUnusedCars_Prefix)} patch:" + $"\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, nameof(UnusedTrainCarDeleter_Patches) + "." + nameof(InstantConditionalDeleteOfUnusedCars_Prefix));
             }
 
             return true;

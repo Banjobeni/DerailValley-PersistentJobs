@@ -34,8 +34,8 @@ namespace PersistentJobsMod {
 
         [RegisterCommand("PJ.RegenerateJobsImmediately", Help = "PersistentJobsMod: Regenerate jobs immediately for train cars that are registered to be deleted by vanilla.", MinArgCount = 0, MaxArgCount = 0)]
         public static void RegenerateJobsImmediately(CommandArg[] args) {
-            UnusedTrainCarDeleter_Patches.ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter.Instance, Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>(), true);
-            UnusedTrainCarDeleter.Instance.InstantConditionalDeleteOfUnusedCars();
+            var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
+            UnusedTrainCarDeleter_Patches.ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter.Instance, unusedTrainCarsMarkedForDelete, true);
         }
 
         [RegisterCommand("PJ.RegenerateJobsForConsistOfCar", Help = "PersistentJobsMod: Regenerate jobs for the consist of a specific car immediately. To identify the car, use the ID on the car plate.", MinArgCount = 1, MaxArgCount = 1)]

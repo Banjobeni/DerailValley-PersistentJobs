@@ -46,8 +46,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                     Debug.LogError($"[PersistentJobs] Cannot handle unexpected job type {lastJobInChain.jobType} and {lastJobDefinition.GetType()} combination.");
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during {nameof(JobChainController_OnLastJobInChainCompleted_Patch)}.{nameof(Prefix)} patch:\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix));
             }
         }
 

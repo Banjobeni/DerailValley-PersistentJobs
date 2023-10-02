@@ -1,7 +1,10 @@
-﻿using System.Reflection;
+﻿using System;
+using System.IO;
+using System.Reflection;
 using UnityModManagerNet;
 using HarmonyLib;
 using PersistentJobsMod.Model;
+using UnityEngine;
 
 namespace PersistentJobsMod {
     public static class Main {
@@ -16,7 +19,7 @@ namespace PersistentJobsMod {
         }
 
         public static void Load(UnityModManager.ModEntry modEntry) {
-            Main._modEntry = modEntry;
+            _modEntry = modEntry;
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
@@ -39,15 +42,19 @@ namespace PersistentJobsMod {
             EmptyTrainCarTypeDestinations.Initialize();
         }
 
-        public static void OnCriticalFailure() {
+        public static void HandleUnhandledException(Exception e, string location) {
             _isModBroken = true;
             _modEntry.Active = false;
-            _modEntry.Logger.Critical("Deactivating mod PersistentJobs due to critical failure!");
-            _modEntry.Logger.Warning("You can reactivate PersistentJobs by restarting the game, but this failure " +
-                "type likely indicates an incompatibility between the mod and a recent game update. Please search the " +
-                "mod's Github issue tracker for a relevant report. If none is found, please open one. Include the " +
-                $"exception message printed above and your game's current build number (likely {UnityModManager.gameVersion}).");
+
+            var logMessage = $"Exception thrown at {location}:\n{e}";
+            Debug.LogError(logMessage);
+
+            _modEntry.Logger.Critical($"Deactivating mod PersistentJobsMod due to critical exception in {location}:\n{e}");
+
             UnityEngine.Debug.LogError("[PersistentJobsMod] Deactivating mod due to critical failure. See UnityModManager console or Player.log for details. The mod will stay inactive until the game is restarted.");
+
+            var logExceptionFilepath = Path.Combine(Application.persistentDataPath, $"PersistentJobsMod_Exception_{DateTime.Now.ToString("O").Replace(':', '.')}.log");
+            File.WriteAllText(logExceptionFilepath, logMessage);
         }
     }
 }

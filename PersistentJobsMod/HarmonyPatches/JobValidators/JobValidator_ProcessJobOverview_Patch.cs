@@ -83,8 +83,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     PersistentJobsModInteractionFeatures.InvokeJobTrackChanged(job);
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during JobValidator.ProcessJobOverview prefix patch:\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, nameof(JobValidator_ProcessJobOverview_Patch) +"." + nameof(Prefix));
             }
             return true;
         }

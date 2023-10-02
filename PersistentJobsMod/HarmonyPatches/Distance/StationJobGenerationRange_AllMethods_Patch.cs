@@ -28,8 +28,7 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
                     __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
                 }
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown during StationJobGenerationRange.{__originalMethod.Name} prefix patch:\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, nameof(StationJobGenerationRange_AllMethods_Patch) + "." + nameof(Prefix) + " of " + __originalMethod.Name);
             }
         }
     }

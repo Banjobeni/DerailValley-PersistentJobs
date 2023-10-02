@@ -22,8 +22,7 @@ namespace PersistentJobsMod {
                 }
                 return moveNextResult;
             } catch (Exception e) {
-                Main._modEntry.Logger.Error($"Exception thrown in iterator {_iteratorName} after yield at \"{_nextStageName}\":\n{e}");
-                Main.OnCriticalFailure();
+                Main.HandleUnhandledException(e, $"iterator {_iteratorName} after yield at \"{_nextStageName}\"");
                 return false;
             }
         }
