@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using PersistentJobsMod.Utilities;
 
 namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     [HarmonyPatch]

@@ -4,6 +4,7 @@ using System.Linq;
 using DV;
 using DV.ThingTypes;
 using DV.ThingTypes.TransitionHelpers;
+using PersistentJobsMod.Extensions;
 
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class CargoCarGroupsRandomizer {

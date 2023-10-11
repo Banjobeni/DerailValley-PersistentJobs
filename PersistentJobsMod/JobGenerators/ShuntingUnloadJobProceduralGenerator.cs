@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using PersistentJobsMod.Extensions;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
@@ -50,7 +52,7 @@ namespace PersistentJobsMod.JobGenerators {
             do {
                 destinationTracks.Clear();
                 for (var i = 0; i < countTracks; i++) {
-                    var track = Utilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(), approxTrainLength / countTracks, random);
+                    var track = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.StorageTracks.Except(destinationTracks).ToList(), approxTrainLength / countTracks, random);
                     if (track == null) {
                         break;
                     }
@@ -81,7 +83,7 @@ namespace PersistentJobsMod.JobGenerators {
             Main._modEntry.Logger.Log("unload: calculating time/wage/licenses");
             float bonusTimeLimit;
             float initialWage;
-            Utilities.CalculateShuntingBonusTimeLimitAndWage(
+            PaymentAndBonusTimeUtilities.CalculateShuntingBonusTimeLimitAndWage(
                 JobType.ShuntingLoad,
                 destinationTracks.Count,
                 trainCars.Select(tc => tc.carLivery).ToList(),

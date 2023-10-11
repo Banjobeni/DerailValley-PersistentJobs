@@ -6,6 +6,8 @@ using DV.Utils;
 using System.Collections.Generic;
 using DV.ThingTypes.TransitionHelpers;
 using HarmonyLib;
+using PersistentJobsMod.Extensions;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
 using Random = System.Random;
 

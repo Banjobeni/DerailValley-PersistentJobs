@@ -2,6 +2,7 @@
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
@@ -21,7 +22,7 @@ namespace PersistentJobsMod.JobGenerators {
 
             float bonusTimeLimit;
             float initialWage;
-            Utilities.CalculateShuntingBonusTimeLimitAndWage(
+            PaymentAndBonusTimeUtilities.CalculateShuntingBonusTimeLimitAndWage(
                 JobType.ShuntingLoad,
                 carsPerStartingTrack.Count,
                 trainCars.Select(tc => tc.carLivery).ToList(),

@@ -2,6 +2,7 @@
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
@@ -19,7 +20,7 @@ namespace PersistentJobsMod.JobGenerators {
 
             Main._modEntry.Logger.Log("transport: choosing destination track");
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.ToList(), true);
-            var destinationTrack = Utilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
+            var destinationTrack = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
                 Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}. Could not find any TransferInTrack in {destStation.logicStation.ID} that is long enough!");
@@ -31,7 +32,7 @@ namespace PersistentJobsMod.JobGenerators {
             Main._modEntry.Logger.Log("transport: calculating time/wage/licenses");
             float bonusTimeLimit;
             float initialWage;
-            Utilities.CalculateTransportBonusTimeLimitAndWage(
+            PaymentAndBonusTimeUtilities.CalculateTransportBonusTimeLimitAndWage(
                 JobType.Transport,
                 startingStation,
                 destStation,

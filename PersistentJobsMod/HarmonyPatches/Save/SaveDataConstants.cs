@@ -1,4 +1,4 @@
-﻿namespace PersistentJobsMod {
+﻿namespace PersistentJobsMod.HarmonyPatches.Save {
     public static class SaveDataConstants {
         public static readonly string SAVE_DATA_PRIMARY_KEY = "PersistentJobsMod";
         public static readonly string SAVE_DATA_VERSION_KEY = "Version";

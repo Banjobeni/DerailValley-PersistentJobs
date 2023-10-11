@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace PersistentJobsMod {
+namespace PersistentJobsMod.Utilities {
     public class ExceptionCatchingCoroutineIterator : IEnumerator {
         private readonly IEnumerator<(string NextStageName, object Result)> _nestedEnumerator;
         private readonly string _iteratorName;

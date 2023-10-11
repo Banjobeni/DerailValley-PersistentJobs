@@ -12,6 +12,7 @@ using PersistentJobsMod.CarSpawningJobGenerators;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.JobGenerators;
 using PersistentJobsMod.Model;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
 using Random = System.Random;
 
@@ -551,7 +552,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // force job's train cars to not be treated as player spawned
             // DV will complain if we don't do this
             foreach (var trainCar in trainCars) {
-                Utilities.ConvertPlayerSpawnedTrainCar(trainCar);
+                PlayerSpawnedCarUtilities.ConvertPlayerSpawnedTrainCar(trainCar);
             }
         }
     }

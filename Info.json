@@ -5,6 +5,8 @@
 	"Version": "3.2.0",
 	"AssemblyName": "PersistentJobsMod.dll",
 	"EntryMethod": "PersistentJobsMod.Main.Load",
-    "HomePage": "https://www.nexusmods.com/derailvalley/mods/794/",
-	"Repository": "https://raw.githubusercontent.com/Banjobeni/DerailValley-PersistentJobs/master/Repository.json"
+	"HomePage": "https://www.nexusmods.com/derailvalley/mods/794/",
+	"Repository": "https://raw.githubusercontent.com/Banjobeni/DerailValley-PersistentJobs/master/Repository.json",
+	"Requirements": ["MessageBox"],
+	"LoadAfter": ["MessageBox"]
 }

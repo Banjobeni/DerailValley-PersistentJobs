@@ -5,8 +5,11 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
+using PersistentJobsMod.Utilities;
 using UnityEngine;
+using Random = System.Random;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
@@ -34,11 +37,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     var wt = job.tasks.Aggregate(
                         null as Task,
                         (found, outerTask) => found == null
-                            ? Utilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
+                            ? TaskUtilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
                             : found) as WarehouseTask;
                     var wm = wt != null ? wt.warehouseMachine : null;
                     if (wm != null && job.tasks.Any(
-                            outerTask => Utilities.TaskAnyDfs(
+                            outerTask => TaskUtilities.TaskAnyDfs(
                                 outerTask,
                                 innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) {
                         ___bookletPrinter.PlayErrorSound();
@@ -52,7 +55,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     .Field("stationRange")
                     .GetValue<StationJobGenerationRange>();
                 if (!job.tasks.Any(
-                        outerTask => Utilities.TaskAnyDfs(
+                        outerTask => TaskUtilities.TaskAnyDfs(
                             outerTask,
                             innerTask => AreTaskCarsInRange(innerTask, stationRange)))) {
                     job.ExpireJob();
@@ -112,7 +115,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 return;
             }
 
-            while (cursor != null && Utilities.TaskAnyDfs(
+            while (cursor != null && TaskUtilities.TaskAnyDfs(
                        cursor.Value,
                        t => t.InstanceTaskType != TaskType.Warehouse)) {
                 Main._modEntry.Logger.Log("    searching for warehouse task...");
@@ -126,7 +129,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             // cursor points at the parallel task of warehouse tasks
             // replace the destination track of all following tasks with the warehouse track
-            var wt = (Utilities.TaskFindDfs(
+            var wt = (TaskUtilities.TaskFindDfs(
                 cursor.Value,
                 t => t.InstanceTaskType == TaskType.Warehouse) as WarehouseTask);
             var wm = wt != null ? wt.warehouseMachine : null;
@@ -138,7 +141,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             while ((cursor = cursor.Next) != null) {
                 Main._modEntry.Logger.Log("    replace destination tracks...");
-                Utilities.TaskDoDfs(
+                TaskUtilities.TaskDoDfs(
                     cursor.Value,
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
@@ -163,6 +166,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             bool didAnyTrackChange = false;
 
+            var random = new System.Random();
+
             for (var i = 0; i < jobChain.Count; i++) {
                 var key = jobChain[i];
                 if (jobDefToCurrentlyReservedTracks.TryGetValue(key, out var trackReservations)) {
@@ -173,7 +178,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                             YardTracksOrganizer.Instance.ReserveSpace(reservedTrack, reservedLength, false);
                         } else {
                             // not enough space to reserve; find a different track with enough space & update job data
-                            var replacementTrack = GetReplacementTrack(reservedTrack, reservedLength);
+                            var replacementTrack = GetReplacementTrack(reservedTrack, reservedLength, random);
                             if (replacementTrack == null) {
                                 Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{key.job.ID}]. Skipping track reservation!");
                                 continue;
@@ -223,7 +228,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
                             // update task data
                             foreach (var task in key.job.tasks) {
-                                Utilities.TaskDoDfs(task, t => {
+                                TaskUtilities.TaskDoDfs(task, t => {
                                     if (t is TransportTask) {
                                         var destinationTrack = Traverse.Create(t).Field("destinationTrack");
                                         if (destinationTrack.GetValue<Track>() == reservedTrack) {
@@ -246,7 +251,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return didAnyTrackChange;
         }
 
-        private static Track GetReplacementTrack(Track oldTrack, float trainLength) {
+        private static Track GetReplacementTrack(Track oldTrack, float trainLength, Random random) {
             // find station controller for track
             var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
             var stationController
@@ -286,7 +291,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             var yto = YardTracksOrganizer.Instance;
             for (var p = 0; targetTrack == null && p < preferredTracks.Length; p++) {
                 var trackGroup = preferredTracks[p];
-                targetTrack = Utilities.GetTrackThatHasEnoughFreeSpace(yto, trackGroup, trainLength, new System.Random());
+                targetTrack = GetTrackThatHasEnoughFreeSpace(yto, trackGroup, trainLength, random);
             }
 
             if (targetTrack == null) {
@@ -295,5 +300,18 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             return targetTrack;
         }
+
+        private static Track GetTrackThatHasEnoughFreeSpace(YardTracksOrganizer yto, List<Track> tracks, float requiredLength, Random rng) {
+            Main._modEntry.Logger.Log("getting random track with free space");
+            var tracksWithFreeSpace = yto.FilterOutTracksWithoutRequiredFreeSpace(tracks, requiredLength);
+            Main._modEntry.Logger.Log($"{tracksWithFreeSpace.Count}/{tracks.Count} tracks have at least {requiredLength}m available");
+            if (tracksWithFreeSpace.Count > 0) {
+                return rng.GetRandomElement(tracksWithFreeSpace);
+            }
+
+            Debug.LogWarning($"[PersistentJobsMod] None of the queried tracks have {requiredLength:F1}m of free space: {string.Join(", ", tracks.Select(t => $"{t.ID} ({yto.GetFreeSpaceOnTrack(t):F1}m)"))}");
+            return null;
+        }
+
     }
 }

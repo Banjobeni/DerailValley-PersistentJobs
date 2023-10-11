@@ -101,10 +101,14 @@
     <Compile Include="CarSpawningJobGenerators\TransportJobWithCarsGenerator.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
-    <Compile Include="ExceptionCatchingCoroutineIterator.cs" />
+    <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
+    <Compile Include="Extensions\RandomExtensions.cs" />
     <Compile Include="Extensions\TrackExtension.cs" />
-    <Compile Include="TranspilingUtilities.cs" />
+    <Compile Include="Utilities\PaymentAndBonusTimeUtilities.cs" />
+    <Compile Include="Utilities\PlayerSpawnedCarUtilities.cs" />
+    <Compile Include="Utilities\TaskUtilities.cs" />
+    <Compile Include="Utilities\TranspilingUtilities.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainControllerWithEmptyHaulGeneration_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_ReserveRequiredTracks_Patch.cs" />
@@ -112,7 +116,6 @@
     <Compile Include="HarmonyPatches\Save\WorldStreaminInit_Patch.cs" />
     <Compile Include="HarmonyPatches\TrackReservations\YardTracksOrganizer_Patches.cs" />
     <Compile Include="JobGenerators\EmptyHaulJobGenerator.cs" />
-    <Compile Include="JobProceduralGenerationUtilities.cs" />
     <Compile Include="HarmonyPatches\Save\JobSaveManager_LoadJobChain_Patch.cs" />
     <Compile Include="HarmonyPatches\JobValidators\JobValidator_ProcessJobOverview_Patch.cs" />
     <Compile Include="Licensing\CargoGroupsAndCarCountProvider.cs" />
@@ -124,7 +127,7 @@
     <Compile Include="ModInteraction\PersistentJobsModInteractionFeatures.cs" />
     <Compile Include="Persistence\StationIdCarSpawningPersistence.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SaveDataConstants.cs" />
+    <Compile Include="HarmonyPatches\Save\SaveDataConstants.cs" />
     <Compile Include="HarmonyPatches\Save\CarsSaveManager_Load_Patch.cs" />
     <Compile Include="HarmonyPatches\Save\SaveGameManager_Save_Patch.cs" />
     <Compile Include="JobGenerators\ShuntingLoadJobGenerator.cs" />
@@ -133,7 +136,7 @@
     <Compile Include="HarmonyPatches\CarSpawningJobGeneration\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
     <Compile Include="JobGenerators\ShuntingUnloadJobProceduralGenerator.cs" />
-    <Compile Include="Utilities.cs" />
+    <Compile Include="Utilities\TrackUtilities.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

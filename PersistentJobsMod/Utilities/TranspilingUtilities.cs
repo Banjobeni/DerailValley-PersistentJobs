@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
 
-namespace PersistentJobsMod {
+namespace PersistentJobsMod.Utilities {
     public static class TranspilingUtilities {
         public static List<CodeInstruction> RemoveMethodCallAssumingArgumentsAreLoadedUsingLdarg(IEnumerable<CodeInstruction> instructionsEnumerable, MethodInfo toRemoveCallToMethod, MethodBase originalMethod) {
             var instructions = instructionsEnumerable.ToList();
