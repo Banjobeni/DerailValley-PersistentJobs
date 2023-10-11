@@ -58,6 +58,19 @@
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.UIFramework, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.UIFramework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MessageBox">
+      <HintPath>$(DVInstallPath)\Mods\MessageBox\MessageBox.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="RSG.Promise">
+      <HintPath>$(DVInstallPath)\Mods\MessageBox\RSG.Promise.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Newtonsoft.Json.dll</HintPath>

@@ -5,6 +5,7 @@ using UnityModManagerNet;
 using HarmonyLib;
 using PersistentJobsMod.Model;
 using UnityEngine;
+using MessageBox;
 
 namespace PersistentJobsMod {
     public static class Main {
@@ -49,12 +50,13 @@ namespace PersistentJobsMod {
             var logMessage = $"Exception thrown at {location}:\n{e}";
             Debug.LogError(logMessage);
 
+            var exceptionLogFilename = $"PersistentJobsMod_Exception_{DateTime.Now.ToString("O").Replace(':', '.')}.log";
+            var logExceptionFilepath = Path.Combine(Application.persistentDataPath, exceptionLogFilename);
+            File.WriteAllText(logExceptionFilepath, logMessage);
+
             _modEntry.Logger.Critical($"Deactivating mod PersistentJobsMod due to critical exception in {location}:\n{e}");
 
-            UnityEngine.Debug.LogError("[PersistentJobsMod] Deactivating mod due to critical failure. See UnityModManager console or Player.log for details. The mod will stay inactive until the game is restarted.");
-
-            var logExceptionFilepath = Path.Combine(Application.persistentDataPath, $"PersistentJobsMod_Exception_{DateTime.Now.ToString("O").Replace(':', '.')}.log");
-            File.WriteAllText(logExceptionFilepath, logMessage);
+            PopupAPI.ShowOk($"Persistent Jobs mod encountered a critical failure. The mod will stay inactive until the game is restarted.\n\nSee {exceptionLogFilename} for details.");
         }
     }
 }
