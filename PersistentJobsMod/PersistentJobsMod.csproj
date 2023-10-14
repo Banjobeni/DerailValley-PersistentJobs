@@ -114,6 +114,7 @@
     <Compile Include="CarSpawningJobGenerators\TransportJobWithCarsGenerator.cs" />
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
+    <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
     <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\RandomExtensions.cs" />
