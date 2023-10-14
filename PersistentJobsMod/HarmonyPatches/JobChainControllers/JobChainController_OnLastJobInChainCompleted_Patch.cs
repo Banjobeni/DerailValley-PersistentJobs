@@ -23,6 +23,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 return;
             }
 
+            if (!__instance.trainCarsForJobChain.Any()) {
+                // passenger jobs may generate a subsequent job by themselves, thereby clearing trainCarsForJobChain
+                return;
+            }
+
             try {
                 var lastJobDefinition = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDefinition.job != lastJobInChain) {
@@ -43,7 +48,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 } else if (lastJobInChain.jobType == JobType.EmptyHaul && lastJobDefinition is StaticEmptyHaulJobDefinition) {
                     // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
                 } else {
-                    Debug.LogError($"[PersistentJobs] Cannot handle unexpected job type {lastJobInChain.jobType} and {lastJobDefinition.GetType()} combination.");
+                    Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job for job type {lastJobInChain.jobType} and job definition type {lastJobDefinition.GetType()}.");
                 }
             } catch (Exception e) {
                 Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix));
