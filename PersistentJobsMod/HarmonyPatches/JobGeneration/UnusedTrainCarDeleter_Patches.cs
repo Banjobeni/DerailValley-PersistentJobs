@@ -43,7 +43,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 try {
                     if (PlayerManager.PlayerTransform != null && !FastTravelController.IsFastTravelling) {
-                        ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(unusedTrainCarDeleter, ___unusedTrainCarsMarkedForDelete, false);
+                        ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(unusedTrainCarDeleter, ___unusedTrainCarsMarkedForDelete);
                     }
                 } catch (Exception e) {
                     Main.HandleUnhandledException(e, nameof(UnusedTrainCarDeleter_Patches) + "." + nameof(TrainCarsCreateJobOrDeleteCheck));
@@ -54,13 +54,13 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), nameof(UnusedTrainCarDeleter.InstantConditionalDeleteOfUnusedCars))]
         [HarmonyPrefix]
-        public static bool InstantConditionalDeleteOfUnusedCars_Prefix(UnusedTrainCarDeleter __instance, List<TrainCar> ___unusedTrainCarsMarkedForDelete) {
+        public static bool InstantConditionalDeleteOfUnusedCars_Prefix(UnusedTrainCarDeleter __instance, List<TrainCar> ___unusedTrainCarsMarkedForDelete, List<TrainCar> ignoreDeleteCars) {
             if (!Main._modEntry.Active) {
                 return true;
             }
 
             try {
-                ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(__instance, ___unusedTrainCarsMarkedForDelete, false);
+                ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(__instance, ___unusedTrainCarsMarkedForDelete, false, ignoreDeleteCars);
 
                 return false;
             } catch (Exception e) {
@@ -77,10 +77,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             throw new NotImplementedException("This is a stub");
         }
 
-        public static void ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter unusedTrainCarDeleter, List<TrainCar> ___unusedTrainCarsMarkedForDelete, bool skipDistanceCheckForRegularTrainCars) {
+        public static void ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter unusedTrainCarDeleter, List<TrainCar> ___unusedTrainCarsMarkedForDelete, bool skipDistanceCheckForRegularTrainCars = false, IReadOnlyList<TrainCar> trainCarsToIgnore = null) {
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
             }
+
+            var trainCarsToIgnoreHashset = trainCarsToIgnore?.ToHashSet() ?? new HashSet<TrainCar>();
 
             Main._modEntry.Logger.Log("collecting deletion candidates...");
             var toDeleteTrainCars = new List<TrainCar>();
@@ -93,14 +95,15 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                     ___unusedTrainCarsMarkedForDelete.RemoveAt(i);
                     continue;
                 }
+                if (!trainCarsToIgnoreHashset.Contains(trainCar)) {
+                    var isRegularCar = CarTypes.IsRegularCar(trainCar.carLivery);
 
-                var isRegularCar = CarTypes.IsRegularCar(trainCar.carLivery);
-
-                if ((isRegularCar && skipDistanceCheckForRegularTrainCars) || AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar)) {
-                    if (isRegularCar) {
-                        regularTrainCars.Add(trainCar);
-                    } else if (!trainCar.playerSpawnedCar) {
-                        toDeleteTrainCars.Add(trainCar);
+                    if ((isRegularCar && skipDistanceCheckForRegularTrainCars) || AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar)) {
+                        if (isRegularCar) {
+                            regularTrainCars.Add(trainCar);
+                        } else if (!trainCar.playerSpawnedCar) {
+                            toDeleteTrainCars.Add(trainCar);
+                        }
                     }
                 }
             }
@@ -122,7 +125,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var candidateTrainSets = regularTrainCars.Select(tc => tc.trainset).Distinct().ToList();
                 Main._modEntry.Logger.Log($"found {regularTrainCars.Count} trainsets to check for job regeneration");
 
-                var regenerateJobsTrainsets = candidateTrainSets.Where(ts => skipDistanceCheckForRegularTrainCars || AreAllCarsFarEnoughAwayFromPlayer(ts, TrainCarJobRegenerationSquareDistance)).ToList();
+                var regenerateJobsTrainsets = candidateTrainSets
+                    .Where(ts => !ts.cars.Any(trainCarsToIgnoreHashset.Contains))
+                    .Where(ts => skipDistanceCheckForRegularTrainCars || AreAllCarsFarEnoughAwayFromPlayer(ts, TrainCarJobRegenerationSquareDistance)).ToList();
+
                 Main._modEntry.Logger.Log($"found {regenerateJobsTrainsets.Count} trainsets that are far enough away from the player for regeneration");
 
                 var reassignedToJobsTrainCars = ReassignJoblessRegularTrainCarsToJobs(regenerateJobsTrainsets, new Random());
@@ -377,7 +383,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
             }
 
-            return  tracks.First();
+            return tracks.First();
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {
