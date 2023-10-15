@@ -45,8 +45,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                     FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
                 } else if (lastJobInChain.jobType == JobType.ShuntingUnload && lastJobDefinition is StaticShuntingUnloadJobDefinition) {
                     // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
+                    Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing a shunting unload job.");
                 } else if (lastJobInChain.jobType == JobType.EmptyHaul && lastJobDefinition is StaticEmptyHaulJobDefinition) {
                     // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
+                    Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing an empty haul job.");
                 } else {
                     Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job for job type {lastJobInChain.jobType} and job definition type {lastJobDefinition.GetType()}.");
                 }
