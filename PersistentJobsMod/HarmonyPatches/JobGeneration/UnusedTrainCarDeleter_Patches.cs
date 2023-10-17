@@ -95,14 +95,21 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                     ___unusedTrainCarsMarkedForDelete.RemoveAt(i);
                     continue;
                 }
+
                 if (!trainCarsToIgnoreHashset.Contains(trainCar)) {
                     var isRegularCar = CarTypes.IsRegularCar(trainCar.carLivery);
+                    var areDeleteConditionsFulfilled = AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar);
 
-                    if ((isRegularCar && skipDistanceCheckForRegularTrainCars) || AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar)) {
-                        if (isRegularCar) {
+                    if (isRegularCar) {
+                        var isDerailed = trainCar.derailed || trainCar.logicCar.FrontBogieTrack == null;
+                        if (!isDerailed && (skipDistanceCheckForRegularTrainCars || areDeleteConditionsFulfilled)) {
                             regularTrainCars.Add(trainCar);
-                        } else if (!trainCar.playerSpawnedCar) {
-                            toDeleteTrainCars.Add(trainCar);
+                        }
+                    } else {
+                        if (areDeleteConditionsFulfilled) {
+                            if (!trainCar.playerSpawnedCar) {
+                                toDeleteTrainCars.Add(trainCar);
+                            }
                         }
                     }
                 }
