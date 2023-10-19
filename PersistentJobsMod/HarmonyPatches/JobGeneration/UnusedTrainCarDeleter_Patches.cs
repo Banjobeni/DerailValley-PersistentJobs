@@ -98,7 +98,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 if (!trainCarsToIgnoreHashset.Contains(trainCar)) {
                     var isRegularCar = CarTypes.IsRegularCar(trainCar.carLivery);
-                    var areDeleteConditionsFulfilled = AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar);
+                    var areDeleteConditionsFulfilled = AddMoreInfoToExceptionHelper.Run(() => AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar), () => $"TrainCar {trainCar.ID}, carType {trainCar.carType}, carLivery {trainCar.carLivery}");
 
                     if (isRegularCar) {
                         var isDerailed = trainCar.derailed || trainCar.logicCar.FrontBogieTrack == null;
