@@ -41,10 +41,6 @@
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="CommandTerminal">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\CommandTerminal.dll</HintPath>
       <Private>False</Private>
