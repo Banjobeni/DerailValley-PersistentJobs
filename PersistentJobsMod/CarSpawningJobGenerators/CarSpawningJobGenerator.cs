@@ -116,29 +116,38 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             return null;
         }
 
-        private static JobChainController GenerateAndFinalizeShuntingLoadJob(StationController stationController, bool requirePlayerLicensesCompatible, Random random) {
-            Main._modEntry.Logger.Log("trying to generate SL job");
-            var result = ShuntingLoadJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
+        private static JobChainController GenerateAndFinalizeShuntingLoadJob(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
+            Main._modEntry.Logger.Log($"trying to generate SL job at {startingStation.logicStation.ID}");
+            var result = ShuntingLoadJobWithCarsGenerator.TryGenerateJobChainController(startingStation, requirePlayerLicensesCompatible, random);
             if (result != null) {
+                Main._modEntry.Logger.Log($"succeeded to generate SL job at {startingStation.logicStation.ID}. calling FinalizeSetupAndGenerateFirstJob");
                 result.FinalizeSetupAndGenerateFirstJob();
+            } else {
+                Main._modEntry.Logger.Log($"did not succeed to generate SL job at {startingStation.logicStation.ID}");
             }
             return result;
         }
 
-        private static JobChainController GenerateAndFinalizeTransportJob(StationController stationController, bool requirePlayerLicensesCompatible, Random random) {
-            Main._modEntry.Logger.Log("trying to generate FH job");
-            var result = TransportJobWithCarsGenerator.TryGenerateJobChainController(stationController, requirePlayerLicensesCompatible, random);
+        private static JobChainController GenerateAndFinalizeTransportJob(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
+            Main._modEntry.Logger.Log($"trying to generate FH job at {startingStation.logicStation.ID}");
+            var result = TransportJobWithCarsGenerator.TryGenerateJobChainController(startingStation, requirePlayerLicensesCompatible, random);
             if (result != null) {
+                Main._modEntry.Logger.Log($"succeeded to generate FH job at {startingStation.logicStation.ID}. calling FinalizeSetupAndGenerateFirstJob");
                 result.FinalizeSetupAndGenerateFirstJob();
+            } else {
+                Main._modEntry.Logger.Log($"did not succeed to generate FH job at {startingStation.logicStation.ID}");
             }
             return result;
         }
 
         private static JobChainController GenerateAndFinalizeEmptyHaulJob(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
-            Main._modEntry.Logger.Log("trying to generate LH job");
+            Main._modEntry.Logger.Log($"trying to generate LH job {startingStation.logicStation.ID}");
             var result = EmptyHaulJobWithCarsGenerator.TryGenerateJobChainController(startingStation, requirePlayerLicensesCompatible, random);
             if (result != null) {
+                Main._modEntry.Logger.Log($"succeeded to generate LH job at {startingStation.logicStation.ID}. calling FinalizeSetupAndGenerateFirstJob");
                 result.FinalizeSetupAndGenerateFirstJob();
+            } else {
+                Main._modEntry.Logger.Log($"did not succeed to generate LH job at {startingStation.logicStation.ID}");
             }
             return result;
         }

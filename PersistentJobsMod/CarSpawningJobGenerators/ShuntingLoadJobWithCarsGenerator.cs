@@ -56,17 +56,23 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var distinctCargoTypes = cargoCarGroups.Select(cg => cg.CargoType).Distinct().ToList();
 
+            Main._modEntry.Logger.Log($"load: chosen distinct cargo types: {string.Join(", ", distinctCargoTypes)}");
+
             var startingStationWarehouseMachines = startingStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(distinctCargoTypes);
             if (startingStationWarehouseMachines.Count == 0) {
                 Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
                 return null;
             }
 
+            Main._modEntry.Logger.Log($"load: warehouse machines at {startingStation.logicStation.ID} that support those cargo types: {string.Join(", ", startingStationWarehouseMachines.Select(w => w.WarehouseTrack.ID))}");
+
             var startingStationWarehouseMachine = startingStationWarehouseMachines.FirstOrDefault(wm => wm.WarehouseTrack.GetTotalUsableTrackLength() > totalTrainLength);
             if (startingStationWarehouseMachine == null) {
                 Main._modEntry.Logger.Log($"load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that is long enough for the train!");
                 return null;
             }
+
+            Main._modEntry.Logger.Log($"load: chose warehouse machine {startingStationWarehouseMachine.WarehouseTrack.ID}. it declares these loadable cargo types: {string.Join(", ", startingStationWarehouseMachine.SupportedCargoTypes)}");
 
             var cargoCarGroupsForTracks = DistributeCargoCarGroupsToTracks(cargoCarGroups, startingStation.proceduralJobsRuleset.maxShuntingStorageTracks, startingStation.logicStation.yard.StorageTracks.Count, random);
 
@@ -113,23 +119,10 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var cargoTypesPerTrainCar = cargoTypeLiveryCars.Select(clc => clc.CargoType).ToList();
 
-            // TODO fix intersect. a warehouse machine should be able to handle *all* cargo types, no?
-            // choose warehouse machine
-            Main._modEntry.Logger.Log("load: choosing warehouse machine");
-            var warehouseMachines = startingStation.warehouseMachineControllers
-                .Where(wm => wm.supportedCargoTypes.Intersect(cargoTypesPerTrainCar).Any())
-                .ToList();
-            if (warehouseMachines.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
-                return null;
-            }
-
-            var warehouseMachine = random.GetRandomElement(warehouseMachines).warehouseMachine;
-
             var jcc = ShuntingLoadJobGenerator.TryGenerateJobChainController(
                 startingStation,
                 carsPerStartingTrack,
-                warehouseMachine,
+                startingStationWarehouseMachine,
                 destinationStation,
                 orderedTrainCars,
                 cargoTypesPerTrainCar,
