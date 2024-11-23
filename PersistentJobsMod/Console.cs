@@ -3,6 +3,7 @@ using System.Linq;
 using CommandTerminal;
 using DV.Logic.Job;
 using HarmonyLib;
+using PersistentJobsMod.HarmonyPatches.Distance;
 using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using PersistentJobsMod.Persistence;
 using UnityEngine;
@@ -88,7 +89,7 @@ namespace PersistentJobsMod {
 
         private static void ExpireAvailableJobs(StationController stationController) {
             Debug.Log($"Expiring {stationController.logicStation.availableJobs.Count} jobs in {stationController.logicStation.ID}");
-            stationController.ExpireAllAvailableJobsInStation();
+            StationController_Patches.ExpireAllAvailableJobsInStation_Original(stationController);
         }
     }
 }

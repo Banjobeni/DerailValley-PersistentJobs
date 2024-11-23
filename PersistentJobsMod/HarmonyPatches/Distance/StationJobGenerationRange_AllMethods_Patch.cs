@@ -21,8 +21,7 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
                     if (__instance.destroyGeneratedJobsSqrDistanceAnyJobTaken < 4000000f) {
                         __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = 4000000f;
                     }
-                    __instance.destroyGeneratedJobsSqrDistanceRegular =
-                        __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
+                    __instance.destroyGeneratedJobsSqrDistanceRegular = __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
                 } else {
                     __instance.destroyGeneratedJobsSqrDistanceRegular = Main._initialDistanceRegular;
                     __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
