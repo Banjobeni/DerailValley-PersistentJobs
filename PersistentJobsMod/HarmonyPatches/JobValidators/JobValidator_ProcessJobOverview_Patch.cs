@@ -51,9 +51,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
                 // expire the job if all associated cars are outside the job destruction range
                 // the base method's logic will handle generating the expired report
-                var stationRange = Traverse.Create(stationController)
-                    .Field("stationRange")
-                    .GetValue<StationJobGenerationRange>();
+                var stationRange = stationController.stationRange;
                 if (!job.tasks.Any(
                         outerTask => TaskUtilities.TaskAnyDfs(
                             outerTask,
@@ -99,9 +97,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 return;
             }
 
-            var tasks = Traverse.Create(sequence)
-                .Field("tasks")
-                .GetValue<LinkedList<Task>>();
+            // TODO rewrite this using sequence.GetTaskData().nestedTasks
+            var tasks = sequence.tasks;
 
             if (tasks == null) {
                 Debug.LogError("    couldn't find child tasks!");
@@ -143,6 +140,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 Main._modEntry.Logger.Log("    replace destination tracks...");
                 TaskUtilities.TaskDoDfs(
                     cursor.Value,
+                    // this is rather hackish - we use a traverse to access the Task.destinationTrack field, but actually that field is only defined on TransportTask
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
 
@@ -150,19 +148,21 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
         }
 
         private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
+            // this is rather hackish - we use a traverse to access the Task.cars field, but actually that field is only defined on TransportTask and WarehouseTask
             var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
             var carInRangeOfStation = cars.FirstOrDefault(c => (SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c].transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular);
             return carInRangeOfStation != null;
         }
 
         private static bool IsAnyTaskCarOnTrack(Task task, Track track) {
+            // this is rather hackish - we use a traverse to access the Task.cars field, but actually that field is only defined on TransportTask and WarehouseTask
             var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
             return cars.Any(car => car.FrontBogieTrack == track);
         }
 
         private static bool ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {
-            var jobChain = Traverse.Create(jobChainController).Field("jobChain").GetValue<List<StaticJobDefinition>>();
-            var jobDefToCurrentlyReservedTracks = Traverse.Create(jobChainController).Field("jobDefToCurrentlyReservedTracks").GetValue<Dictionary<StaticJobDefinition, List<TrackReservation>>>();
+            var jobChain = jobChainController.jobChain;
+            var jobDefToCurrentlyReservedTracks = jobChainController.jobDefToCurrentlyReservedTracks;
 
             bool didAnyTrackChange = false;
 
@@ -229,10 +229,9 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                             // update task data
                             foreach (var task in key.job.tasks) {
                                 TaskUtilities.TaskDoDfs(task, t => {
-                                    if (t is TransportTask) {
-                                        var destinationTrack = Traverse.Create(t).Field("destinationTrack");
-                                        if (destinationTrack.GetValue<Track>() == reservedTrack) {
-                                            destinationTrack.SetValue(replacementTrack);
+                                    if (t is TransportTask transportTask) {
+                                        if (transportTask.destinationTrack == reservedTrack) {
+                                            transportTask.destinationTrack = replacementTrack;
                                         }
                                     }
                                 });

@@ -11,18 +11,18 @@ namespace PersistentJobsMod.Utilities {
 
             trainCar.playerSpawnedCar = false;
 
-            var carStateSave = Traverse.Create(trainCar).Field("carStateSave").GetValue<CarStateSave>();
-            if (Traverse.Create(carStateSave).Field("debtTrackerCar").GetValue<DebtTrackerCar>() != null) {
+            var carStateSave = trainCar.carStateSave;
+            if (carStateSave.debtTrackerCar != null) {
                 return;
             }
 
-            var trainPlatesController = Traverse.Create(trainCar).Field("trainPlatesCtrl").GetValue<TrainCarPlatesController>();
+            var trainPlatesController = trainCar.trainPlatesCtrl;
 
             var carDamageModel = GetOrCreateCarDamageModel(trainCar, trainPlatesController);
 
             var cargoDamageModelOrNull = GetOrCreateCargoDamageModelOrNull(trainCar, trainPlatesController);
 
-            var carDebtController = Traverse.Create(trainCar).Field("carDebtController").GetValue<CarDebtController>();
+            var carDebtController = trainCar.carDebtController;
             carDebtController.SetDebtTracker(carDamageModel, cargoDamageModelOrNull);
 
             carStateSave.Initialize(carDamageModel, cargoDamageModelOrNull);
@@ -40,12 +40,11 @@ namespace PersistentJobsMod.Utilities {
 
             var carDamageModel = trainCar.gameObject.AddComponent<CarDamageModel>();
 
-            Traverse.Create(trainCar).Field("carDmg").SetValue(carDamageModel);
+            trainCar.CarDamage = carDamageModel;
             carDamageModel.OnCreated(trainCar);
 
-            var updateCarHealthDataMethodTraverse = Traverse.Create(trainPlatesController).Method("UpdateCarHealthData", new[] { typeof(float) });
-            updateCarHealthDataMethodTraverse.GetValue(carDamageModel.EffectiveHealthPercentage100Notation);
-            carDamageModel.CarEffectiveHealthStateUpdate += carHealthPercentage => updateCarHealthDataMethodTraverse.GetValue(carHealthPercentage);
+            trainPlatesController.UpdateCarHealthData(carDamageModel.EffectiveHealthPercentage100Notation);
+            carDamageModel.CarEffectiveHealthStateUpdate += trainPlatesController.UpdateCarHealthData;
 
             return carDamageModel;
         }
@@ -59,12 +58,11 @@ namespace PersistentJobsMod.Utilities {
 
             var cargoDamageModel = trainCar.gameObject.AddComponent<CargoDamageModel>();
 
-            Traverse.Create(trainCar).Property("cargoDamage").SetValue(cargoDamageModel);
+            trainCar.CargoDamage = cargoDamageModel;
             cargoDamageModel.OnCreated(trainCar);
 
-            var updateCargoHealthDataMethodTraverse = Traverse.Create(trainPlatesCtrl).Method("UpdateCargoHealthData", new[] { typeof(float) });
-            updateCargoHealthDataMethodTraverse.GetValue(cargoDamageModel.EffectiveHealthPercentage100Notation);
-            cargoDamageModel.CargoEffectiveHealthStateUpdate += cargoHealthPercentage => updateCargoHealthDataMethodTraverse.GetValue(cargoHealthPercentage);
+            trainPlatesCtrl.UpdateCargoHealthData(cargoDamageModel.EffectiveHealthPercentage100Notation);
+            cargoDamageModel.CargoEffectiveHealthStateUpdate += trainPlatesCtrl.UpdateCargoHealthData;
 
             return cargoDamageModel;
         }

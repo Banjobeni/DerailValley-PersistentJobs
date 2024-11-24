@@ -31,7 +31,10 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 var tickCount = Environment.TickCount;
                 Main._modEntry.Logger.Log($"Trying to generate a job (rng seed: {tickCount})");
                 var jobChain = GenerateJobChain(stationProceduralJobsRuleset, instance.stationController, new Random(tickCount), forcePlayerLicensedJobGeneration);
+                
+                // this needs to be accessed by the Traverse because Publicizer cannot give us access to the underlying field of the event
                 var generationAttempt = (Action)Traverse.Create(instance).Field("JobGenerationAttempt").GetValue();
+                
                 generationAttempt?.Invoke();
                 if (jobChain != null) {
                     if (forcePlayerLicensedJobGeneration) {
@@ -49,7 +52,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation ended. {instance.stationController.logicStation.availableJobs.Count} jobs were generated with {generateJobsAttempts} job generation attempts");
 
-            Traverse.Create(instance).Field("generationCoro").SetValue(null);
+            instance.generationCoro = null;
         }
 
         private static JobChainController GenerateJobChain(StationProceduralJobsRuleset generationRuleset, StationController stationController, Random random, bool forceJobWithLicenseRequirementFulfilled) {

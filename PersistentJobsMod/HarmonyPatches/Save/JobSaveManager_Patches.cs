@@ -26,7 +26,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
                         Main._modEntry.Logger.Log($"skipping track reservation for job {jobChainController.currentJobInChain.ID} because it's a shunting load job");
                     } else {
                         Main._modEntry.Logger.Log($"reserving tracks for loaded job {jobChainController.currentJobInChain.ID}");
-                        Traverse.Create(jobChainController).Method("ReserveRequiredTracks", new[] { typeof(bool) }).GetValue(true);
+                        jobChainController.ReserveRequiredTracks(true);
                     }
                 }
             } catch (Exception e) {

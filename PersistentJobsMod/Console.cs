@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using CommandTerminal;
+using DV.Logic.Job;
 using HarmonyLib;
 using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using PersistentJobsMod.Persistence;
@@ -34,7 +35,7 @@ namespace PersistentJobsMod {
 
         [RegisterCommand("PJ.RegenerateJobsImmediately", Help = "PersistentJobsMod: Regenerate jobs immediately for train cars that are registered to be deleted by vanilla.", MinArgCount = 0, MaxArgCount = 0)]
         public static void RegenerateJobsImmediately(CommandArg[] args) {
-            var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
+            var unusedTrainCarsMarkedForDelete = UnusedTrainCarDeleter.Instance.unusedTrainCarsMarkedForDelete;
             UnusedTrainCarDeleter_Patches.ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter.Instance, unusedTrainCarsMarkedForDelete, true);
         }
 
@@ -50,7 +51,7 @@ namespace PersistentJobsMod {
             var reassignedTrainCars = UnusedTrainCarDeleter_Patches.ReassignJoblessRegularTrainCarsToJobs(new[] { trainCar.trainset }, new Random());
 
             if (reassignedTrainCars.Any()) {
-                var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
+                var unusedTrainCarsMarkedForDelete = UnusedTrainCarDeleter.Instance.unusedTrainCarsMarkedForDelete;
                 foreach (var reassignedTrainCar in reassignedTrainCars) {
                     // a reassigned train car may or may not be registered for deletion already. the Remove method does not fail if the train car is not in the list, though, so we can safely call it anyway.
                     unusedTrainCarsMarkedForDelete.Remove(reassignedTrainCar);
@@ -63,7 +64,7 @@ namespace PersistentJobsMod {
 
         [RegisterCommand("PJ.ListCarsRegisteredForDeletion", Help = "PersistentJobsMod: Lists cars that are registered for deletion. Those cars are candidates for being assigned to new jobs.", MinArgCount = 0, MaxArgCount = 0)]
         public static void ListCarsRegisteredForDeletion(CommandArg[] args) {
-            var unusedTrainCarsMarkedForDelete = Traverse.Create(UnusedTrainCarDeleter.Instance).Field("unusedTrainCarsMarkedForDelete").GetValue<List<TrainCar>>();
+            var unusedTrainCarsMarkedForDelete = UnusedTrainCarDeleter.Instance.unusedTrainCarsMarkedForDelete;
             Debug.Log(string.Join(", ", unusedTrainCarsMarkedForDelete.Select(tc => tc.ID)));
         }
 
@@ -71,10 +72,7 @@ namespace PersistentJobsMod {
         public static void ExpireAllJobs(CommandArg[] args) {
             if (args.Length == 0) {
                 foreach (var stationController in StationController.allStations) {
-                    var availableJobs = Traverse.Create(stationController.logicStation).Field("availableJobs").GetValue<List<DV.Logic.Job.Job>>();
-                    Debug.Log($"Expiring {availableJobs.Count} jobs in {stationController.logicStation.ID}");
-
-                    stationController.ExpireAllAvailableJobsInStation();
+                    ExpireAvailableJobs(stationController);
                 }
             } else {
                 var stationID = args[0].String;
@@ -84,10 +82,13 @@ namespace PersistentJobsMod {
                     return;
                 }
 
-                var availableJobs = Traverse.Create(stationController.logicStation).Field("availableJobs").GetValue<List<DV.Logic.Job.Job>>();
-                Debug.Log($"Expiring {availableJobs.Count} jobs in {stationController.logicStation.ID}");
-                stationController.ExpireAllAvailableJobsInStation();
+                ExpireAvailableJobs(stationController);
             }
+        }
+
+        private static void ExpireAvailableJobs(StationController stationController) {
+            Debug.Log($"Expiring {stationController.logicStation.availableJobs.Count} jobs in {stationController.logicStation.ID}");
+            stationController.ExpireAllAvailableJobsInStation();
         }
     }
 }

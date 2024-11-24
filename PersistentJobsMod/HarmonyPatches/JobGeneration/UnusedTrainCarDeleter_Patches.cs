@@ -70,13 +70,6 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return true;
         }
 
-        [HarmonyReversePatch]
-        [HarmonyPatch(typeof(UnusedTrainCarDeleter), "AreDeleteConditionsFulfilled")]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool AreDeleteConditionsFulfilled(UnusedTrainCarDeleter instance, TrainCar trainCar) {
-            throw new NotImplementedException("This is a stub");
-        }
-
         public static void ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter unusedTrainCarDeleter, List<TrainCar> ___unusedTrainCarsMarkedForDelete, bool skipDistanceCheckForRegularTrainCars = false, IReadOnlyList<TrainCar> trainCarsToIgnore = null) {
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
@@ -98,7 +91,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 if (!trainCarsToIgnoreHashset.Contains(trainCar)) {
                     var isRegularCar = CarTypes.IsRegularCar(trainCar.carLivery);
-                    var areDeleteConditionsFulfilled = AddMoreInfoToExceptionHelper.Run(() => AreDeleteConditionsFulfilled(unusedTrainCarDeleter, trainCar), () => $"TrainCar {trainCar.ID}, carType {trainCar.carType}, carLivery {trainCar.carLivery}");
+                    var areDeleteConditionsFulfilled = AddMoreInfoToExceptionHelper.Run(() => unusedTrainCarDeleter.AreDeleteConditionsFulfilled(trainCar), () => $"TrainCar {trainCar.ID}, carType {trainCar.carType}, carLivery {trainCar.carLivery}");
 
                     if (isRegularCar) {
                         var isDerailed = trainCar.derailed || trainCar.logicCar.FrontBogieTrack == null;

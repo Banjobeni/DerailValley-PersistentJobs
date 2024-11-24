@@ -35,16 +35,9 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
 
             var trainCarsToMove = PlayerManager.Car.trainset.cars.ToList();
 
-            SingletonBehaviour<CoroutineManager>.Instance.Run(MoveCarsCoro(trainCarsToMove, destinationRailTrack));
+            SingletonBehaviour<CoroutineManager>.Instance.Run(DV.Console.MoveCarsCoro(trainCarsToMove, destinationRailTrack));
 
             return false;
-        }
-
-        [HarmonyReversePatch]
-        [HarmonyPatch(typeof(DV.Console), nameof(MoveCarsCoro))]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static IEnumerator MoveCarsCoro(List<TrainCar> trainCarsToMove, RailTrack destinationRailTrack) {
-            throw new NotImplementedException("It's a reverse patch");
         }
     }
 }
