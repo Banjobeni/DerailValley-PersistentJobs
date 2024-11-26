@@ -22,17 +22,13 @@ namespace PersistentJobsMod.JobGenerators {
 
             var transportedCargoPerCar = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
 
-            // TODO: fix intersect
-            // choose warehouse machine
-            Main._modEntry.Logger.Log("unload: choosing warehouse machine");
-            var warehouseMachines = destinationStation.warehouseMachineControllers
-                .Where(wm => wm.supportedCargoTypes.Intersect(transportedCargoPerCar).Any())
-                .ToList();
+            var warehouseMachines = destinationStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(transportedCargoPerCar.Distinct().ToList());
             if (warehouseMachines.Count == 0) {
                 Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
-            var loadMachine = random.GetRandomElement(warehouseMachines).warehouseMachine;
+
+            var unloadMachine = random.GetRandomElement(warehouseMachines);
 
             // choose destination tracks
             var maxCountTracks = destinationStation.proceduralJobsRuleset.maxShuntingStorageTracks;
@@ -97,7 +93,7 @@ namespace PersistentJobsMod.JobGenerators {
             return GenerateShuntingUnloadChainController(
                 startingStation,
                 startingTrack,
-                loadMachine,
+                unloadMachine,
                 destinationStation,
                 carsPerDestinationTrack,
                 trainCars,
