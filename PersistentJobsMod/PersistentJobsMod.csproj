@@ -114,6 +114,7 @@
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
+    <Compile Include="HarmonyPatches\Sleeping\BedSleepingController_Patches.cs" />
     <Compile Include="Utilities\AdditionalInformationException.cs" />
     <Compile Include="Utilities\AddMoreInfoToExceptionHelper.cs" />
     <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />
@@ -192,4 +193,5 @@
     <Publicize Include="Assembly-CSharp:TrainCarPlatesController.UpdateCarHealthData" />
     <Publicize Include="Assembly-CSharp:TrainCarPlatesController.UpdateCargoHealthData" />
   </ItemGroup>
+  <ItemGroup />
 </Project>
