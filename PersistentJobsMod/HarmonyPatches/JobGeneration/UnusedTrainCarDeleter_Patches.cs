@@ -123,13 +123,16 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             if (regularTrainCars.Count > 0) {
                 // possibly having deleted other cars already, we can safely determine the remaining trainsets now (they may have been split by e.g. deleting a loco out of the middle)
                 var candidateTrainSets = regularTrainCars.Select(tc => tc.trainset).Distinct().ToList();
-                Main._modEntry.Logger.Log($"found {regularTrainCars.Count} trainsets to check for job regeneration");
 
                 var regenerateJobsTrainsets = candidateTrainSets
                     .Where(ts => !ts.cars.Any(trainCarsToIgnoreHashset.Contains))
                     .Where(ts => skipDistanceCheckForRegularTrainCars || AreAllCarsFarEnoughAwayFromPlayer(ts, TrainCarJobRegenerationSquareDistance)).ToList();
 
-                Main._modEntry.Logger.Log($"found {regenerateJobsTrainsets.Count} trainsets that are far enough away from the player for regeneration");
+                if (skipDistanceCheckForRegularTrainCars) {
+                    Main._modEntry.Logger.Log($"found {regenerateJobsTrainsets.Count} trainsets for which to regenerate jobs");
+                } else {
+                    Main._modEntry.Logger.Log($"found {regenerateJobsTrainsets.Count} trainsets that are far enough away from the player for which to regenerate jobs");
+                }
 
                 var reassignedToJobsTrainCars = ReassignJoblessRegularTrainCarsToJobs(regenerateJobsTrainsets, new Random());
 
@@ -156,17 +159,14 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
 
-            var trainCars = new List<TrainCar>();
-            foreach (var jobChainController in jobChainControllers) {
-                var jobChainTrainCars = jobChainController.trainCarsForJobChain;
+            return jobChainControllers.SelectMany(jcc => jcc.trainCarsForJobChain).ToList();
+        }
 
-                EnsureTrainCarsAreConvertedToNonPlayerSpawned(jobChainTrainCars);
-                jobChainController.FinalizeSetupAndGenerateFirstJob();
+        private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
+            EnsureTrainCarsAreConvertedToNonPlayerSpawned(jobChainController.trainCarsForJobChain);
+            jobChainController.FinalizeSetupAndGenerateFirstJob();
 
-                trainCars.AddRange(jobChainTrainCars);
-            }
-
-            return trainCars;
+            Main._modEntry.Logger.Log($"generated job {jobChainController.currentJobInChain.ID}");
         }
 
         private static IReadOnlyList<JobChainController> ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(StationController station, List<Trainset> trainsets, Random random) {
@@ -183,43 +183,67 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
             var (unloadableConsecutiveTrainCarGroups, notUnloadableConsecutiveTrainCarGroups) = DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(station, loadedConsecutiveTrainCarGroups);
 
-            var emptyHaulJobChainControllers = notLoadableConsecutiveTrainCarGroups
-                .SelectMany(carGroup => ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random))
-                .Select(t => EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, t.Relation.Station, t.StartingTrack, t.TrainCars, random))
-                .WhereNotNull().ToList();
+            var result = new List<JobChainController>();
 
-            var transportJobChainControllers = notUnloadableConsecutiveTrainCarGroups
-                .SelectMany(carGroup => ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random))
-                .Select(t => TransportJobGenerator.TryGenerateJobChainController(station, t.StartingTrack, t.Relation.Station, t.TrainCars, t.TrainCars.Select(tc => tc.LoadedCargo).ToList(), random))
-                .WhereNotNull().ToList();
+            // generate empty haul jobs for empty train cars not loadable at this station
+            foreach (var carGroup in notLoadableConsecutiveTrainCarGroups) {
+                foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    var jobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, relation.Station, startingTrack, trainCars, random);
+                    if (jobChainController != null) {
+                        FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
+                        result.Add(jobChainController);
+                    }
+                }
+            }
 
-            var shuntingUnloadJobChainControllers = unloadableConsecutiveTrainCarGroups
-                .SelectMany(carGroup => ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random))
-                .Select(t => ShuntingUnloadJobProceduralGenerator.TryGenerateJobChainController(t.Relation.SourceStation, t.StartingTrack, station, t.TrainCars.ToList(), random))
-                .WhereNotNull().ToList();
+            // generate transport jobs for loaded train cars not unloadable at this station
+            foreach (var carGroup in notUnloadableConsecutiveTrainCarGroups) {
+                foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    var jobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, relation.Station, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), random);
+                    if (jobChainController != null) {
+                        FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
+                        result.Add(jobChainController);
+                    }
+                }
+            }
 
-            var preparedShuntingLoadCarGroups = GroupShuntingLoadIntoMultiplePickups(station.proceduralJobsRuleset, loadableConsecuteTrainCarGroups, random).ToList();
+            // generate shunting unload jobs for loaded train cars unloadable at this station
+            foreach (var carGroup in unloadableConsecutiveTrainCarGroups) {
+                foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    var jobChainController = ShuntingUnloadJobGenerator.TryGenerateJobChainController(relation.SourceStation, startingTrack, station, trainCars.ToList(), random);
+                    if (jobChainController != null) {
+                        FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
+                        result.Add(jobChainController);
+                    }
+                }
+            }
 
-            var shuntingLoadJobChainControllers = preparedShuntingLoadCarGroups.Select(pcg => TryCreateShuntingLoadJobChainController(station, pcg.CargoGroup, pcg.Destination, pcg.SameTrackTrainCarTypeGroups, random)).WhereNotNull().ToList();
+            // generate shunting load jobs for empty train cars loadable at this station
+            var shuntingLoadJobChainControllers = GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(station, loadableConsecuteTrainCarGroups, random).ToList();
 
-            var jobChainControllers = emptyHaulJobChainControllers.Concat(transportJobChainControllers).Concat(shuntingUnloadJobChainControllers).Concat(shuntingLoadJobChainControllers).ToList();
+            result.AddRange(shuntingLoadJobChainControllers);
 
-            Main._modEntry.Logger.Log($"Created {jobChainControllers.Count} job chain controllers for a total of {jobChainControllers.SelectMany(c => c.trainCarsForJobChain).Count()} cars");
+            Main._modEntry.Logger.Log($"Created {result.Count} job chain controllers for a total of {result.SelectMany(c => c.trainCarsForJobChain).Count()} cars");
 
-            return jobChainControllers;
+            return result;
         }
 
-        private static IEnumerable<(OutgoingCargoGroup CargoGroup, StationController Destination, IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars)>> SameTrackTrainCarTypeGroups)> GroupShuntingLoadIntoMultiplePickups(StationProceduralJobsRuleset jobsRuleset, IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroups)>> consecutiveTrainCarTypeGroupSets, Random random) {
+        private static IEnumerable<JobChainController> GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(StationController station, IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroups)>> consecutiveTrainCarTypeGroupSets, Random random) {
             var randomizedConsecutiveTrainCarTypeGroupSets = random.GetRandomPermutation(consecutiveTrainCarTypeGroupSets);
 
             var indexedTrainCarTypeGroupSets = randomizedConsecutiveTrainCarTypeGroupSets.SelectMany((a, setIndex) => a.Select((b, groupIndex) => (b.TrainCarType, b.TrainCars, b.CargoGroups, SetIndex: setIndex, GroupIndex: groupIndex)).ToReadOnlyList()).ToReadOnlyList();
             Main._modEntry.Logger.Log($"GroupShuntingLoadIntoMultiplePickups: called with {indexedTrainCarTypeGroupSets.Count} indexed car groups");
 
             while (indexedTrainCarTypeGroupSets.Any()) {
-                var (result, remainingIndexedConsecutiveTrainCarTypeGroupSets) = PickFirstShuntingLoadGroupAndTryToExtend(jobsRuleset, indexedTrainCarTypeGroupSets, random);
-                Main._modEntry.Logger.Log($"GroupShuntingLoadIntoMultiplePickups: created result with {result.SameTrackTrainCarTypeGroups.SelectMany(g => g).Count()} car groups on {result.SameTrackTrainCarTypeGroups.Count} tracks, now remaining are {remainingIndexedConsecutiveTrainCarTypeGroupSets.Count} indexed car groups");
+                var (chosenShuntingLoadGroup, remainingIndexedConsecutiveTrainCarTypeGroupSets) = PickFirstShuntingLoadGroupAndTryToExtend(station.proceduralJobsRuleset, indexedTrainCarTypeGroupSets, random);
 
-                yield return result;
+                var (cargoGroup, destination, sameTrackTrainCarTypeGroups) = chosenShuntingLoadGroup;
+                var jobChainController = TryCreateAndFinalizeShuntingLoadJobChainController(station, cargoGroup, destination, sameTrackTrainCarTypeGroups, random);
+                if (jobChainController != null) {
+                    yield return jobChainController;
+                }
+
+                Main._modEntry.Logger.Log($"GroupShuntingLoadIntoMultiplePickups: created result with {sameTrackTrainCarTypeGroups.SelectMany(g => g).Count()} car groups on {sameTrackTrainCarTypeGroups.Count} tracks, now remaining are {remainingIndexedConsecutiveTrainCarTypeGroupSets.Count} indexed car groups");
                 indexedTrainCarTypeGroupSets = remainingIndexedConsecutiveTrainCarTypeGroupSets;
             }
         }
@@ -233,21 +257,25 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             var (initialTrainCarType, initialTrainCars, initialCargoGroups, currentSetIndex, currentGroupIndex) = indexedTrainCarTypeGroupSets.First();
 
-            var initialTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(initialTrainCars.ToList(), true);
-            var initialLengthCompatibleCargoGroups = initialCargoGroups.Where(cg => cg.Destinations.Any(d => initialTrainLength < d.MaxSourceDestinationTrainLength)).ToList();
+            var cargoGroup = random.GetRandomElement(initialCargoGroups);
+            var cargoGroupDestination = random.GetRandomElement(cargoGroup.Destinations);
 
-            if (initialLengthCompatibleCargoGroups.Any() && initialTrainCars.Count <= jobsRuleset.maxCarsPerJob) {
+            var initialTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(initialTrainCars.ToList(), true);
+            //var initialLengthCompatibleCargoGroups = initialCargoGroups.Where(cg => cg.Destinations.Any(d => initialTrainLength < d.MaxSourceDestinationTrainLength)).ToList();
+
+            if (initialTrainLength < cargoGroupDestination.MaxSourceDestinationTrainLength && initialTrainCars.Count <= jobsRuleset.maxCarsPerJob) {
+                // initial set of cars fits, we can try to extend it, either with consecutive train cars or with multiple pickups
                 var currentTrainCars = initialTrainCars;
-                var currentCargoGroups = (IReadOnlyList<OutgoingCargoGroup>)initialLengthCompatibleCargoGroups;
+
                 var currentSameTrackTrainCarTypeGroups = new[] { new[] { (initialTrainCarType, initialTrainCars) }.ToList() }.ToList();
 
                 foreach (var (nextTrainCarType, nextTrainCars, nextCargoGroups, nextSetIndex, nextGroupIndex) in indexedTrainCarTypeGroupSets.Skip(1)) {
-                    var trainCarsAndCargoGroupsExtensionResultOrNull = TryGetTrainCarsAndRemainingCargoGroupsForExtendingShuntingLoad(currentTrainCars, currentCargoGroups, nextTrainCars, nextCargoGroups, jobsRuleset.maxCarsPerJob);
+                    var extendedTrainCarsOrNull = TryExtendTrainCarsWithNextTrainCarGroupForShuntingLoad(currentTrainCars, cargoGroup, nextTrainCars, nextCargoGroups, jobsRuleset.maxCarsPerJob, cargoGroupDestination.MaxSourceDestinationTrainLength);
                     var isAppendingConsecutiveTrainCarsOnSameTrack = (nextSetIndex == currentSetIndex) && (nextGroupIndex == currentGroupIndex + 1);
 
-                    if (trainCarsAndCargoGroupsExtensionResultOrNull != null && (currentSameTrackTrainCarTypeGroups.Count < jobsRuleset.maxShuntingStorageTracks || isAppendingConsecutiveTrainCarsOnSameTrack)) {
-                        // can extend the job with the next train car type group. there are not too many cars in total, there are remaining cargo groups that support all car types and the train length, and there are not too many shunting load pickups
-                        (currentTrainCars, currentCargoGroups) = trainCarsAndCargoGroupsExtensionResultOrNull.Value;
+                    if (extendedTrainCarsOrNull != null && (currentSameTrackTrainCarTypeGroups.Count < jobsRuleset.maxShuntingStorageTracks || isAppendingConsecutiveTrainCarsOnSameTrack)) {
+                        // can extend the job with the next train car type group. the next car type supports the cargo group, there are not too many cars in total, the train length is not to long for the cargo group destination, and there are not too many shunting load pickups
+                        currentTrainCars = extendedTrainCarsOrNull;
 
                         if (isAppendingConsecutiveTrainCarsOnSameTrack) {
                             currentSameTrackTrainCarTypeGroups.Last().Add((nextTrainCarType, nextTrainCars));
@@ -261,19 +289,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                     }
                 }
 
-                // we've gone through all train car type groups. either we used them for extending the current job, or we couldn't take them and they are in remaining
-                // we can now decide the cargo group and destination
-                var cargoGroup = random.GetRandomElement(currentCargoGroups);
-                var cargoGroupDestination = random.GetRandomElement(cargoGroup.Destinations);
-
                 var result = (cargoGroup, cargoGroupDestination.Station, currentSameTrackTrainCarTypeGroups.Select(t => t.ToReadOnlyList()).ToReadOnlyList());
 
                 return (result, remainingIndexedTrainCarTypeGroups);
             } else {
                 // initial train cars are too long. pick any cargo group and split the cars to match that cargo group
-                var cargoGroup = random.GetRandomElement(initialCargoGroups);
-                var cargoGroupDestination = random.GetRandomElement(cargoGroup.Destinations);
-
                 var lengthCompatibleCarCount = ChooseNumberOfCarsNotExceedingLength(initialTrainCars, cargoGroupDestination.MaxSourceDestinationTrainLength, random);
                 var carCount = Math.Min(lengthCompatibleCarCount, jobsRuleset.maxCarsPerJob);
 
@@ -298,7 +318,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
 
-        private static JobChainController TryCreateShuntingLoadJobChainController(StationController sourceStation, OutgoingCargoGroup cargoGroup, StationController destinationStation, IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars)>> sameTrackTrainCarTypeGroups, Random random) {
+        private static JobChainController TryCreateAndFinalizeShuntingLoadJobChainController(StationController sourceStation, OutgoingCargoGroup cargoGroup, StationController destinationStation, IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars)>> sameTrackTrainCarTypeGroups, Random random) {
             var distinctTrainCarTypes = sameTrackTrainCarTypeGroups.SelectMany(tcot => tcot).Select(tctg => tctg.TrainCarType).Distinct().ToList();
 
             var trainCarType2CargoTypes = new Dictionary<TrainCarType_v2, IReadOnlyList<CargoType>>();
@@ -338,19 +358,27 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             var warehouseMachine = random.GetRandomElement(warehouseMachines);
 
-            return ShuntingLoadJobGenerator.TryGenerateJobChainController(sourceStation, carsPerStartingTrack, warehouseMachine, destinationStation, trainCars, cargoTypes, random);
+            var jobChainController = ShuntingLoadJobGenerator.GenerateJobChainController(sourceStation, carsPerStartingTrack, warehouseMachine, destinationStation, trainCars, cargoTypes);
+
+            FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
+
+            return jobChainController;
         }
 
-        private static (IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroups)? TryGetTrainCarsAndRemainingCargoGroupsForExtendingShuntingLoad(IReadOnlyList<TrainCar> currentTrainCars, IReadOnlyList<OutgoingCargoGroup> currentCargoGroups, IReadOnlyList<TrainCar> nextTrainCars, IReadOnlyList<OutgoingCargoGroup> cargoGroups, int maxCarCount) {
+        private static List<TrainCar> TryExtendTrainCarsWithNextTrainCarGroupForShuntingLoad(IReadOnlyList<TrainCar> currentTrainCars, OutgoingCargoGroup chosenCargoGroup, IReadOnlyList<TrainCar> nextTrainCars, IReadOnlyList<OutgoingCargoGroup> nextCargoGroups, int maxCarCount, double maxCarLength) {
+            if (!nextCargoGroups.Contains(chosenCargoGroup)) {
+                return null;
+            }
+
             var totalTrainCars = currentTrainCars.Concat(nextTrainCars).ToList();
             if (totalTrainCars.Count > maxCarCount) {
                 return null;
             }
 
             var totalTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(totalTrainCars, true);
-            var intersectionCargoGroups = currentCargoGroups.Intersect(cargoGroups).Where(cg => cg.Destinations.Any(d => totalTrainLength < d.MaxSourceDestinationTrainLength)).ToList();
-            if (intersectionCargoGroups.Any()) {
-                return (totalTrainCars, intersectionCargoGroups);
+
+            if (totalTrainLength < maxCarLength) {
+                return totalTrainCars;
             } else {
                 return null;
             }

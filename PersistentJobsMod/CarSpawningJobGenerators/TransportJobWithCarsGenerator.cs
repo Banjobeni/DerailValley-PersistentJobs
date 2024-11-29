@@ -59,7 +59,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             }
 
             var cargoTypes = cargoCarGroups.SelectMany(c => Enumerable.Repeat(c.CargoType, c.CarLiveries.Count)).ToList();
-            var jcc = TransportJobGenerator.TryGenerateJobChainController(
+            var jobChainController = TransportJobGenerator.TryGenerateJobChainController(
                 startingStation,
                 startingTrack,
                 destinationStation,
@@ -68,13 +68,13 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 random,
                 true);
 
-            if (jcc == null) {
+            if (jobChainController == null) {
                 Debug.LogWarning("[PersistentJobs] transport: Couldn't generate job chain. Deleting spawned trainCars!");
                 SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                 return null;
             }
 
-            return jcc;
+            return jobChainController;
         }
     }
 }

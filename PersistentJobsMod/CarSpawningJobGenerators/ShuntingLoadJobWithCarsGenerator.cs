@@ -119,23 +119,22 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var cargoTypesPerTrainCar = cargoTypeLiveryCars.Select(clc => clc.CargoType).ToList();
 
-            var jcc = ShuntingLoadJobGenerator.TryGenerateJobChainController(
+            var jobChainController = ShuntingLoadJobGenerator.GenerateJobChainController(
                 startingStation,
                 carsPerStartingTrack,
                 startingStationWarehouseMachine,
                 destinationStation,
                 orderedTrainCars,
                 cargoTypesPerTrainCar,
-                random,
                 true);
 
-            if (jcc == null) {
+            if (jobChainController == null) {
                 Debug.LogWarning("[PersistentJobs] load: Couldn't generate job chain. Deleting spawned trainCars!");
                 SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                 return null;
             }
 
-            return jcc;
+            return jobChainController;
         }
 
         private static List<CargoCarGroupForTrack> DistributeCargoCarGroupsToTracks(List<CargoCarGroup> cargoCarGroups, int stationRulesetMaxTrackCount, int numberOfStorageTracks, Random random) {

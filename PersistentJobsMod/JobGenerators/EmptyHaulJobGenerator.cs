@@ -5,13 +5,14 @@ using System;
 using System.Linq;
 using HarmonyLib;
 using PersistentJobsMod.Extensions;
-using System.Runtime.CompilerServices;
 using PersistentJobsMod.Licensing;
 
 namespace PersistentJobsMod.JobGenerators {
     [HarmonyPatch]
     public static class EmptyHaulJobGenerator {
         public static JobChainController GenerateEmptyHaulJobWithExistingCarsOrNull(StationController startingStation, StationController destinationStation, Track startingTrack, IReadOnlyList<TrainCar> trainCars, Random random) {
+            Main._modEntry.Logger.Log($"empty haul: attempting to generate {JobType.EmptyHaul} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
+
             var trainCarLiveries = trainCars.Select(tc => tc.carLivery).ToList();
 
             var trainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries);
@@ -24,7 +25,9 @@ namespace PersistentJobsMod.JobGenerators {
 
             var requiredJobLicenses = LicensesUtilities.GetRequiredJobLicenses(JobType.EmptyHaul, trainCarLiveries.Select(l => l.parentType).ToList(), new List<CargoType>(), trainCars.Count);
 
-            return EmptyHaulJobProceduralGenerator.GenerateEmptyHaulChainController(startingStation, destinationStation, startingTrack, trainCars.ToList(), targetTrack, bonusTimeLimit, initialWage, requiredJobLicenses);
+            var jobChainController = EmptyHaulJobProceduralGenerator.GenerateEmptyHaulChainController(startingStation, destinationStation, startingTrack, trainCars.ToList(), targetTrack, bonusTimeLimit, initialWage, requiredJobLicenses);
+
+            return jobChainController;
         }
 
         private static Track GetTargetTrackOrNull(StationController destinationStation, float trainLength, Random random) {

@@ -76,7 +76,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
             var rng = new System.Random(Environment.TickCount);
 
-            return ShuntingUnloadJobProceduralGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, rng);
+            return ShuntingUnloadJobGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, rng);
         }
 
         private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob) {

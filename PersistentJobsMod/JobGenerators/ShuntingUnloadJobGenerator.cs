@@ -8,7 +8,7 @@ using PersistentJobsMod.Utilities;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
-    static class ShuntingUnloadJobProceduralGenerator {
+    static class ShuntingUnloadJobGenerator {
         public static JobChainController TryGenerateJobChainController(
                 StationController startingStation,
                 Track startingTrack,
@@ -16,7 +16,8 @@ namespace PersistentJobsMod.JobGenerators {
                 List<TrainCar> trainCars,
                 System.Random random,
                 bool forceCorrectCargoStateOnCars = false) {
-            Main._modEntry.Logger.Log("unload: generating with pre-spawned cars");
+            Main._modEntry.Logger.Log($"unload: attempting to generate {JobType.ShuntingUnload} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
+
             var yto = YardTracksOrganizer.Instance;
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
 
@@ -24,7 +25,7 @@ namespace PersistentJobsMod.JobGenerators {
 
             var warehouseMachines = destinationStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(transportedCargoPerCar.Distinct().ToList());
             if (warehouseMachines.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
+                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
 
@@ -76,7 +77,6 @@ namespace PersistentJobsMod.JobGenerators {
                         (from car in trainCars.GetRange(rangeStart, rangeCount) select car.logicCar).ToList()));
             }
 
-            Main._modEntry.Logger.Log("unload: calculating time/wage/licenses");
             float bonusTimeLimit;
             float initialWage;
             PaymentAndBonusTimeUtilities.CalculateShuntingBonusTimeLimitAndWage(
@@ -118,7 +118,7 @@ namespace PersistentJobsMod.JobGenerators {
             float bonusTimeLimit,
             float initialWage,
             JobLicenses requiredLicenses) {
-            Main._modEntry.Logger.Log($"unload: attempting to generate ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}");
+
             var gameObject = new GameObject($"ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}");
             gameObject.transform.SetParent(destinationStation.transform);
             var jobChainController
@@ -154,6 +154,7 @@ namespace PersistentJobsMod.JobGenerators {
             staticShuntingUnloadJobDefinition.unloadMachine = unloadMachine;
             staticShuntingUnloadJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;
             jobChainController.AddJobDefinitionToChain(staticShuntingUnloadJobDefinition);
+
             return jobChainController;
         }
     }

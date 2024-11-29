@@ -7,18 +7,15 @@ using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
     static class ShuntingLoadJobGenerator {
-        public static JobChainController TryGenerateJobChainController(
+        public static JobChainController GenerateJobChainController(
                 StationController startingStation,
                 List<CarsPerTrack> carsPerStartingTrack,
                 WarehouseMachine sourceWarehouseMachine,
-                StationController destStation,
+                StationController destinationStation,
                 List<TrainCar> trainCars,
                 List<CargoType> transportedCargoPerCar,
-                System.Random random,
                 bool forceCorrectCargoStateOnCars = false) {
-            Main._modEntry.Logger.Log("load: generating with pre-spawned cars");
-
-            Main._modEntry.Logger.Log("load: calculating time/wage/licenses");
+            Main._modEntry.Logger.Log($"load: attempting to generate {JobType.ShuntingLoad} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
 
             float bonusTimeLimit;
             float initialWage;
@@ -37,8 +34,7 @@ namespace PersistentJobsMod.JobGenerators {
                 startingStation,
                 carsPerStartingTrack,
                 sourceWarehouseMachine,
-                destStation,
-                sourceWarehouseMachine.WarehouseTrack,
+                destinationStation,
                 trainCars,
                 transportedCargoPerCar,
                 Enumerable.Repeat(1.0f, trainCars.Count).ToList(),
@@ -53,8 +49,7 @@ namespace PersistentJobsMod.JobGenerators {
                 StationController startingStation,
                 List<CarsPerTrack> carsPerStartingTrack,
                 WarehouseMachine loadMachine,
-                StationController destStation,
-                Track destinationTrack,
+                StationController destinationStation,
                 List<TrainCar> orderedTrainCars,
                 List<CargoType> orderedCargoTypes,
                 List<float> orderedCargoAmounts,
@@ -62,14 +57,13 @@ namespace PersistentJobsMod.JobGenerators {
                 float bonusTimeLimit,
                 float initialWage,
                 JobLicenses requiredLicenses) {
-            Main._modEntry.Logger.Log($"load: attempting to generate ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
-            var gameObject = new GameObject($"ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destStation.logicStation.ID}");
+            var gameObject = new GameObject($"ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}");
             gameObject.transform.SetParent(startingStation.transform);
             var jobChainController
                 = new JobChainController(gameObject);
             var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
-                destStation.stationInfo.YardID
+                destinationStation.stationInfo.YardID
             );
             jobChainController.trainCarsForJobChain = orderedTrainCars;
             var cargoTypeToTrainCarAndAmount
@@ -101,6 +95,7 @@ namespace PersistentJobsMod.JobGenerators {
             staticShuntingLoadJobDefinition.loadMachine = loadMachine;
             staticShuntingLoadJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;
             jobChainController.AddJobDefinitionToChain(staticShuntingLoadJobDefinition);
+
             return jobChainController;
         }
     }

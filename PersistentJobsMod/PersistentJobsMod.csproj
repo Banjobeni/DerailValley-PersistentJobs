@@ -155,7 +155,7 @@
     <Compile Include="HarmonyPatches\Distance\StationJobGenerationRange_AllMethods_Patch.cs" />
     <Compile Include="HarmonyPatches\CarSpawningJobGeneration\StationProceduralJobsController_Patch.cs" />
     <Compile Include="JobGenerators\TransportJobGenerator.cs" />
-    <Compile Include="JobGenerators\ShuntingUnloadJobProceduralGenerator.cs" />
+    <Compile Include="JobGenerators\ShuntingUnloadJobGenerator.cs" />
     <Compile Include="Utilities\TrackUtilities.cs" />
   </ItemGroup>
   <ItemGroup>
