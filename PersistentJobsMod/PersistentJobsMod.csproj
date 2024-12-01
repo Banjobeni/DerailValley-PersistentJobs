@@ -95,6 +95,10 @@
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
@@ -115,6 +119,7 @@
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
     <Compile Include="HarmonyPatches\Sleeping\BedSleepingController_Patches.cs" />
+    <Compile Include="HarmonyPatches\Trashcan\JobAbandoner_Patches.cs" />
     <Compile Include="Utilities\AdditionalInformationException.cs" />
     <Compile Include="Utilities\AddMoreInfoToExceptionHelper.cs" />
     <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />
