@@ -2,6 +2,11 @@
     "Releases": [
         {
             "Id": "PersistentJobsMod",
+            "Version": "3.3.0",
+            "DownloadUrl": "https://github.com/Banjobeni/DerailValley-PersistentJobs/releases/download/3.3.0/PersistentJobsMod-3.3.0.zip"
+        },
+        {
+            "Id": "PersistentJobsMod",
             "Version": "3.2.2",
             "DownloadUrl": "https://github.com/Banjobeni/DerailValley-PersistentJobs/releases/download/3.2.2/PersistentJobsMod-3.2.2.zip"
         },
