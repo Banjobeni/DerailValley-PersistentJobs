@@ -6,13 +6,13 @@ using PersistentJobsMod.Extensions;
 
 namespace PersistentJobsMod.CarSpawningJobGenerators {
     public static class DestinationStationRandomizer {
-        public static StationController GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(List<StationController> destinationStations, float trainLength, List<CargoType> distinctCargoTypes, Random random) {
+        public static StationController GetRandomStationSupportingCargoTypesAndTrainLengthAndFreeTransferInTrack(List<StationController> destinationStations, float trainLength, List<CargoType> cargoTypes, Random random) {
             Main._modEntry.Logger.Log("choosing destination");
 
             var randomizedDestinations = random.GetRandomPermutation(destinationStations);
 
             foreach (var destination in randomizedDestinations) {
-                if (DoesStationSupportCargoTypesAndTrainLength(trainLength, distinctCargoTypes, destination)) {
+                if (DoesStationSupportCargoTypesAndTrainLength(trainLength, cargoTypes, destination)) {
                     if (!destination.logicStation.yard.TransferInTracks.Any(t => t.IsFree() && t.GetTotalUsableTrackLength() > trainLength)) {
                         Main._modEntry.Logger.Log($"Couldn't find a free and long enough track at destination {destination.logicStation.ID}, skipping destination");
                     } else {
@@ -25,8 +25,8 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             return null;
         }
 
-        private static bool DoesStationSupportCargoTypesAndTrainLength(float trainLength, List<CargoType> distinctCargoTypes, StationController destination) {
-            var warehouseMachines = destination.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(distinctCargoTypes);
+        private static bool DoesStationSupportCargoTypesAndTrainLength(float trainLength, List<CargoType> cargoTypes, StationController destination) {
+            var warehouseMachines = destination.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(cargoTypes);
             if (warehouseMachines.Count == 0) {
                 UnityEngine.Debug.LogWarning($"[PersistentJobs] Couldn't find a warehouse machine at destination {destination.logicStation.ID} that supports all cargo types, skipping destination");
                 return false;

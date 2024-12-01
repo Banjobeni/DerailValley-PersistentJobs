@@ -342,7 +342,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
 
-            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CargoCarGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: DetermineStartingTrack(tcot.SelectMany(tcts => tcts.TrainCars).ToList()))).ToList();
+            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: DetermineStartingTrack(tcot.SelectMany(tcts => tcts.TrainCars).ToList()))).ToList();
 
             var carsPerStartingTrack = trainCarsWithCargoTypesOnTracks.Select(tcot => new CarsPerTrack(tcot.StartingTrack, tcot.TrainCarsWithCargoTypes.Select(tcwt => tcwt.TrainCar.logicCar).ToList())).ToList();
 

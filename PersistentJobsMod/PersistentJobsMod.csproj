@@ -109,8 +109,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CarSpawningJobGenerators\CargoCarGroup.cs" />
-    <Compile Include="CarSpawningJobGenerators\CargoCarGroupsRandomizer.cs" />
+    <Compile Include="CarSpawningJobGenerators\CarSpawnGroupsRandomizer.cs" />
     <Compile Include="CarSpawningJobGenerators\CarSpawningJobGenerator.cs" />
     <Compile Include="CarSpawningJobGenerators\DestinationStationRandomizer.cs" />
     <Compile Include="CarSpawningJobGenerators\ShuntingLoadJobWithCarsGenerator.cs" />

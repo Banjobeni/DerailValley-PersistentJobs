@@ -21,9 +21,9 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             var chosenCargoGroup = random.GetRandomElement(availableCargoGroups);
             Main._modEntry.Logger.Log($"logistical haul: chose cargo group ({string.Join("/", chosenCargoGroup.cargoTypes)}) with {carCount} waggons");
 
-            var cargoCarGroups = CargoCarGroupsRandomizer.GetCargoCarGroups(chosenCargoGroup.cargoTypes, carCount, random);
+            var carSpawnGroups = CarSpawnGroupsRandomizer.GetCarSpawnGroups(chosenCargoGroup.cargoTypes, carCount, random);
 
-            var trainCarLiveries = cargoCarGroups.SelectMany(ccg => ccg.CarLiveries).ToList();
+            var trainCarLiveries = carSpawnGroups.SelectMany(csg => csg.CargoTypesAndLiveries.Select(tuple => tuple.CarLivery)).ToList();
 
             var requiredTrainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries, true);
 
