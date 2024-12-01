@@ -1,15 +1,15 @@
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: CrudeOil
 [PersistentJobsMod] - sources: StationOWC
-[PersistentJobsMod] - destinations: StationHB
+[PersistentJobsMod] - destinations: StationHB, StationOR
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Methane
 [PersistentJobsMod] - sources: StationOWC
-[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationMF, StationCW, StationOR, StationCS
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Logs
 [PersistentJobsMod] - sources: StationFRS
@@ -17,11 +17,17 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Coal
+[PersistentJobsMod] - sources: StationCMS
+[PersistentJobsMod] - destinations: StationSM, StationCP
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Ammunition
 [PersistentJobsMod] - sources: StationMFMB
 [PersistentJobsMod] - destinations: StationMB, StationHMB
 [PersistentJobsMod] - carRequiredLicenses: Military1
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Military2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Tanks
 [PersistentJobsMod] - sources: StationMFMB
@@ -29,27 +35,39 @@
 [PersistentJobsMod] - carRequiredLicenses: Military1
 [PersistentJobsMod] - cargoRequiredLicenses: Military2
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: MilitaryCars
+[PersistentJobsMod] - sources: StationMFMB
+[PersistentJobsMod] - destinations: StationMB, StationHMB
+[PersistentJobsMod] - carRequiredLicenses: Military1
+[PersistentJobsMod] - cargoRequiredLicenses: Military2
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptySunOmni
-[PersistentJobsMod] - sources: StationCSW
+[PersistentJobsMod] - sources: StationCW
 [PersistentJobsMod] - destinations: StationFF
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptyIskar, EmptyObco, EmptyGoorsk
-[PersistentJobsMod] - sources: StationCSW
+[PersistentJobsMod] - sources: StationCW
 [PersistentJobsMod] - destinations: StationGF
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptyKrugmann, EmptyBrohm, EmptyAAG, EmptySperex, EmptyNovae, EmptyTraeg, EmptyChemlek, EmptyNeoGamma
-[PersistentJobsMod] - sources: StationCSW
+[PersistentJobsMod] - sources: StationCW
 [PersistentJobsMod] - destinations: StationHB
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: ScrapMetal
-[PersistentJobsMod] - sources: StationCSW
+[PersistentJobsMod] - sources: StationCW
 [PersistentJobsMod] - destinations: StationSM
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationCW
+[PersistentJobsMod] - destinations: StationSW
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
@@ -61,7 +79,25 @@
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: NewCars
 [PersistentJobsMod] - sources: StationMF
-[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationCSW
+[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationCW, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: CityBuses
+[PersistentJobsMod] - sources: StationMF
+[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationCW, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Trams
+[PersistentJobsMod] - sources: StationMF
+[PersistentJobsMod] - destinations: StationHB
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: SemiTrailers
+[PersistentJobsMod] - sources: StationMF
+[PersistentJobsMod] - destinations: StationHB
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
@@ -85,13 +121,13 @@
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Tractors
 [PersistentJobsMod] - sources: StationMF
-[PersistentJobsMod] - destinations: StationFM, StationHB
+[PersistentJobsMod] - destinations: StationFM, StationHB, StationFRC, StationFRS
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
 [PersistentJobsMod] CargoGroup
-[PersistentJobsMod] - cargoTypes: Excavators
+[PersistentJobsMod] - cargoTypes: Excavators, MiningTrucks, CraneParts
 [PersistentJobsMod] - sources: StationMF
-[PersistentJobsMod] - destinations: StationHB, StationCM, StationIME, StationIMW
+[PersistentJobsMod] - destinations: StationHB, StationCME, StationIME, StationIMW, StationCMS
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
@@ -101,9 +137,15 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationMF
+[PersistentJobsMod] - destinations: StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Bread, DairyProducts, MeatProducts, CannedFood, CatFood
 [PersistentJobsMod] - sources: StationFF
-[PersistentJobsMod] - destinations: StationHB, StationGF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationHB, StationGF, StationMF, StationCW, StationCS
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
@@ -117,7 +159,7 @@
 [PersistentJobsMod] - sources: StationFF
 [PersistentJobsMod] - destinations: StationHB, StationGF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptyIskar, EmptyObco, EmptyGoorsk
 [PersistentJobsMod] - sources: StationFF
@@ -137,21 +179,27 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationFF
+[PersistentJobsMod] - destinations: StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: SpentNuclearFuel
 [PersistentJobsMod] - sources: StationHMB
 [PersistentJobsMod] - destinations: StationMB
 [PersistentJobsMod] - carRequiredLicenses: Military1
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military3
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military3, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Ammunition
 [PersistentJobsMod] - sources: StationHMB
-[PersistentJobsMod] - destinations: StationMB
+[PersistentJobsMod] - destinations: StationMB, StationMFMB
 [PersistentJobsMod] - carRequiredLicenses: Military1
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Military2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: MilitaryTrucks
 [PersistentJobsMod] - sources: StationHMB
-[PersistentJobsMod] - destinations: StationMB
+[PersistentJobsMod] - destinations: StationMB, StationMFMB
 [PersistentJobsMod] - carRequiredLicenses: Military1
 [PersistentJobsMod] - cargoRequiredLicenses: Military2
 [PersistentJobsMod] CargoGroup
@@ -161,53 +209,71 @@
 [PersistentJobsMod] - carRequiredLicenses: Military1
 [PersistentJobsMod] - cargoRequiredLicenses: Military2
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: AttackHelicopters
+[PersistentJobsMod] - sources: StationHMB
+[PersistentJobsMod] - destinations: StationMB, StationMFMB
+[PersistentJobsMod] - carRequiredLicenses: Military1
+[PersistentJobsMod] - cargoRequiredLicenses: Military2, Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Missiles
+[PersistentJobsMod] - sources: StationHMB
+[PersistentJobsMod] - destinations: StationMB, StationMFMB
+[PersistentJobsMod] - carRequiredLicenses: Military1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Military2, Fragile
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Acetylene
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationMF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Diesel, Gasoline
 [PersistentJobsMod] - sources: StationHB
-[PersistentJobsMod] - destinations: StationGF, StationFF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationGF, StationFF, StationMF, StationCW, StationCS
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Hazmat2, Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ToolsBrohm, ToolsAAG, ToolsNovae, ToolsTraeg
+[PersistentJobsMod] - sources: StationHB
+[PersistentJobsMod] - destinations: StationCP, StationFM, StationFRC, StationFRS, StationOR, StationOWC, StationOWN, StationSM, StationSW, StationCME, StationCMS, StationIME, StationIMW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: ElectronicsKrugmann, ElectronicsAAG, ElectronicsNovae, ElectronicsTraeg, ToolsBrohm, ToolsAAG, ToolsNovae, ToolsTraeg, ChemicalsSperex
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationGF, StationMF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
 [PersistentJobsMod] CargoGroup
-[PersistentJobsMod] - cargoTypes: ElectronicsKrugmann, ElectronicsAAG, ElectronicsNovae, ElectronicsTraeg, ToolsBrohm, ToolsAAG, ToolsNovae, ToolsTraeg, ChemicalsSperex, ClothingNeoGamma, ClothingNovae, ClothingTraeg, Medicine, ImportedNewCars
+[PersistentJobsMod] - cargoTypes: ElectronicsKrugmann, ElectronicsAAG, ElectronicsNovae, ElectronicsTraeg, ToolsBrohm, ToolsAAG, ToolsNovae, ToolsTraeg, ChemicalsSperex, ClothingNeoGamma, ClothingNovae, ClothingTraeg, Medicine, ImportedNewCars, TropicalFruits, Fish
 [PersistentJobsMod] - sources: StationHB
-[PersistentJobsMod] - destinations: StationGF, StationFF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationGF, StationFF, StationMF, StationCW, StationCS
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: CryoHydrogen, Ammonia, SodiumHydroxide
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationGF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Argon
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationSM
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: CryoOxygen
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationMF, StationSM
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Nitrogen
 [PersistentJobsMod] - sources: StationHB
 [PersistentJobsMod] - destinations: StationFF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptyIskar, EmptyObco, EmptyGoorsk
 [PersistentJobsMod] - sources: StationHB
@@ -227,23 +293,47 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Excavators, MiningTrucks, CraneParts
+[PersistentJobsMod] - sources: StationHB
+[PersistentJobsMod] - destinations: StationIME, StationIMW, StationCME
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationHB
+[PersistentJobsMod] - destinations: StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapContainers
+[PersistentJobsMod] - sources: StationHB
+[PersistentJobsMod] - destinations: StationSM
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: AmmoniumNitrate
+[PersistentJobsMod] - sources: StationHB
+[PersistentJobsMod] - destinations: StationFM
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Biohazard
 [PersistentJobsMod] - sources: StationMB
 [PersistentJobsMod] - destinations: StationHMB
 [PersistentJobsMod] - carRequiredLicenses: Military1
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military3
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat3, Military3, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Coal
-[PersistentJobsMod] - sources: StationCM
-[PersistentJobsMod] - destinations: StationSM
+[PersistentJobsMod] - sources: StationCME
+[PersistentJobsMod] - destinations: StationSM, StationCP
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: ElectronicsIskar, ToolsIskar, ChemicalsIskar, Furniture, ClothingObco
 [PersistentJobsMod] - sources: StationGF
-[PersistentJobsMod] - destinations: StationHB, StationFF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationHB, StationFF, StationMF, StationCW, StationCS
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Pipes
 [PersistentJobsMod] - sources: StationGF
@@ -255,7 +345,7 @@
 [PersistentJobsMod] - sources: StationGF
 [PersistentJobsMod] - destinations: StationMF
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: EmptySunOmni
 [PersistentJobsMod] - sources: StationGF
@@ -281,15 +371,45 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
-[PersistentJobsMod] - cargoTypes: Pigs, Cows, Chickens, Sheep, Goats, Wheat, Corn
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationGF
+[PersistentJobsMod] - destinations: StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ToolsIskar
+[PersistentJobsMod] - sources: StationGF
+[PersistentJobsMod] - destinations: StationCME, StationCMS, StationCP, StationFM, StationFRC, StationFRS, StationIME, StationIMW, StationOR, StationOWC, StationOWN, StationSM, StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Pigs, Cows, Poultry, Sheep, Goats, Wheat, Corn, SunflowerSeeds, TemperateFruits, Vegetables, Milk, Eggs, Flour
 [PersistentJobsMod] - sources: StationFM
 [PersistentJobsMod] - destinations: StationFF
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Cotton, Wool, Eggs, TemperateFruits, Vegetables
+[PersistentJobsMod] - sources: StationFM
+[PersistentJobsMod] - destinations: StationGF
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Eggs, TemperateFruits, Vegetables
+[PersistentJobsMod] - sources: StationFM
+[PersistentJobsMod] - destinations: StationCW, StationMF, StationHB, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Flour
+[PersistentJobsMod] - sources: StationFM
+[PersistentJobsMod] - destinations: StationHB
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: SteelRolls, SteelBillets, SteelSlabs, SteelBentPlates
 [PersistentJobsMod] - sources: StationSM
-[PersistentJobsMod] - destinations: StationGF, StationMF
+[PersistentJobsMod] - destinations: StationGF, StationMF, StationHB
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
@@ -299,7 +419,61 @@
 [PersistentJobsMod] - carRequiredLicenses: Basic
 [PersistentJobsMod] - cargoRequiredLicenses: Basic
 [PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: EmptySunOmni
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationFF
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: EmptyIskar, EmptyObco, EmptyGoorsk
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationGF
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: EmptyKrugmann, EmptyBrohm, EmptyAAG, EmptySperex, EmptyNovae, EmptyTraeg, EmptyChemlek, EmptyNeoGamma
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationHB
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapMetal
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationSM
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: ScrapWood
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationSW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Fish
+[PersistentJobsMod] - sources: StationCS
+[PersistentJobsMod] - destinations: StationFF, StationGF, StationMF, StationCW
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Plywood, Boards
+[PersistentJobsMod] - sources: StationSW
+[PersistentJobsMod] - destinations: StationGF, StationHB
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Boards
+[PersistentJobsMod] - sources: StationSW
+[PersistentJobsMod] - destinations: StationMF
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Sleepers
+[PersistentJobsMod] - sources: StationSW
+[PersistentJobsMod] - destinations: StationHB
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Basic
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: WoodChips
 [PersistentJobsMod] - sources: StationSW
 [PersistentJobsMod] - destinations: StationGF
 [PersistentJobsMod] - carRequiredLicenses: Basic
@@ -313,15 +487,33 @@
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: CrudeOil
 [PersistentJobsMod] - sources: StationOWN
-[PersistentJobsMod] - destinations: StationHB
+[PersistentJobsMod] - destinations: StationHB, StationOR
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Methane
 [PersistentJobsMod] - sources: StationOWN
-[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationMF, StationCSW
+[PersistentJobsMod] - destinations: StationHB, StationGF, StationFF, StationMF, StationCW, StationOR
 [PersistentJobsMod] - carRequiredLicenses: Basic
-[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Gasoline
+[PersistentJobsMod] - sources: StationOR
+[PersistentJobsMod] - destinations: StationCW, StationFF, StationGF, StationHB, StationMF, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat2, Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Diesel
+[PersistentJobsMod] - sources: StationOR
+[PersistentJobsMod] - destinations: StationCW, StationFF, StationGF, StationHB, StationMF, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Fragile
+[PersistentJobsMod] CargoGroup
+[PersistentJobsMod] - cargoTypes: Gasoline, Diesel
+[PersistentJobsMod] - sources: StationOR
+[PersistentJobsMod] - destinations: StationCW, StationFF, StationGF, StationHB, StationMF, StationCS
+[PersistentJobsMod] - carRequiredLicenses: Basic
+[PersistentJobsMod] - cargoRequiredLicenses: Hazmat1, Hazmat2, Fragile
 [PersistentJobsMod] CargoGroup
 [PersistentJobsMod] - cargoTypes: Logs
 [PersistentJobsMod] - sources: StationFRC
@@ -352,10 +544,18 @@ Couldn't find mapping for 'LocoRailbus'
 [PersistentJobsMod] - kind: TrainCarKind_Loco
 [PersistentJobsMod] - cargoTypes: 
 [PersistentJobsMod] - liveries: LocoS060
+[PersistentJobsMod] TrainCarType2 TrainCarType_LocoDM1U
+[PersistentJobsMod] - kind: TrainCarKind_Loco
+[PersistentJobsMod] - cargoTypes: TrainPartsS282A,TrainPartsDM3,TrainPartsDH4,TrainPartsDE6,TrainPartsDE2,TrainPartsS060
+[PersistentJobsMod] - liveries: LocoDM1U
 [PersistentJobsMod] TrainCarType2 TrainCarType_LocoDE6
 [PersistentJobsMod] - kind: TrainCarKind_Loco
 [PersistentJobsMod] - cargoTypes: 
 [PersistentJobsMod] - liveries: LocoDiesel
+[PersistentJobsMod] TrainCarType2 TrainCarType_LocoDE6Slug
+[PersistentJobsMod] - kind: TrainCarKind_Slug
+[PersistentJobsMod] - cargoTypes: 
+[PersistentJobsMod] - liveries: LocoDE6Slug
 [PersistentJobsMod] TrainCarType2 TrainCarType_LocoDH4
 [PersistentJobsMod] - kind: TrainCarKind_Loco
 [PersistentJobsMod] - cargoTypes: 
@@ -364,9 +564,13 @@ Couldn't find mapping for 'LocoRailbus'
 [PersistentJobsMod] - kind: TrainCarKind_Loco
 [PersistentJobsMod] - cargoTypes: 
 [PersistentJobsMod] - liveries: LocoDM3
+[PersistentJobsMod] TrainCarType2 TrainCarType_LocoMicroshunter
+[PersistentJobsMod] - kind: TrainCarKind_Loco
+[PersistentJobsMod] - cargoTypes: 
+[PersistentJobsMod] - liveries: LocoMicroshunter
 [PersistentJobsMod] TrainCarType2 TrainCarType_Flatbed
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: Boards,Plywood,DairyProducts,MeatProducts,CannedFood,CatFood,SteelRolls,SteelBillets,SteelSlabs,SteelBentPlates,SteelRails,ElectronicsIskar,ElectronicsKrugmann,ElectronicsAAG,ElectronicsNovae,ElectronicsTraeg,ToolsIskar,ToolsBrohm,ToolsAAG,ToolsNovae,ToolsTraeg,Furniture,ClothingObco,ClothingNeoGamma,ClothingNovae,ClothingTraeg,Medicine,ChemicalsIskar,ChemicalsSperex,Tractors,Excavators,Acetylene,CryoOxygen,CryoHydrogen,Argon,Nitrogen,EmptySunOmni,EmptyIskar,EmptyObco,EmptyGoorsk,EmptyKrugmann,EmptyBrohm,EmptyAAG,EmptySperex,EmptyNovae,EmptyTraeg,EmptyChemlek,EmptyNeoGamma
+[PersistentJobsMod] - cargoTypes: AmmoniumNitrate,MiningTrucks,Trams,CityBuses,TropicalFruits,CraneParts,SemiTrailers,ScrapContainers,EmptyAAG,ElectronicsAAG,ToolsAAG,Acetylene,Argon,Boards,EmptyBrohm,ToolsBrohm,CannedFood,CatFood,EmptyChemlek,CryoHydrogen,CryoOxygen,DairyProducts,Excavators,Furniture,EmptyGoorsk,ChemicalsIskar,EmptyIskar,ElectronicsIskar,ToolsIskar,EmptyKrugmann,ElectronicsKrugmann,MeatProducts,Medicine,ClothingNeoGamma,EmptyNeoGamma,Nitrogen,ClothingNovae,EmptyNovae,ElectronicsNovae,ToolsNovae,ClothingObco,EmptyObco,Plywood,ChemicalsSperex,EmptySperex,SteelBentPlates,SteelBillets,SteelRails,SteelRolls,SteelSlabs,EmptySunOmni,Tractors,ClothingTraeg,EmptyTraeg,ElectronicsTraeg,ToolsTraeg
 [PersistentJobsMod] - liveries: FlatbedEmpty
 [PersistentJobsMod] TrainCarType2 TrainCarType_FlatbedStakes
 [PersistentJobsMod] - kind: TrainCarKind_Car
@@ -374,15 +578,19 @@ Couldn't find mapping for 'LocoRailbus'
 [PersistentJobsMod] - liveries: FlatbedStakes
 [PersistentJobsMod] TrainCarType2 TrainCarType_FlatbedMilitary
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: Biohazard,Tanks,MilitaryTrucks,MilitarySupplies
+[PersistentJobsMod] - cargoTypes: Biohazard,AttackHelicopters,Missiles,MilitaryCars,MilitarySupplies,MilitaryTrucks,Tanks
 [PersistentJobsMod] - liveries: FlatbedMilitary
+[PersistentJobsMod] TrainCarType2 TrainCarType_FlatbedShort
+[PersistentJobsMod] - kind: TrainCarKind_Car
+[PersistentJobsMod] - cargoTypes: TrainPartsS282A,TrainPartsDM3,TrainPartsDH4,TrainPartsDE6,TrainPartsDE2,TrainPartsS060
+[PersistentJobsMod] - liveries: FlatbedShort
 [PersistentJobsMod] TrainCarType2 TrainCarType_Autorack
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: NewCars,ImportedNewCars
+[PersistentJobsMod] - cargoTypes: ImportedNewCars,NewCars
 [PersistentJobsMod] - liveries: AutorackBlue,AutorackGreen,AutorackRed,AutorackYellow
 [PersistentJobsMod] TrainCarType2 TrainCarType_TankGas
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: Methane,Alcohol
+[PersistentJobsMod] - cargoTypes: Alcohol,Methane
 [PersistentJobsMod] - liveries: TankBlue,TankOrange
 [PersistentJobsMod] TrainCarType2 TrainCarType_TankOil
 [PersistentJobsMod] - kind: TrainCarKind_Car
@@ -392,9 +600,17 @@ Couldn't find mapping for 'LocoRailbus'
 [PersistentJobsMod] - kind: TrainCarKind_Car
 [PersistentJobsMod] - cargoTypes: Ammonia,SodiumHydroxide
 [PersistentJobsMod] - liveries: TankBlack
+[PersistentJobsMod] TrainCarType2 TrainCarType_TankShortFood
+[PersistentJobsMod] - kind: TrainCarKind_Car
+[PersistentJobsMod] - cargoTypes: Milk
+[PersistentJobsMod] - liveries: TankShortMilk
+[PersistentJobsMod] TrainCarType2 TrainCarType_Stock
+[PersistentJobsMod] - kind: TrainCarKind_Car
+[PersistentJobsMod] - cargoTypes: Cows,Goats,Pigs,Poultry,Sheep
+[PersistentJobsMod] - liveries: StockRed,StockGreen,StockBrown
 [PersistentJobsMod] TrainCarType2 TrainCarType_Boxcar
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: Pigs,Cows,Chickens,Sheep,Goats,Bread,CatFood,ToolsIskar,Furniture,ChemicalsIskar,ChemicalsSperex
+[PersistentJobsMod] - cargoTypes: CraneParts,Bread,CatFood,Cotton,Furniture,ChemicalsIskar,ToolsIskar,ChemicalsSperex,Vegetables,Wool
 [PersistentJobsMod] - liveries: BoxcarBrown,BoxcarGreen,BoxcarPink,BoxcarRed
 [PersistentJobsMod] TrainCarType2 TrainCarType_BoxcarMilitary
 [PersistentJobsMod] - kind: TrainCarKind_Car
@@ -402,15 +618,19 @@ Couldn't find mapping for 'LocoRailbus'
 [PersistentJobsMod] - liveries: BoxcarMilitary
 [PersistentJobsMod] TrainCarType2 TrainCarType_Refrigerator
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: DairyProducts,MeatProducts,Medicine
+[PersistentJobsMod] - cargoTypes: Fish,TropicalFruits,TemperateFruits,DairyProducts,Eggs,MeatProducts,Medicine
 [PersistentJobsMod] - liveries: RefrigeratorWhite
 [PersistentJobsMod] TrainCarType2 TrainCarType_Hopper
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: Coal,IronOre,Wheat,Corn
+[PersistentJobsMod] - cargoTypes: WoodChips,Coal,IronOre
 [PersistentJobsMod] - liveries: HopperBrown,HopperTeal,HopperYellow
+[PersistentJobsMod] TrainCarType2 TrainCarType_HopperCovered
+[PersistentJobsMod] - kind: TrainCarKind_Car
+[PersistentJobsMod] - cargoTypes: Flour,Corn,SunflowerSeeds,Wheat
+[PersistentJobsMod] - liveries: HopperCoveredBrown
 [PersistentJobsMod] TrainCarType2 TrainCarType_Gondola
 [PersistentJobsMod] - kind: TrainCarKind_Car
-[PersistentJobsMod] - cargoTypes: ScrapMetal
+[PersistentJobsMod] - cargoTypes: ScrapWood,Sleepers,ScrapMetal
 [PersistentJobsMod] - liveries: GondolaGray,GondolaGreen,GondolaRed
 [PersistentJobsMod] TrainCarType2 TrainCarType_Passenger
 [PersistentJobsMod] - kind: TrainCarKind_Car
