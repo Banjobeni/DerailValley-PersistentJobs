@@ -12,13 +12,24 @@ using Random = System.Random;
 namespace PersistentJobsMod {
     public static class Console {
         [RegisterCommand("PJ.ClearStationSpawnFlag", Help = "PersistentJobsMod: Clear the flag for a station such that it may spawn cars again.", MinArgCount = 1, MaxArgCount = 1)]
-        public static void ClearStationSpawnFlag(CommandArg[] args) {
-            var stationId = args[0].String;
+        public static void ClearStationSpawnFlag(CommandArg[] args)
+        {
+            var uInput = args[0].String;
+            var stationIds = StationIdCarSpawningPersistence.Instance.GetAllSetStationSpawnedCarFlags();
 
-            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(stationId)) {
-                StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(stationId, false);
-                Debug.Log($"Cleared station spawn flag of {stationId}.");
-            } else {
+            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(uInput)) {
+                StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(uInput, false);
+                Debug.Log($"Cleared station spawn flag of {uInput}.");
+            }
+            else if (uInput == "all" || uInput == "All" || uInput == "*" )
+            {
+                foreach (var item in stationIds)
+                {
+                    StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(item, false);
+                    Debug.Log($"Cleared station spawn flag of {item}.");
+                }
+            }
+            else {
                 Debug.Log("Station spawn flag was not set. See PJ.ListStationSpawnFlag for alist of currently set flags.");
             }
         }
