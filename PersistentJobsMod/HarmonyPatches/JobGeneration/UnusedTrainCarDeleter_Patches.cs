@@ -160,7 +160,32 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             
             var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
             
-            return jobChainControllers.SelectMany(jcc => jcc.trainCarsForJobChain).ToList();
+        public static StationController StationBelongingToTrainset(Trainset ts)
+        {
+            var trackID = DetermineStartingTrack(ts.cars).ID.FullID;
+            Main._modEntry.Logger.Log("trackID is: " + trackID);
+            var yardId = DetermineStartingTrack(ts.cars).ID.yardId;
+            Main._modEntry.Logger.Log("yardId is: " + yardId);
+            if (yardId != null)
+            {
+                if (StationController.GetStationByYardID(yardId) != null)
+                {
+                    StationController station = StationController.GetStationByYardID(yardId);
+                    Main._modEntry.Logger.Log("Selected station is: " + station.logicStation.name);
+                    return station;
+                }
+                else
+                {
+                    Main._modEntry.Logger.Log("No station found from trainset, getting by distance instead");
+                    Main._modEntry.Logger.Log("Huh..!, where did the null come from?");
+                    return null;
+                }
+            }
+            else
+            {
+                Main._modEntry.Logger.Log("yardId is null (derailed?), getting cars by distance");
+                return null;
+            }
         }
 
         public static StationController StationBelongingToTrainset(Trainset ts)
