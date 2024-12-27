@@ -165,10 +165,18 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }   
         public static StationController StationBelongingToTrainset(Trainset ts)
         {
-            var trackID = DetermineStartingTrack(ts.cars).ID.FullID;
+            int depth = 0;
+            var track = DetermineStartingTrack(ts.cars);
+            HashSet<Track> searchedTracks = new HashSet<Track>();
+            return GetStationBelongingToTrack(track, ref depth, ref searchedTracks);
+        }
+        private static StationController GetStationBelongingToTrack(Track track, ref int depth, ref HashSet<Track> searchedTracks)
+        {
+            var trackID = track.ID.FullID;
             Main._modEntry.Logger.Log("trackID is: " + trackID);
-            var yardId = DetermineStartingTrack(ts.cars).ID.yardId;
+            var yardId = track.ID.yardId;
             Main._modEntry.Logger.Log("yardId is: " + yardId);
+
             if (yardId != null)
             {
                 if (StationController.GetStationByYardID(yardId) != null)
@@ -176,6 +184,60 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                     StationController station = StationController.GetStationByYardID(yardId);
                     Main._modEntry.Logger.Log("Selected station is: " + station.logicStation.name);
                     return station;
+                }
+                else if (yardId == "#Y")
+                {
+                    depth++;
+                    if (depth < 15)
+                    {
+                        if (depth < 15)
+                        {
+                            if (track.InTrack != null)
+                            {
+                                if (!searchedTracks.Contains(track.InTrack))
+                                {
+                                    searchedTracks.Add(track.InTrack);
+                                    var result = GetStationBelongingToTrack(track.InTrack, ref depth, ref searchedTracks);
+                                    if (result != null) return result;
+                                }
+                            }
+                            if (track.OutTrack != null)
+                            {
+                                if (!searchedTracks.Contains(track.OutTrack))
+                                {
+                                    searchedTracks.Add(track.OutTrack);
+                                    var result = GetStationBelongingToTrack(track.OutTrack, ref depth, ref searchedTracks);
+                                    if (result != null) return result;
+                                }
+                            }
+                            if (track.PossibleInTracks != null)
+                            {
+                                foreach (var piTrack in track.PossibleInTracks)
+                                {
+                                    if (!searchedTracks.Contains(piTrack))
+                                    {
+                                        searchedTracks.Add(piTrack);
+                                        var result = GetStationBelongingToTrack(piTrack, ref depth, ref searchedTracks);
+                                        if (result != null) return result;
+                                    }
+                                }
+                            }
+                            if (track.PossibleOutTracks != null)
+                            {
+                                foreach (var poTrack in track.PossibleOutTracks)
+                                {
+                                    if (!searchedTracks.Contains(poTrack))
+                                    {
+                                        searchedTracks.Add(poTrack);
+                                        var result = GetStationBelongingToTrack(poTrack, ref depth, ref searchedTracks);
+                                        if (result != null) return result;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Main._modEntry.Logger.Log("Exhausted search with possible neighbouring tracks");
+                    return null; 
                 }
                 else
                 {
@@ -190,6 +252,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return null;
             }
         }
+
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
             EnsureTrainCarsAreConvertedToNonPlayerSpawned(jobChainController.trainCarsForJobChain);
@@ -224,7 +287,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                     }
                 }
             }
-
+            
             // generate transport jobs for loaded train cars not unloadable at this station
             foreach (var carGroup in notUnloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
