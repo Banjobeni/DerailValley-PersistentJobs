@@ -4,13 +4,34 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using DV.ThingTypes;
+using DV.Utils;
 using HarmonyLib;
 using UnityEngine;
+using DV;
+using DV.Logic.Job;
 
 namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>reserves tracks for taken jobs when loading save file</summary>
     [HarmonyPatch]
     public static class JobSaveManager_Patches {
+        [HarmonyPatch(typeof(JobSaveManager), "GetYardTrackWithId")]
+        [HarmonyPrefix]
+        public static bool GetYardTrackWithId_Prefix(string trackId, ref Track __result)
+        {
+            if (SingletonBehaviour<YardTracksOrganizer>.Instance.yardTrackIdToTrack.TryGetValue(trackId, out var track) && track != null)
+            {
+                __result = track;
+            }
+            //vanilla code above, below logic no not null tracks outside of yards, could cause conflicts if original method was used for filtering those tracks out
+            else
+            {
+                Main._modEntry.Logger.Log($"Track {trackId} not found in yard tracks");
+                RailTrack RT = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.logicTrack.ID.FullID == trackId);
+                __result = LogicController.Instance.LogicToRailTrack.FirstOrDefault(x => x.Value == RT).Key ?? null;
+            }
+            return false; 
+        }
+
         [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
         [HarmonyPostfix]
         public static void LoadJobChain_Postfix(JobChainSaveData chainSaveData) {
