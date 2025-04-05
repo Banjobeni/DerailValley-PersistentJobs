@@ -6,12 +6,15 @@ using HarmonyLib;
 using PersistentJobsMod.Model;
 using UnityEngine;
 using MessageBox;
+using System.Runtime;
+using PersistentJobsMod;
 
 namespace PersistentJobsMod {
     public static class Main {
         public static UnityModManager.ModEntry _modEntry;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
+        public static Settings Settings { get; private set; }
 
         private static bool _isModBroken = false;
 
@@ -24,9 +27,11 @@ namespace PersistentJobsMod {
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
-
+            Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
             modEntry.OnToggle = OnToggle;
-
+            modEntry.OnGUI = OnGUI;
+            modEntry.OnSaveGUI = OnSaveGUI;
+            Main.Settings.Save(Main._modEntry);
             WorldStreamingInit.LoadingFinished += WorldStreamingInitLoadingFinished;
         }
 
@@ -37,6 +42,22 @@ namespace PersistentJobsMod {
 
             return true;
         }
+
+        static void OnGUI(UnityModManager.ModEntry modEntry)
+        {
+            if (GUILayout.Button("Reload Settings"))
+            {
+                ReloadSettings(modEntry);
+            }
+                Settings.Draw(modEntry);
+        }
+
+        static void OnSaveGUI(UnityModManager.ModEntry modEntry)
+        {
+            Settings.Save(modEntry);
+        }
+
+        public static void ReloadSettings(UnityModManager.ModEntry modEntry) => Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
 
         private static void WorldStreamingInitLoadingFinished() {
             DetailedCargoGroups.Initialize();
