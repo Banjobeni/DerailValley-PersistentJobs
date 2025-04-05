@@ -8,8 +8,11 @@ using HarmonyLib;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Utilities;
+using PersistentJobsMod;
 using UnityEngine;
 using Random = System.Random;
+using MessageBox;
+using DV.UIFramework;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
@@ -32,7 +35,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     return true;
                 }
 
-                // for shunting (un)load jobs, require cars to not already be on the warehouse track
+                // for shunting (un)load jobs, require cars to not already be on the warehouse track, or allows the player to disable that feature on first encouter
                 if (job.jobType == JobType.ShuntingLoad || job.jobType == JobType.ShuntingUnload) {
                     var wt = job.tasks.Aggregate(
                         null as Task,
@@ -40,12 +43,40 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                             ? TaskUtilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
                             : found) as WarehouseTask;
                     var wm = wt != null ? wt.warehouseMachine : null;
+                    bool retBool = false;
                     if (wm != null && job.tasks.Any(
                             outerTask => TaskUtilities.TaskAnyDfs(
                                 outerTask,
-                                innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) {
-                        ___bookletPrinter.PlayErrorSound();
-                        return false;
+                                innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) 
+                    {
+                        if (Main.Settings.AllowAccOnWarehouseTracks)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            ___bookletPrinter.PlayErrorSound();
+                            if (!Main.Settings.GetShuntJobInteract())
+                            {
+                                Main.Settings.SetShuntJobInteract(true); 
+                                Main.Settings.Save(Main._modEntry);
+                                PopupAPI.ShowYesNo(
+                                    message: "You are trying to accept a shunting job that is already on a loading track, that is kinda cheaty... \n Do you want the mod to allow this? ",
+                                    onClose: (result) =>
+                                    {
+                                        if (result.closedBy == PopupClosedByAction.Positive)
+                                        {
+                                            Main.Settings.AllowAccOnWarehouseTracks = true;
+                                            Main.Settings.Save(Main._modEntry);
+                                            retBool = true;
+                                        }
+                                    }
+                                );
+                                Main.Settings.Save(Main._modEntry);
+                                return retBool;
+                            }
+                            return retBool;
+                        }
                     }
                 }
 

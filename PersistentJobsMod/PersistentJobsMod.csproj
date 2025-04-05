@@ -13,7 +13,7 @@
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
-	<DVInstallPath>$([System.Environment]::GetEnvironmentVariable('ProgramFiles(x86)'))\Steam\steamapps\common\Derail Valley</DVInstallPath>
+    <DVInstallPath>$([System.Environment]::GetEnvironmentVariable('ProgramFiles(x86)'))\Steam\steamapps\common\Derail Valley</DVInstallPath>
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -119,6 +119,7 @@
     <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
     <Compile Include="HarmonyPatches\Sleeping\BedSleepingController_Patches.cs" />
     <Compile Include="HarmonyPatches\Trashcan\JobAbandoner_Patches.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="Utilities\AdditionalInformationException.cs" />
     <Compile Include="Utilities\AddMoreInfoToExceptionHelper.cs" />
     <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />

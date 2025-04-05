@@ -209,9 +209,9 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration
         private static StationController GetStationBelongingToTrack(Track track, ref int depth, ref HashSet<Track> searchedTracks)
         {
             var trackID = track.ID.FullID;
-            Main._modEntry.Logger.Log("trackID is: " + trackID);
+            //Main._modEntry.Logger.Log("trackID is: " + trackID);
             var yardId = track.ID.yardId;
-            Main._modEntry.Logger.Log("yardId is: " + yardId);
+            //Main._modEntry.Logger.Log("yardId is: " + yardId);
 
             if (yardId != null)
             {
@@ -225,7 +225,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration
                 else if (yardId == "#Y")
                 {
                     depth++;
-                    if (depth < 20)
+                    if (depth < 32)
                     {
                         if (track.InTrack != null)
                         {
@@ -270,8 +270,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration
                             }
                         }
                     }
-                    Main._modEntry.Logger.Log("Exhausted search with possible neighbouring tracks");
-                    Main._modEntry.Logger.Log("No station found from trainset, getting by distance instead");
+                    //Main._modEntry.Logger.Log("Exhausted search with possible neighbouring tracks");
+                    Main._modEntry.Logger.Warning("No station found from trainset, getting by distance instead. Perhaps you have cars left out of normal tracks?");
                     return null;
                 }
                 else
