@@ -71,6 +71,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                                     }
                                 );
                                 Main.Settings.Save(Main._modEntry);
+                                return retBool;
                             }
                             return retBool;
                         }
