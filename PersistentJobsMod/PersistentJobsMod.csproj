@@ -48,6 +48,9 @@
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\CommandTerminal.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.Common">
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.Common.dll</HintPath>
+    </Reference>
     <Reference Include="DV.ThingTypes">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.ThingTypes.dll</HintPath>
       <Private>False</Private>

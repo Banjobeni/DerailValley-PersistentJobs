@@ -13,6 +13,7 @@ using UnityEngine;
 using Random = System.Random;
 using MessageBox;
 using DV.UIFramework;
+using DV.Common;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
@@ -190,26 +191,43 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return cars.Any(car => car.FrontBogieTrack == track);
         }
 
-        private static bool ReserveOrReplaceRequiredTracks(JobChainController jobChainController) {
+        private static bool ReserveOrReplaceRequiredTracks(JobChainController jobChainController)
+        {
             var jobChain = jobChainController.jobChain;
             var jobDefToCurrentlyReservedTracks = jobChainController.jobDefToCurrentlyReservedTracks;
-
             bool didAnyTrackChange = false;
-
             var random = new System.Random();
 
-            for (var i = 0; i < jobChain.Count; i++) {
+            for (var i = 0; i < jobChain.Count; i++)
+            {
                 var key = jobChain[i];
-                if (jobDefToCurrentlyReservedTracks.TryGetValue(key, out var trackReservations)) {
-                    for (var j = 0; j < trackReservations.Count; j++) {
-                        var reservedTrack = trackReservations[j].track;
-                        var reservedLength = trackReservations[j].reservedLength;
-                        if (YardTracksOrganizer.Instance.GetFreeSpaceOnTrack(reservedTrack) >= reservedLength) {
+                Debug.Log($"[PersistentJobs] jobChain[{i}] type: {key?.GetType().Name}, has job: {key?.job != null}");
+                if (key == null || key.job == null)
+                {
+                    Debug.LogError($"[PersistentJobs] job for jobChain[{i}] is null!");
+                    SingletonBehaviour<SaveGameManager>.Instance.Save(SaveType.Manual, null, true);
+                    PopupAPI.ShowOk("This job is possibly corrupted and problems may arise, so it is recommended to discard it. (You can regerate a job for the cars with 'PJ.RegenerateJobsImmediately') \n You may file a bug report concerning this on the mod´s github, including the output of the Bug Report gotten from the pause screen.");
+                    continue;
+                }
+
+                if (jobDefToCurrentlyReservedTracks.TryGetValue(key, out var trackReservations))
+                {
+                    for (var j = 0; j < trackReservations.Count; j++)
+                    {
+                        var reservation = trackReservations[j];
+                        var reservedTrack = reservation.track;
+                        var reservedLength = reservation.reservedLength;
+
+                        if (YardTracksOrganizer.Instance.GetFreeSpaceOnTrack(reservedTrack) >= reservedLength)
+                        {
                             YardTracksOrganizer.Instance.ReserveSpace(reservedTrack, reservedLength, false);
-                        } else {
+                        }
+                        else
+                        {
                             // not enough space to reserve; find a different track with enough space & update job data
                             var replacementTrack = GetReplacementTrack(reservedTrack, reservedLength, random);
-                            if (replacementTrack == null) {
+                            if (replacementTrack == null)
+                            {
                                 Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{key.job.ID}]. Skipping track reservation!");
                                 continue;
                             }
@@ -221,65 +239,116 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                             trackReservations.Insert(j, new TrackReservation(replacementTrack, reservedLength));
 
                             // update static job definition data
-                            if (key is StaticEmptyHaulJobDefinition) {
-                                (key as StaticEmptyHaulJobDefinition).destinationTrack = replacementTrack;
-                            } else if (key is StaticShuntingLoadJobDefinition) {
-                                (key as StaticShuntingLoadJobDefinition).destinationTrack = replacementTrack;
-                            } else if (key is StaticTransportJobDefinition) {
-                                (key as StaticTransportJobDefinition).destinationTrack = replacementTrack;
-                            } else if (key is StaticShuntingUnloadJobDefinition) {
-                                (key as StaticShuntingUnloadJobDefinition).carsPerDestinationTrack
-                                    = (key as StaticShuntingUnloadJobDefinition).carsPerDestinationTrack
-                                    .Select(cpt => cpt.track == reservedTrack ? new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
-                                    .ToList();
-                            } else {
-                                // attempt to replace track via Traverse for unknown job types
-                                var replacedDestination = false;
-                                try {
-                                    var destinationTrackField = Traverse.Create(key).Field("destinationTrack");
-                                    var carsPerDestinationTrackField = Traverse.Create(key).Field("carsPerDestinationTrack");
-                                    if (destinationTrackField.FieldExists()) {
-                                        destinationTrackField.SetValue(replacementTrack);
-                                        replacedDestination = true;
-                                    } else if (carsPerDestinationTrackField.FieldExists()) {
-                                        carsPerDestinationTrackField.SetValue(
-                                            carsPerDestinationTrackField.GetValue<List<CarsPerTrack>>()
-                                                .Select(cpt => cpt.track == reservedTrack ? new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
-                                                .ToList());
-                                        replacedDestination = true;
+                            try
+                            {
+                                if (key is StaticEmptyHaulJobDefinition emptyHaulDef)
+                                {
+                                    emptyHaulDef.destinationTrack = replacementTrack;
+                                }
+                                else if (key is StaticShuntingLoadJobDefinition loadDef)
+                                {
+                                    loadDef.destinationTrack = replacementTrack;
+                                }
+                                else if (key is StaticTransportJobDefinition transportDef)
+                                {
+                                    transportDef.destinationTrack = replacementTrack;
+                                }
+                                else if (key is StaticShuntingUnloadJobDefinition unloadDef)
+                                {
+                                    if (unloadDef.carsPerDestinationTrack != null)
+                                    {
+                                        unloadDef.carsPerDestinationTrack = unloadDef.carsPerDestinationTrack
+                                            .Select(cpt => cpt != null && cpt.track == reservedTrack ?
+                                                new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
+                                            .ToList();
                                     }
-                                } catch (Exception e) {
-                                    Debug.LogError(e);
+                                    else
+                                    {
+                                        Debug.LogError($"[PersistentJobs] carsPerDestinationTrack for ShuntingUnloadJobDefinition Job[{key.job.ID}] is null!");
+                                    }
                                 }
-                                if (!replacedDestination) {
-                                    Debug.LogError($"[PersistentJobs] Unaccounted for JobType[{key.job.jobType}] encountered while reserving track space for Job[{key.job.ID}].");
-                                }
-                            }
-
-                            // update task data
-                            foreach (var task in key.job.tasks) {
-                                TaskUtilities.TaskDoDfs(task, t => {
-                                    if (t is TransportTask transportTask) {
-                                        if (transportTask.destinationTrack == reservedTrack) {
-                                            transportTask.destinationTrack = replacementTrack;
+                                else
+                                {
+                                    // attempt to replace track via Traverse for unknown job types
+                                    var replacedDestination = false;
+                                    try
+                                    {
+                                        var destinationTrackField = Traverse.Create(key).Field("destinationTrack");
+                                        var carsPerDestinationTrackField = Traverse.Create(key).Field("carsPerDestinationTrack");
+                                        if (destinationTrackField.FieldExists())
+                                        {
+                                            destinationTrackField.SetValue(replacementTrack);
+                                            replacedDestination = true;
+                                        }
+                                        else if (carsPerDestinationTrackField.FieldExists())
+                                        {
+                                            var existingList = carsPerDestinationTrackField.GetValue<List<CarsPerTrack>>();
+                                            if (existingList != null)
+                                            {
+                                                carsPerDestinationTrackField.SetValue(
+                                                    existingList
+                                                        .Select(cpt => cpt != null && cpt.track == reservedTrack ?
+                                                            new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
+                                                        .ToList());
+                                                replacedDestination = true;
+                                            }
+                                            else
+                                            {
+                                                Debug.LogError($"[PersistentJobs] carsPerDestinationTrack field is null for Job[{key.job.ID}]!");
+                                            }
                                         }
                                     }
-                                });
-                            }
+                                    catch (Exception e)
+                                    {
+                                        Debug.LogError($"[PersistentJobs] Exception while trying to update tracks via Traverse for Job[{key.job.ID}]: {e}");
+                                    }
+                                    if (!replacedDestination)
+                                    {
+                                        Debug.LogError($"[PersistentJobs] Unaccounted for JobType[{key.job.jobType}] encountered while reserving track space for Job[{key.job.ID}].");
+                                    }
+                                }
 
-                            didAnyTrackChange = true;
+                                // update task data
+                                if (key.job.tasks != null)
+                                {
+                                    foreach (var task in key.job.tasks)
+                                    {
+                                        if (task != null)
+                                        {
+                                            TaskUtilities.TaskDoDfs(task, t => {
+                                                if (t is TransportTask transportTask && transportTask.destinationTrack == reservedTrack)
+                                                {
+                                                    transportTask.destinationTrack = replacementTrack;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Debug.LogError($"[PersistentJobs] tasks for Job[{key.job.ID}] is null!");
+                                }
+
+                                didAnyTrackChange = true;
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogError($"[PersistentJobs] Exception while updating job data for Job[{key.job.ID}]: {e}");
+                            }
                         }
                     }
-                } else {
+                }
+                else
+                {
                     Debug.LogError(
-                        $"[PersistentJobs] No reservation data for {"jobChain"}[{i}] found!" + $" Reservation data can be empty, but it needs to be in {"jobDefToCurrentlyReservedTracks"}.",
+                        $"[PersistentJobs] No reservation data for {"jobChain"}[{i}] found!" +
+                        $" Reservation data can be empty, but it needs to be in {"jobDefToCurrentlyReservedTracks"}.",
                         jobChain[i]);
                 }
             }
 
             return didAnyTrackChange;
         }
-
         private static Track GetReplacementTrack(Track oldTrack, float trainLength, Random random) {
             // find station controller for track
             var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
