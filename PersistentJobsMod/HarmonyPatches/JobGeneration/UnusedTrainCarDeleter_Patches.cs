@@ -787,7 +787,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration
 
         private static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar)
         {
-            if (JobsManager.Instance.GetJobOfCar(TrainCar.ExtractLogicCars(new List<TrainCar> { trainCar })[0]) != null)
+            if (JobsManager.Instance.GetJobOfCar(trainCar.logicCar) != null)
             {
                 return TrainCarReassignStatus.HasJob;
             }

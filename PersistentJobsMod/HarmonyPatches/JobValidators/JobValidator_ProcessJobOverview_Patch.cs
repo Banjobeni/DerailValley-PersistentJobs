@@ -8,13 +8,11 @@ using HarmonyLib;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Utilities;
-using PersistentJobsMod;
 using UnityEngine;
 using Random = System.Random;
 using MessageBox;
 using DV.UIFramework;
 using DV.Common;
-using DV.Booklets;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>

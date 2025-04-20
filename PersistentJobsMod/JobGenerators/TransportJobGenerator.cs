@@ -78,7 +78,8 @@ namespace PersistentJobsMod.JobGenerators {
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID
             );
-            var orderedLogicCars = jobChainController.carsForJobChain;
+            var orderedLogicCars = TrainCar.ExtractLogicCars(orderedTrainCars);
+            jobChainController.carsForJobChain = orderedLogicCars.ToList();
             var staticTransportJobDefinition
                 = gameObject.AddComponent<StaticTransportJobDefinition>();
             staticTransportJobDefinition.PopulateBaseJobDefinition(
@@ -90,7 +91,7 @@ namespace PersistentJobsMod.JobGenerators {
             );
             staticTransportJobDefinition.startingTrack = startingTrack;
             staticTransportJobDefinition.destinationTrack = destTrack;
-            staticTransportJobDefinition.carsToTransport = orderedLogicCars;
+            staticTransportJobDefinition.carsToTransport = orderedLogicCars.ToList();
             staticTransportJobDefinition.transportedCargoPerCar = orderedCargoTypes;
             staticTransportJobDefinition.cargoAmountPerCar = orderedCargoAmounts;
             staticTransportJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;

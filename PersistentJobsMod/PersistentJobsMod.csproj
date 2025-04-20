@@ -41,29 +41,36 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Assembly-CSharp.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="CommandTerminal">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\CommandTerminal.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="DV.Common">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.Common.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.Common.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="DV.RailTrack">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.RailTrack.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.RailTrack.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="DV.ThingTypes">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.ThingTypes.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.ThingTypes.dll</HintPath>
+		<Private>False</Private>
     </Reference>
     <Reference Include="DV.UI">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.UI.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.UI.dll</HintPath>
+		<Private>False</Private>
     </Reference>
     <Reference Include="DV.UIFramework">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.UIFramework.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.UIFramework.dll</HintPath>
+		<Private>False</Private>
     </Reference>
     <Reference Include="DV.Utils">
-      <HintPath>..\..\..\..\Desktop\hry\Derail Valley Simulator\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
+		<Private>False</Private>
     </Reference>
     <Reference Include="MessageBox">
       <HintPath>$(DVInstallPath)\Mods\MessageBox\MessageBox.dll</HintPath>

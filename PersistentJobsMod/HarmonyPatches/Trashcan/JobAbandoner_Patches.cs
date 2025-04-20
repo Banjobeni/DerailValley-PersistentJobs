@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using UnityEngine;
 using Collider = UnityEngine.Collider;
 
 namespace PersistentJobsMod.HarmonyPatches.Trashcan {
