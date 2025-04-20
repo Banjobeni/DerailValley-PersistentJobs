@@ -17,8 +17,7 @@ namespace PersistentJobsMod.JobGenerators {
                 bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log($"transport: attempting to generate {JobType.Transport} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
             var yto = YardTracksOrganizer.Instance;
-            List<Car> logicCars = TrainCar.ExtractLogicCars((List<TrainCar>)trainCars);
-            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(logicCars.ToList(), true);
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.Select(tc => tc.logicCar).ToList(), true);
             var destinationTrack = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {

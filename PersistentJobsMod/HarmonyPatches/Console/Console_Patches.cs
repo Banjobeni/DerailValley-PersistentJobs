@@ -14,7 +14,7 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
                 return false;
 
             var trackId = args[0].String.ToLower();
-            var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => RailTrackRegistry.RailTrackToLogicTrack[rt].ID.FullDisplayID.ToLower() == trackId);
+            var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.LogicTrack().ID.FullDisplayID.ToLower() == trackId);
 
             if (destinationRailTrack == null) {
                 Debug.LogError("Couldn't find railtrack with id " + trackId);

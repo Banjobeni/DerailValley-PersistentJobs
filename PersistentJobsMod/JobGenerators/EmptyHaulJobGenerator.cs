@@ -22,11 +22,8 @@ namespace PersistentJobsMod.JobGenerators {
             }
 
             EmptyHaulJobProceduralGenerator.CalculateBonusTimeLimitAndWage(startingStation, destinationStation, trainCarLiveries, out var bonusTimeLimit, out var initialWage);
-
             var requiredJobLicenses = LicensesUtilities.GetRequiredJobLicenses(JobType.EmptyHaul, trainCarLiveries.Select(l => l.parentType).ToList(), new List<CargoType>(), trainCars.Count);
-
             var jobChainController = EmptyHaulJobProceduralGenerator.GenerateEmptyHaulChainController(startingStation, destinationStation, startingTrack, TrainCar.ExtractLogicCars((List<TrainCar>)trainCars).ToList(), targetTrack, bonusTimeLimit, initialWage, requiredJobLicenses);
-
             return jobChainController;
         }
 

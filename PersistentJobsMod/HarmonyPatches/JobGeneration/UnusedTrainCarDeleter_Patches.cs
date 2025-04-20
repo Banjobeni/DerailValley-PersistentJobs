@@ -1,4 +1,4 @@
-﻿using DV;
+using DV;
 using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;

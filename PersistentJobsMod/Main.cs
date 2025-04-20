@@ -14,6 +14,7 @@ namespace PersistentJobsMod {
         public static UnityModManager.ModEntry _modEntry;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
+
         public static Settings Settings { get; private set; }
 
         private static bool _isModBroken = false;
