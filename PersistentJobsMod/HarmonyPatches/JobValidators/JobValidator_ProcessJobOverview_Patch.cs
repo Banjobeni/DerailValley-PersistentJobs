@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
 using DV.ThingTypes;
-using DV.Utils;
 using HarmonyLib;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
@@ -151,7 +150,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
         private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
             // this is rather hackish - we use a traverse to access the Task.cars field, but actually that field is only defined on TransportTask and WarehouseTask
             var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
-            var carInRangeOfStation = cars.FirstOrDefault(c => (SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c].transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular);
+            var carInRangeOfStation = cars.FirstOrDefault(c => (c.TrainCar().transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular);
             return carInRangeOfStation != null;
         }
 
@@ -167,7 +166,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
             bool didAnyTrackChange = false;
 
-            var random = new System.Random();
+            var random = new Random();
 
             for (var i = 0; i < jobChain.Count; i++) {
                 var key = jobChain[i];

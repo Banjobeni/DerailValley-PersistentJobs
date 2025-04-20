@@ -23,7 +23,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 return;
             }
 
-            if (!__instance.trainCarsForJobChain.Any()) {
+            if (!__instance.carsForJobChain.Any()) {
                 // passenger jobs may generate a subsequent job by themselves, thereby clearing trainCarsForJobChain
                 return;
             }
@@ -61,7 +61,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             var startingStation = SingletonBehaviour<LogicController>.Instance.YardIdToStationController[shuntingLoadJobDefinition.logicStation.ID];
             var destStation = SingletonBehaviour<LogicController>.Instance.YardIdToStationController[shuntingLoadJobDefinition.chainData.chainDestinationYardId];
             var startingTrack = shuntingLoadJobDefinition.destinationTrack;
-            var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
+            var trainCars = new List<TrainCar>(TrainCar.ExtractTrainCars(__instance.carsForJobChain));
             var rng = new System.Random(Environment.TickCount);
             var transportedCargoPerCar = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
             return TransportJobGenerator.TryGenerateJobChainController(startingStation, startingTrack, destStation, trainCars, transportedCargoPerCar, rng);
@@ -73,7 +73,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
             var startingTrack = transportJobDefinition.destinationTrack;
 
-            var trainCars = new List<TrainCar>(__instance.trainCarsForJobChain);
+            var trainCars = new List<TrainCar>(TrainCar.ExtractTrainCars(__instance.carsForJobChain));
             var rng = new System.Random(Environment.TickCount);
 
             return ShuntingUnloadJobGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, rng);
@@ -81,8 +81,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
         private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob) {
             if (subsequentJobChainController != null) {
-                foreach (var tc in subsequentJobChainController.trainCarsForJobChain) {
-                    previousJobChainController.trainCarsForJobChain.Remove(tc);
+                foreach (var tc in subsequentJobChainController.carsForJobChain) {
+                    previousJobChainController.carsForJobChain.Remove(tc);
                 }
 
                 subsequentJobChainController.FinalizeSetupAndGenerateFirstJob();

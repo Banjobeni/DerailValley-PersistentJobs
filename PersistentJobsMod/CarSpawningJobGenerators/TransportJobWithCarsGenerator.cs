@@ -52,7 +52,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             // spawn trainCars
             Main._modEntry.Logger.Log("transport: spawning trainCars");
-            var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
+            var railTrack = RailTrackRegistry.LogicToRailTrack[startingTrack];
             var orderedTrainCars = CarSpawner.Instance.SpawnCarTypesOnTrackRandomOrientation(trainCarLiveries, railTrack, true, applyHandbrakeOnLastCars: true);
             if (orderedTrainCars == null) {
                 Main._modEntry.Logger.Log("transport: Failed to spawn trainCars!");

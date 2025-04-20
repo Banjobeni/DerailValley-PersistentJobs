@@ -26,7 +26,7 @@ namespace PersistentJobsMod.Extensions {
         }
 
         public static List<T> GetRandomPermutation<T>(this Random rng, IReadOnlyList<T> list) {
-            return GetMultipleRandomsFromList<T>(rng, list, list.Count);
+            return GetMultipleRandomsFromList(rng, list, list.Count);
         }
     }
 }

@@ -18,7 +18,7 @@ namespace PersistentJobsMod.JobGenerators {
             Main._modEntry.Logger.Log($"transport: attempting to generate {JobType.Transport} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
             var yto = YardTracksOrganizer.Instance;
 
-            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.ToList(), true);
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.Select(tc => tc.logicCar).ToList(), true);
             var destinationTrack = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
@@ -78,8 +78,8 @@ namespace PersistentJobsMod.JobGenerators {
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID
             );
-            jobChainController.trainCarsForJobChain = orderedTrainCars;
             var orderedLogicCars = TrainCar.ExtractLogicCars(orderedTrainCars);
+            jobChainController.carsForJobChain = orderedLogicCars.ToList();
             var staticTransportJobDefinition
                 = gameObject.AddComponent<StaticTransportJobDefinition>();
             staticTransportJobDefinition.PopulateBaseJobDefinition(
@@ -91,7 +91,7 @@ namespace PersistentJobsMod.JobGenerators {
             );
             staticTransportJobDefinition.startingTrack = startingTrack;
             staticTransportJobDefinition.destinationTrack = destTrack;
-            staticTransportJobDefinition.trainCarsToTransport = orderedLogicCars;
+            staticTransportJobDefinition.carsToTransport = orderedLogicCars.ToList();
             staticTransportJobDefinition.transportedCargoPerCar = orderedCargoTypes;
             staticTransportJobDefinition.cargoAmountPerCar = orderedCargoAmounts;
             staticTransportJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;

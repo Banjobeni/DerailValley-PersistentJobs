@@ -9,10 +9,13 @@ using MessageBox;
 
 namespace PersistentJobsMod {
     public static class Main {
+        // ReSharper disable InconsistentNaming
         public static UnityModManager.ModEntry _modEntry;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
+        // ReSharper restore InconsistentNaming
 
+        // ReSharper disable once RedundantDefaultMemberInitializer
         private static bool _isModBroken = false;
 
         public static float DVJobDestroyDistanceRegular {

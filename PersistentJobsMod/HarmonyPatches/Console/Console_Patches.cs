@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
+﻿using System.Linq;
 using CommandTerminal;
 using DV.Utils;
 using HarmonyLib;
-using PersistentJobsMod.Utilities;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.Console {
@@ -21,7 +14,7 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
                 return false;
 
             var trackId = args[0].String.ToLower();
-            var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.logicTrack.ID.FullDisplayID.ToLower() == trackId);
+            var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.LogicTrack().ID.FullDisplayID.ToLower() == trackId);
 
             if (destinationRailTrack == null) {
                 Debug.LogError("Couldn't find railtrack with id " + trackId);

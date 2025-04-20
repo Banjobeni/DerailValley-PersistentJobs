@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using DV;
 using DV.Logic.Job;
 using DV.ThingTypes;
@@ -159,11 +158,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
 
-            return jobChainControllers.SelectMany(jcc => jcc.trainCarsForJobChain).ToList();
+            return jobChainControllers.SelectMany(jcc => TrainCar.ExtractTrainCars(jcc.carsForJobChain)).ToList();
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
-            EnsureTrainCarsAreConvertedToNonPlayerSpawned(jobChainController.trainCarsForJobChain);
+            EnsureTrainCarsAreConvertedToNonPlayerSpawned(TrainCar.ExtractTrainCars(jobChainController.carsForJobChain));
             jobChainController.FinalizeSetupAndGenerateFirstJob();
 
             Main._modEntry.Logger.Log($"generated job {jobChainController.currentJobInChain.ID}");
@@ -223,7 +222,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             result.AddRange(shuntingLoadJobChainControllers);
 
-            Main._modEntry.Logger.Log($"Created {result.Count} job chain controllers for a total of {result.SelectMany(c => c.trainCarsForJobChain).Count()} cars");
+            Main._modEntry.Logger.Log($"Created {result.Count} job chain controllers for a total of {result.SelectMany(c => c.carsForJobChain).Count()} cars");
 
             return result;
         }
@@ -260,7 +259,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var cargoGroup = random.GetRandomElement(initialCargoGroups);
             var cargoGroupDestination = random.GetRandomElement(cargoGroup.Destinations);
 
-            var initialTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(initialTrainCars.ToList(), true);
+            var initialTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(initialTrainCars.ToList()), true);
             //var initialLengthCompatibleCargoGroups = initialCargoGroups.Where(cg => cg.Destinations.Any(d => initialTrainLength < d.MaxSourceDestinationTrainLength)).ToList();
 
             if (initialTrainLength < cargoGroupDestination.MaxSourceDestinationTrainLength && initialTrainCars.Count <= jobsRuleset.maxCarsPerJob) {
@@ -348,7 +347,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             var trainCars = trainCarsWithCargoTypesOnTracks.SelectMany(tcot => tcot.TrainCarsWithCargoTypes).Select(tcwct => tcwct.TrainCar).ToList();
             var cargoTypes = trainCarsWithCargoTypesOnTracks.SelectMany(tcot => tcot.TrainCarsWithCargoTypes).Select(tcwct => tcwct.CargoType).ToList();
-            var trainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars);
+            var trainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(trainCars));
 
             var warehouseMachines = cargoGroup.SourceWarehouseMachines.Where(w => trainLength < w.WarehouseTrack.GetTotalUsableTrackLength()).ToList();
             if (!warehouseMachines.Any()) {
@@ -375,7 +374,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return null;
             }
 
-            var totalTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(totalTrainCars, true);
+            var totalTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(totalTrainCars), true);
 
             if (totalTrainLength < maxCarLength) {
                 return totalTrainCars;
@@ -569,7 +568,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar) {
-            if (JobsManager.Instance.GetJobOfCar(trainCar) != null) {
+            if (JobsManager.Instance.GetJobOfCar(trainCar.logicCar) != null) {
                 return TrainCarReassignStatus.HasJob;
             } else if (CarTypes.IsRegularCar(trainCar.carLivery)) {
                 if (trainCar.LoadedCargoAmount < 0.001f) {

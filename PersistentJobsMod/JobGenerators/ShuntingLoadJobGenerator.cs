@@ -65,7 +65,7 @@ namespace PersistentJobsMod.JobGenerators {
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID
             );
-            jobChainController.trainCarsForJobChain = orderedTrainCars;
+            jobChainController.carsForJobChain = TrainCar.ExtractLogicCars(orderedTrainCars);
             var cargoTypeToTrainCarAndAmount
                 = new Dictionary<CargoType, List<(TrainCar, float)>>();
             for (var i = 0; i < orderedTrainCars.Count; i++) {
