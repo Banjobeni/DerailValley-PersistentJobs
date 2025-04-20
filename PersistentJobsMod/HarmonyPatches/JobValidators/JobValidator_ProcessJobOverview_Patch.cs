@@ -14,6 +14,7 @@ using Random = System.Random;
 using MessageBox;
 using DV.UIFramework;
 using DV.Common;
+using DV.Booklets;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
@@ -178,12 +179,13 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             Main._modEntry.Logger.Log("    done!");
         }
 
-        private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange) {
+        private static bool AreTaskCarsInRange(Task task, StationJobGenerationRange stationRange)
+        {
             // this is rather hackish - we use a traverse to access the Task.cars field, but actually that field is only defined on TransportTask and WarehouseTask
-            var cars = Traverse.Create(task).Field("cars").GetValue<List<Car>>();
-            var carInRangeOfStation = cars.FirstOrDefault(c => (SingletonBehaviour<IdGenerator>.Instance.logicCarToTrainCar[c].transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular);
-            return carInRangeOfStation != null;
+            var trainCars = TrainCar.ExtractTrainCars(Traverse.Create(task).Field("cars").GetValue<List<Car>>());
+            return trainCars.FirstOrDefault(tc => (tc.transform.position - stationRange.stationCenterAnchor.position).sqrMagnitude <= Main._initialDistanceRegular) != null;
         }
+
 
         private static bool IsAnyTaskCarOnTrack(Task task, Track track) {
             // this is rather hackish - we use a traverse to access the Task.cars field, but actually that field is only defined on TransportTask and WarehouseTask

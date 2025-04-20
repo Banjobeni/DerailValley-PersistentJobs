@@ -103,7 +103,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
                 Main._modEntry.Logger.Log($"load: spawning car group {i + 1}/{startingTracksWithCargoLiveryCars.Count} on track {startingTrack.ID}");
 
-                var railTrack = SingletonBehaviour<LogicController>.Instance.LogicToRailTrack[startingTrack];
+                var railTrack = RailTrackRegistry.LogicToRailTrack[startingTrack];
                 var carOrientations = Enumerable.Range(0, trackTrainCarLiveries.Count).Select(_ => random.Next(2) > 0).ToList();
 
                 var spawnedCars = CarSpawner.Instance.SpawnCarTypesOnTrack(trackTrainCarLiveries, carOrientations, railTrack, true, true);

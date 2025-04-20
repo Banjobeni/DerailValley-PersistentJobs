@@ -17,8 +17,8 @@ namespace PersistentJobsMod.JobGenerators {
                 bool forceCorrectCargoStateOnCars = false) {
             Main._modEntry.Logger.Log($"transport: attempting to generate {JobType.Transport} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
             var yto = YardTracksOrganizer.Instance;
-
-            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.ToList(), true);
+            List<Car> logicCars = TrainCar.ExtractLogicCars((List<TrainCar>)trainCars);
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(logicCars.ToList(), true);
             var destinationTrack = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
@@ -78,8 +78,7 @@ namespace PersistentJobsMod.JobGenerators {
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID
             );
-            jobChainController.trainCarsForJobChain = orderedTrainCars;
-            var orderedLogicCars = TrainCar.ExtractLogicCars(orderedTrainCars);
+            var orderedLogicCars = jobChainController.carsForJobChain;
             var staticTransportJobDefinition
                 = gameObject.AddComponent<StaticTransportJobDefinition>();
             staticTransportJobDefinition.PopulateBaseJobDefinition(
@@ -91,7 +90,7 @@ namespace PersistentJobsMod.JobGenerators {
             );
             staticTransportJobDefinition.startingTrack = startingTrack;
             staticTransportJobDefinition.destinationTrack = destTrack;
-            staticTransportJobDefinition.trainCarsToTransport = orderedLogicCars;
+            staticTransportJobDefinition.carsToTransport = orderedLogicCars;
             staticTransportJobDefinition.transportedCargoPerCar = orderedCargoTypes;
             staticTransportJobDefinition.cargoAmountPerCar = orderedCargoAmounts;
             staticTransportJobDefinition.forceCorrectCargoStateOnCars = forceCorrectCargoStateOnCars;

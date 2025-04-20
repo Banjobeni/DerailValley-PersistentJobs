@@ -19,7 +19,7 @@ namespace PersistentJobsMod.JobGenerators {
             Main._modEntry.Logger.Log($"unload: attempting to generate {JobType.ShuntingUnload} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
 
             var yto = YardTracksOrganizer.Instance;
-            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars, true);
+            var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(trainCars), true);
 
             var transportedCargoPerCar = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
 
@@ -126,7 +126,7 @@ namespace PersistentJobsMod.JobGenerators {
             var chainData = new StationsChainData(
                 startingStation.stationInfo.YardID,
                 destinationStation.stationInfo.YardID);
-            jobChainController.trainCarsForJobChain = orderedTrainCars;
+            jobChainController.carsForJobChain = TrainCar.ExtractLogicCars(orderedTrainCars);
             var cargoTypeToTrainCarAndAmount
                 = new Dictionary<CargoType, List<(TrainCar, float)>>();
             for (var i = 0; i < orderedTrainCars.Count; i++) {

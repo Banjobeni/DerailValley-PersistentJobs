@@ -26,8 +26,8 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
             else
             {
                 Main._modEntry.Logger.Log($"Track {trackId} not found in yard tracks");
-                RailTrack RT = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.logicTrack.ID.FullID == trackId);
-                __result = LogicController.Instance.LogicToRailTrack.FirstOrDefault(x => x.Value == RT).Key ?? null;
+                RailTrack RT = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => RailTrackRegistry.RailTrackToLogicTrack[rt].ID.FullID == trackId);
+                __result = RailTrackRegistry.RailTrackToLogicTrack[RT] ?? null;
             }
             return false; 
         }
