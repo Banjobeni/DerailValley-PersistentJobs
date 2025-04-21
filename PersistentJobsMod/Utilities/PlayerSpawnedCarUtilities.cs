@@ -7,8 +7,9 @@ namespace PersistentJobsMod.Utilities {
 
         public static void ModifyReadonlyField(Car instance, bool value)
         {
-            var fieldRef = AccessTools.FieldRefAccess<Car, bool>("playerSpawnedCar");
-            fieldRef(instance) = value;
+            Traverse.Create(instance)
+            .Field("playerSpawnedCar")
+            .SetValue(value);
         }
 
         public static void ConvertPlayerSpawnedTrainCar(TrainCar trainCar) {
