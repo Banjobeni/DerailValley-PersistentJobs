@@ -447,57 +447,80 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return (currentTrainCars, currentDestinations);
         }
 
-        private static (IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>> loadableConsecuteTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination>)>> notLoadableConsecutiveTrainCarGroups) DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> emptyConsecutiveTrainCarGroups) {
-            var stationOutgoingCargoGroups = DetailedCargoGroups.GetOutgoingCargoGroups(station);
+        private static (IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>> loadableConsecuteTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination>)>> notLoadableConsecutiveTrainCarGroups) DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> emptyConsecutiveTrainCarGroups)
+        {
+            Main._modEntry.Logger.Log("getting cargo for station: " + station.stationInfo.Name);
+            if (DetailedCargoGroups.GetOutgoingCargoGroups(station) != null)
+            {
+                var stationOutgoingCargoGroups = DetailedCargoGroups.GetOutgoingCargoGroups(station);
 
-            var loadableConsecuteTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
-            var notLoadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>>();
+                var loadableConsecuteTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
+                var notLoadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>>();
 
-            foreach (var emptyConsecutiveTrainCars in emptyConsecutiveTrainCarGroups) {
-                List<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup>)> currentLoadable = null;
-                List<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)> currentNotLoadable = null;
+                foreach (var emptyConsecutiveTrainCars in emptyConsecutiveTrainCarGroups)
+                {
+                    List<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup>)> currentLoadable = null;
+                    List<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)> currentNotLoadable = null;
 
-                void FlushCurrentState() {
-                    if (currentLoadable != null) {
-                        loadableConsecuteTrainCarGroups.Add(currentLoadable);
-                        currentLoadable = null;
-                    }
-                    if (currentNotLoadable != null) {
-                        notLoadableConsecutiveTrainCarGroups.Add(currentNotLoadable);
-                        currentNotLoadable = null;
-                    }
-                }
-
-                foreach (var (trainCarType, trainCars) in emptyConsecutiveTrainCars.GroupConsecutiveBy(tc => tc.carLivery.parentType)) {
-                    var outgoingCargoGroups = stationOutgoingCargoGroups
-                        .Where(cg => GetLoadableCargoTypesForCargoGroupAndTrainCarType(cg, trainCarType).Any())
-                        .ToList();
-
-                    if (outgoingCargoGroups.Any()) {
-                        if (currentLoadable == null) {
-                            FlushCurrentState();
-                            currentLoadable = new List<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>();
+                    void FlushCurrentState()
+                    {
+                        if (currentLoadable != null)
+                        {
+                            loadableConsecuteTrainCarGroups.Add(currentLoadable);
+                            currentLoadable = null;
                         }
-                        currentLoadable.Add((trainCarType, trainCars, outgoingCargoGroups));
-                    } else {
-                        var destinations = EmptyTrainCarTypeDestinations.GetStationsThatLoadTrainCarType(trainCarType);
-                        if (destinations.Any()) {
-                            if (currentNotLoadable == null) {
+                        if (currentNotLoadable != null)
+                        {
+                            notLoadableConsecutiveTrainCarGroups.Add(currentNotLoadable);
+                            currentNotLoadable = null;
+                        }
+                    }
+
+                    foreach (var (trainCarType, trainCars) in emptyConsecutiveTrainCars.GroupConsecutiveBy(tc => tc.carLivery.parentType))
+                    {
+                        var outgoingCargoGroups = stationOutgoingCargoGroups
+                          .Where(cg => GetLoadableCargoTypesForCargoGroupAndTrainCarType(cg, trainCarType).Any())
+                          .ToList();
+
+                        if (outgoingCargoGroups.Any())
+                        {
+                            if (currentLoadable == null)
+                            {
                                 FlushCurrentState();
-                                currentNotLoadable = new List<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>();
+                                currentLoadable = new List<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>();
                             }
-                            currentNotLoadable.AddRange(trainCars.Select(tc => (tc, destinations)).ToList());
-                        } else {
-                            FlushCurrentState();
-                            Debug.Log($"[PersistentJobsMod] Could not find any valid destination for consecutive train cars of type {trainCarType.name} starting with {trainCars.First().ID}");
+                            currentLoadable.Add((trainCarType, trainCars, outgoingCargoGroups));
+                        }
+                        else
+                        {
+                            var destinations = EmptyTrainCarTypeDestinations.GetStationsThatLoadTrainCarType(trainCarType);
+                            if (destinations.Any())
+                            {
+                                if (currentNotLoadable == null)
+                                {
+                                    FlushCurrentState();
+                                    currentNotLoadable = new List<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>();
+                                }
+                                currentNotLoadable.AddRange(trainCars.Select(tc => (tc, destinations)).ToList());
+                            }
+                            else
+                            {
+                                FlushCurrentState();
+                                Debug.Log($"[PersistentJobsMod] Could not find any valid destination for consecutive train cars of type {trainCarType.name} starting with {trainCars.First().ID}");
+                            }
                         }
                     }
+                    FlushCurrentState();
                 }
-
-                FlushCurrentState();
+                return (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
             }
-
-            return (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
+            else
+            {
+                DetailedCargoGroups.Initialize();
+                WaitFor.SecondsRealtime(60);
+                DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
+                throw new TimeoutException("Couldn´t initilize cargo groups for stations, they are either misconfigured, or the load order is wrong");
+            }
         }
 
         private static (IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<IncomingCargoGroup> IncomingCargoGroups)>> unloadableConsecutiveTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<OutgoingCargoGroupDestination> CargoGroupDestinations)>> notUnloadableConsecutiveTrainCarGroups) DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> loadedConsecutiveTrainCarGroups) {
