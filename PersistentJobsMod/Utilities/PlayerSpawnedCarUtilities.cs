@@ -1,13 +1,23 @@
 ﻿using DV.Damage;
+using DV.Logic.Job;
+using HarmonyLib;
 
 namespace PersistentJobsMod.Utilities {
     public static class PlayerSpawnedCarUtilities {
+
+        public static void ModifyReadonlyField(Car instance, bool value)
+        {
+            var fieldRef = AccessTools.FieldRefAccess<Car, bool>("playerSpawnedCar");
+            fieldRef(instance) = value;
+        }
+
         public static void ConvertPlayerSpawnedTrainCar(TrainCar trainCar) {
             if (!trainCar.playerSpawnedCar) {
                 return;
             }
 
             trainCar.playerSpawnedCar = false;
+            ModifyReadonlyField(trainCar.logicCar, false);
 
             var carStateSave = trainCar.carStateSave;
             if (carStateSave.debtTrackerCar != null) {

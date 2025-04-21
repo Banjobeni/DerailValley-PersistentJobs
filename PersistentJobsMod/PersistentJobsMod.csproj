@@ -80,7 +80,9 @@
       <HintPath>$(DVInstallPath)\Mods\MessageBox\RSG.Promise.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -88,22 +90,27 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
+	  <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <Private>False</Private>
+	  <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <Private>False</Private>
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <Private>False</Private>
+	  <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityEngine.UI.dll</HintPath>
+	  <Private>False</Private>
     </Reference>
     <Reference Include="UnityModManager">
+      <HintPath>$(DVInstallPath)\DerailValley_Data\Managed\UnityModManager\UnityModManager.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

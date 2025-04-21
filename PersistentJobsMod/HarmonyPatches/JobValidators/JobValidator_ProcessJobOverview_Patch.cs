@@ -12,6 +12,7 @@ using Random = System.Random;
 using MessageBox;
 using DV.UIFramework;
 using DV.Common;
+using DV.Utils;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
