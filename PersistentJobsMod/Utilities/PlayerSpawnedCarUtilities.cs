@@ -25,8 +25,22 @@ namespace PersistentJobsMod.Utilities
             ModifyReadonlyField(trainCar.logicCar, false);
 
             var carStateSave = trainCar.carStateSave;
-            carStateSave.SetDebtTrackerCar(CarDebtController.CarDebtTracker);
+            if (carStateSave.debtTrackerCar != null)
+            {
+                return;
+            }
 
+            var trainPlatesController = trainCar.trainPlatesCtrl;
+
+            var carDamageModel = GetOrCreateCarDamageModel(trainCar, trainPlatesController);
+
+            var cargoDamageModelOrNull = GetOrCreateCargoDamageModelOrNull(trainCar, trainPlatesController);
+
+            var carDebtController = trainCar.carDebtController;
+            carDebtController.SetDebtTracker(carDamageModel, cargoDamageModelOrNull);
+
+            carStateSave.Initialize(carDamageModel, cargoDamageModelOrNull);
+            carStateSave.SetDebtTrackerCar(carDebtController.CarDebtTracker);
             Main._modEntry.Logger.Log($"Converted player spawned TrainCar {trainCar.logicCar.ID}");
         }
 
