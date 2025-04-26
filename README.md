@@ -9,3 +9,19 @@ If you finish (or abandon) a job, the cars of that job will be used for new jobs
 Stations only generate new cars once, when you enter them the first time. This also means that cars are finite once all station have generated.
 
 This is a continuation of the great work that Niko Fox (fauxnix) started with the original but [discontinued Persistent Jobs mod](https://www.nexusmods.com/derailvalley/mods/151).
+
+# Example Directory.Build.Props
+For compiling the mod yourself, adjust [path-to-steam] in this file and put it in your source folder (next to .sln or .csproj).
+```xml
+<Project>
+  <PropertyGroup>
+    <DvInstallDir>C:\[path-to-steam]\steamapps\common\Derail Valley</DvInstallDir>
+    <ReferencePath>
+      $(DvInstallDir)\DerailValley_Data\Managed\;
+      $(DvInstallDir)\DerailValley_Data\Managed\UnityModManager\;
+      $(DvInstallDir)\Mods\MessageBox\
+    </ReferencePath>
+    <AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath)</AssemblySearchPaths>
+  </PropertyGroup>
+</Project>
+```
