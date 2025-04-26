@@ -1,4 +1,6 @@
 ﻿using DV.Damage;
+using DV.Logic.Job;
+using HarmonyLib;
 
 namespace PersistentJobsMod.Utilities {
     public static class PlayerSpawnedCarUtilities {
@@ -8,6 +10,10 @@ namespace PersistentJobsMod.Utilities {
             }
 
             trainCar.playerSpawnedCar = false;
+
+            // Use Harmony Traverse to set the readonly field
+            var traverse = Traverse.Create(trainCar.logicCar);
+            traverse.Field(nameof(Car.playerSpawnedCar)).SetValue(false);
 
             var carStateSave = trainCar.carStateSave;
             if (carStateSave.debtTrackerCar != null) {
