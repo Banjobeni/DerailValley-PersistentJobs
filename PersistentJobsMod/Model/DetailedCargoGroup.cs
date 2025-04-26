@@ -115,6 +115,8 @@ namespace PersistentJobsMod.Model {
             return new OutgoingCargoGroupDestination(destinationStation, destinationWarehouseMachines, maxSourceDestinationTrainLength);
         }
 
+        public static bool IsInitialized => _station2OutgoingCargoGroups != null;
+
         public static IReadOnlyList<OutgoingCargoGroup> GetOutgoingCargoGroups(StationController station) {
             if (_station2OutgoingCargoGroups == null) {
                 throw new InvalidOperationException("Not initialized");

@@ -70,6 +70,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         public static void ReassignRegularTrainCarsAndDeleteNonPlayerSpawnedCars(UnusedTrainCarDeleter unusedTrainCarDeleter, List<TrainCar> ___unusedTrainCarsMarkedForDelete, bool skipDistanceCheckForRegularTrainCars = false, IReadOnlyList<TrainCar> trainCarsToIgnore = null) {
+            if (!DetailedCargoGroups.IsInitialized) {
+                return;
+            }
+
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
             }
