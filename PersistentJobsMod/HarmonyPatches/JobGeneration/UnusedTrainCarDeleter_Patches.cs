@@ -404,17 +404,33 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
         }
 
-        private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.Select(tc => tc.logicCar.FrontBogieTrack).Distinct().ToList();
-
-            var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
-            if (yardTracksOrganizerManagedTrack != null) {
-                return yardTracksOrganizerManagedTrack;
-            } else {
-                Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
+        private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars)
+        {
+            var tracks = new List<Track>();
+            foreach (var tc in trainCars)
+            {
+                if (!tc.derailed && tc.logicCar.BogiesOnSameTrack)
+                {
+                    var track = tc.logicCar.FrontBogieTrack;
+                    if (!tracks.Contains(track))
+                    {
+                        tracks.Add(track);
+                    }
+                }
             }
-
-            return tracks.First();
+            if (tracks.Count > 0)
+            {
+                var majorityTrack = tracks.GroupBy(x => x).OrderByDescending(g => g.Count()).GroupBy(g => g.Count()).First().Select(g => g.Key).ToList();
+                var yardTracksOrganizerManagedTrack = majorityTrack.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
+                if (yardTracksOrganizerManagedTrack != null)
+                {
+                    return yardTracksOrganizerManagedTrack;
+                }
+                Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
+                return majorityTrack.FirstOrDefault();
+            }
+            Debug.LogError($"Train cars {string.Join(", ", trainCars.Select(tc => tc.ID))} have no viable starting track");
+            return null;
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {
