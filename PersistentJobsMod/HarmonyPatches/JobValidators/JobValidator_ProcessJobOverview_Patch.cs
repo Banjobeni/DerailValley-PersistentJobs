@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DV.Logic.Job;
+using DV.Printers;
 using DV.ThingTypes;
 using HarmonyLib;
+using MessageBox;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Utilities;
@@ -14,7 +17,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
     [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
     public static class JobValidator_ProcessJobOverview_Patch {
-        public static bool Prefix(DV.Printers.PrinterController ___bookletPrinter,
+        public static bool Prefix(JobValidator __instance, PrinterController ___bookletPrinter,
             JobOverview jobOverview) {
             try {
                 if (!Main._modEntry.Active) {
@@ -32,19 +35,21 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 }
 
                 // for shunting (un)load jobs, require cars to not already be on the warehouse track
-                if (job.jobType == JobType.ShuntingLoad || job.jobType == JobType.ShuntingUnload) {
-                    var wt = job.tasks.Aggregate(
-                        null as Task,
-                        (found, outerTask) => found == null
-                            ? TaskUtilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
-                            : found) as WarehouseTask;
-                    var wm = wt != null ? wt.warehouseMachine : null;
-                    if (wm != null && job.tasks.Any(
-                            outerTask => TaskUtilities.TaskAnyDfs(
-                                outerTask,
-                                innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) {
-                        ___bookletPrinter.PlayErrorSound();
-                        return false;
+                if (Main.Settings.PreventStartingShuntingJobForCarsOnWarehouseTrack) {
+                    if (job.jobType == JobType.ShuntingLoad || job.jobType == JobType.ShuntingUnload) {
+                        var wt = job.tasks.Aggregate(
+                            null as Task,
+                            (found, outerTask) => found == null
+                                ? TaskUtilities.TaskFindDfs(outerTask, innerTask => innerTask is WarehouseTask)
+                                : found) as WarehouseTask;
+                        var wm = wt != null ? wt.warehouseMachine : null;
+                        if (wm != null && job.tasks.Any(
+                                outerTask => TaskUtilities.TaskAnyDfs(
+                                    outerTask,
+                                    innerTask => IsAnyTaskCarOnTrack(innerTask, wm.WarehouseTrack)))) {
+                            __instance.StartCoroutine(HandleCarsAlreadyOnWarehouseTrackCoroutine(___bookletPrinter));
+                            return false;
+                        }
                     }
                 }
 
@@ -84,7 +89,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     PersistentJobsModInteractionFeatures.InvokeJobTrackChanged(job);
                 }
             } catch (Exception e) {
-                Main.HandleUnhandledException(e, nameof(JobValidator_ProcessJobOverview_Patch) +"." + nameof(Prefix));
+                Main.HandleUnhandledException(e, nameof(JobValidator_ProcessJobOverview_Patch) + "." + nameof(Prefix));
             }
             return true;
         }
@@ -312,5 +317,17 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return null;
         }
 
+        private static IEnumerator HandleCarsAlreadyOnWarehouseTrackCoroutine(PrinterController printerController) {
+            printerController.PlayErrorSound();
+            yield return WaitFor.SecondsRealtime(0.4f);
+            printerController.PlayErrorSound();
+
+            if (!Main.Settings.PreventStartingShuntingJobForCarsOnWarehouseTrackMessageWasShown) {
+                Main.Settings.PreventStartingShuntingJobForCarsOnWarehouseTrackMessageWasShown = true;
+                yield return WaitFor.SecondsRealtime(1);
+
+                PopupAPI.ShowOk($"This shunting job cannot be accepted because some of the cars are already on the loading track - and that's why the job validator just beeped twice at you.{Environment.NewLine}You can disable this in the mod settings if you like.{Environment.NewLine}{Environment.NewLine}This message is only shown once.", "PersistentJobs");
+            }
+        }
     }
 }

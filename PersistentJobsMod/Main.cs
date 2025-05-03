@@ -22,13 +22,19 @@ namespace PersistentJobsMod {
             get { return _initialDistanceRegular; }
         }
 
+        public static Settings Settings { get; private set; }
+
         public static void Load(UnityModManager.ModEntry modEntry) {
             _modEntry = modEntry;
 
             var harmony = new Harmony(modEntry.Info.Id);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
+            Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+
             modEntry.OnToggle = OnToggle;
+            modEntry.OnGUI = OnGUI;
+            modEntry.OnSaveGUI = OnSaveGUI;
 
             WorldStreamingInit.LoadingFinished += WorldStreamingInitLoadingFinished;
         }
@@ -39,6 +45,14 @@ namespace PersistentJobsMod {
             }
 
             return true;
+        }
+
+        static void OnGUI(UnityModManager.ModEntry modEntry) {
+            Settings.Draw(modEntry);
+        }
+
+        static void OnSaveGUI(UnityModManager.ModEntry modEntry) {
+            Settings.Save(modEntry);
         }
 
         private static void WorldStreamingInitLoadingFinished() {
