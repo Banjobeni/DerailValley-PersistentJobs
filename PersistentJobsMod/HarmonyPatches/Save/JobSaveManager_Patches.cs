@@ -14,21 +14,19 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
     [HarmonyPatch]
     public static class JobSaveManager_Patches {
         [HarmonyPatch(typeof(JobSaveManager), "GetYardTrackWithId")]
-        [HarmonyPrefix]
-        public static bool GetYardTrackWithId_Prefix(string trackId, ref Track __result)
+        [HarmonyPostfix]
+        public static void GetYardTrackWithId_Postfix(string trackId, ref Track __result)
         {
-            if (SingletonBehaviour<YardTracksOrganizer>.Instance.yardTrackIdToTrack.TryGetValue(trackId, out var track) && track != null)
-            {
-                __result = track;
-            }
-            //allows tracks not part of YTO to be looked up by their Id
-            else
+            // Tracks not found by vanilla in yards, looking up from all registry
+            if (__result == null)
             {
                 Main._modEntry.Logger.Log($"Track {trackId} not found in yard tracks");
-                RailTrack RT = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => RailTrackRegistry.RailTrackToLogicTrack[rt].ID.FullID == trackId);
-                __result = RailTrackRegistry.RailTrackToLogicTrack[RT] ?? null;
+                RailTrack rt = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(r => RailTrackRegistry.RailTrackToLogicTrack[r].ID.FullID == trackId);
+                if (rt != null && RailTrackRegistry.RailTrackToLogicTrack.TryGetValue(rt, out var logicTrack))
+                {
+                    __result = logicTrack;
+                }
             }
-            return false;
         }
 
         [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
