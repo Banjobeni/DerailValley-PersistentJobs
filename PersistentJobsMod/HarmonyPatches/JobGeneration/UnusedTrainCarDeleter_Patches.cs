@@ -409,13 +409,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var tracks = new List<Track>();
             foreach (var tc in trainCars)
             {
-                if (!tc.derailed && tc.logicCar.BogiesOnSameTrack)
+                if (!tc.derailed)
                 {
                     var track = tc.logicCar.FrontBogieTrack;
-                    if (!tracks.Contains(track))
-                    {
-                        tracks.Add(track);
-                    }
+                    if (!tracks.Contains(track)) tracks.Add(track);
+                    track = tc.logicCar.RearBogieTrack;
+                    if (!tracks.Contains(track)) tracks.Add(track);
                 }
             }
             if (tracks.Count > 0)
@@ -429,7 +428,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
                 return majorityTrack.FirstOrDefault();
             }
-            Debug.LogError($"Train cars {string.Join(", ", trainCars.Select(tc => tc.ID))} have no viable starting track");
+            //this should´t evem be reached, only case is if trainCars had just derailed cars (which wouldn´t be let in by by logic above)
+            Debug.LogError($"Train cars {string.Join(", ", trainCars.Select(tc => tc.ID))} are derailed and have no viable starting track");
             return null;
         }
 
