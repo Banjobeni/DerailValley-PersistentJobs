@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.Utils;
 using HarmonyLib;
 using UnityEngine;
 
@@ -11,6 +13,24 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>reserves tracks for taken jobs when loading save file</summary>
     [HarmonyPatch]
     public static class JobSaveManager_Patches {
+        [HarmonyPatch(typeof(JobSaveManager), "GetYardTrackWithId")]
+        [HarmonyPrefix]
+        public static bool GetYardTrackWithId_Prefix(string trackId, ref Track __result)
+        {
+            if (SingletonBehaviour<YardTracksOrganizer>.Instance.yardTrackIdToTrack.TryGetValue(trackId, out var track) && track != null)
+            {
+                __result = track;
+            }
+            //allows tracks not part of YTO to be looked up by their Id
+            else
+            {
+                Main._modEntry.Logger.Log($"Track {trackId} not found in yard tracks");
+                RailTrack RT = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => RailTrackRegistry.RailTrackToLogicTrack[rt].ID.FullID == trackId);
+                __result = RailTrackRegistry.RailTrackToLogicTrack[RT] ?? null;
+            }
+            return false;
+        }
+
         [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
         [HarmonyPostfix]
         public static void LoadJobChain_Postfix(JobChainSaveData chainSaveData) {
