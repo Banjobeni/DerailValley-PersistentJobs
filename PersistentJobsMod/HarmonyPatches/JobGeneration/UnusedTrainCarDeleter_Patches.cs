@@ -405,7 +405,15 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.Select(tc => tc.logicCar.FrontBogieTrack).Distinct().ToList();
+            var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
+
+            if (!tracks.Any()) {
+                // TODO avoid calls to this method for all derailed cars or handle a null return in callers
+                AddMoreInfoToExceptionHelper.Run(
+                    () => throw new InvalidOperationException("could not find any bogie that is on a track"),
+                    () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
+                );
+            }
 
             var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
             if (yardTracksOrganizerManagedTrack != null) {

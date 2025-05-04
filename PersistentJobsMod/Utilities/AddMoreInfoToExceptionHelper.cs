@@ -19,5 +19,22 @@ namespace PersistentJobsMod.Utilities {
                 throw new AdditionalInformationException(additionalInformation, exception);
             }
         }
+
+        public static void Run([NotNull] [InstantHandle] Action action, [NotNull] Func<string> getAdditionalInformation) {
+            try {
+                action();
+            } catch (Exception exception) {
+                string additionalInformation = null;
+                try {
+                    additionalInformation = getAdditionalInformation();
+                } catch (Exception) {
+                    // failed to get additional information. throw the original exception.
+                }
+                if (additionalInformation == null) {
+                    throw;
+                }
+                throw new AdditionalInformationException(additionalInformation, exception);
+            }
+        }
     }
 }
