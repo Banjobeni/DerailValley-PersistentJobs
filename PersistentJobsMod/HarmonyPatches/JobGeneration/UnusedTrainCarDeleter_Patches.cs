@@ -168,7 +168,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         public static StationController StationBelongingToTrainset(Trainset ts)
         {
             var track = DetermineStartingTrack(ts.cars);
-            var managedTrack = GetClosestYardTrackOrganizerManagedTrack(track);
+            var managedTrack = GetClosestYardTrack(track);
             StationController station = null;
             if (managedTrack != null) station = StationController.GetStationByYardID(managedTrack.ID.yardId);
             if (station != null)
@@ -182,7 +182,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
         }
 
-        private static Track GetClosestYardTrackOrganizerManagedTrack(Track startingTrack)
+        private static Track GetClosestYardTrack(Track startingTrack)
         {
             if (startingTrack == null) return null;
             const int maxDepth = 8;
@@ -197,7 +197,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 if (!searchedTracks.Add(currentTrack))
                     continue;
 
-                if (YardTracksOrganizer.Instance.IsTrackManagedByOrganizer(currentTrack))
+                //if (YardTracksOrganizer.Instance.IsTrackManagedByOrganizer(currentTrack))
+                if (!currentTrack.ID.IsGeneric())
                 {
                     return currentTrack;
                 }
@@ -405,7 +406,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
 
-            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => { var initialTrainCars = tcot.SelectMany(tcts => tcts.TrainCars).ToList(); var initialStartingTrack = DetermineStartingTrack(initialTrainCars); var managedTrack = GetClosestYardTrackOrganizerManagedTrack(initialStartingTrack); var finalStartingTrack = managedTrack != null ? managedTrack : initialStartingTrack; return (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: finalStartingTrack); }).ToList();
+            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => { var initialTrainCars = tcot.SelectMany(tcts => tcts.TrainCars).ToList(); var initialStartingTrack = DetermineStartingTrack(initialTrainCars); var managedTrack = GetClosestYardTrack(initialStartingTrack); var finalStartingTrack = managedTrack != null ? managedTrack : initialStartingTrack; return (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: finalStartingTrack); }).ToList();
 
             var carsPerStartingTrack = trainCarsWithCargoTypesOnTracks.Select(tcot => new CarsPerTrack(tcot.StartingTrack, tcot.TrainCarsWithCargoTypes.Select(tcwt => tcwt.TrainCar.logicCar).ToList())).ToList();
 
@@ -457,7 +458,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var trainCarCount = Math.Min(ChooseNumberOfCarsNotExceedingLength(trainCars, destination.RelationMaxTrainLength, random), maxCarCount);
                 var destinationTrainCars = trainCars.Take(trainCarCount).ToList();
                 var startingTrack = DetermineStartingTrack(destinationTrainCars);
-                var tryGetManagedTrackFromStarting = GetClosestYardTrackOrganizerManagedTrack(startingTrack);
+                var tryGetManagedTrackFromStarting = GetClosestYardTrack(startingTrack);
                 if (tryGetManagedTrackFromStarting != null)
                 {
                     startingTrack = tryGetManagedTrackFromStarting;
