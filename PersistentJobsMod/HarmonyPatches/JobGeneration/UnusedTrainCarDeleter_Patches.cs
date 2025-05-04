@@ -157,72 +157,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return true;
         }
 
-        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random)
-        {
-            // attempt to get station from yardID, if not possible use distance to station
-            var stationsAndTrainsets = trainsets.GroupBy(ts => StationBelongingToTrainset(ts) ?? GetNearestStation(ts.cars.First().gameObject.transform.position)).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
+        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random) {
+            var stationsAndTrainsets = trainsets.GroupBy(ts => GetNearestStation(ts.cars.First().gameObject.transform.position)).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
+
             var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
+
             return jobChainControllers.SelectMany(jcc => TrainCar.ExtractTrainCars(jcc.carsForJobChain)).ToList();
-        }
-
-        public static StationController StationBelongingToTrainset(Trainset ts)
-        {
-            var track = DetermineStartingTrack(ts.cars);
-            var managedTrack = GetClosestYardTrackOrganizerManagedTrack(track);
-            StationController station = null;
-            if (managedTrack != null) station = StationController.GetStationByYardID(managedTrack.ID.yardId);
-            if (station != null)
-            {
-                return station;
-            }
-            else
-            {
-                Main._modEntry.Logger.Warning($"No close yard track found for trainset with car {ts.cars[0].logicCar.ID}, getting by distance instead. Perhaps you have cars left out of normal tracks?");
-                return null; 
-            }
-        }
-
-        private static Track GetClosestYardTrackOrganizerManagedTrack(Track startingTrack)
-        {
-            if (startingTrack == null) return null;
-            const int maxDepth = 8;
-            //int maxDepth = Main.Settings.ConnectedTracksMaxSearchDepth;
-            var searchedTracks = new HashSet<Track>();
-            var queue = new Queue<(Track track, int depth)>();
-            queue.Enqueue((startingTrack, 0));
-
-            while (queue.Count > 0)
-            {
-                var (currentTrack, depth) = queue.Dequeue();
-                if (!searchedTracks.Add(currentTrack))
-                    continue;
-
-                if (YardTracksOrganizer.Instance.IsTrackManagedByOrganizer(currentTrack))
-                {
-                    return currentTrack;
-                }
-
-                // if yardID is some unexpected value (eg. not station or #Y) or search depth exhausted
-                if (currentTrack.ID.yardId != "#Y" || depth >= maxDepth)
-                {
-                    Main._modEntry.Logger.Warning("Exhausted possible near tracks without finding a yard one");
-                    return null;
-                }
-
-                var connectedTracks = new List<Track>();
-                if (currentTrack.InTrack != null) connectedTracks.Add(currentTrack.InTrack);
-                if (currentTrack.OutTrack != null) connectedTracks.Add(currentTrack.OutTrack);
-                if (currentTrack.PossibleInTracks != null) connectedTracks.AddRange(currentTrack.PossibleInTracks);
-                if (currentTrack.PossibleOutTracks != null) connectedTracks.AddRange(currentTrack.PossibleOutTracks);
-
-                foreach (var nextTrack in connectedTracks)
-                {
-                    if (!searchedTracks.Contains(nextTrack))
-                        queue.Enqueue((nextTrack, depth + 1));
-                }
-            }
-
-            return null;
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
@@ -405,7 +345,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
 
-            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => { var initialTrainCars = tcot.SelectMany(tcts => tcts.TrainCars).ToList(); var initialStartingTrack = DetermineStartingTrack(initialTrainCars); var managedTrack = GetClosestYardTrackOrganizerManagedTrack(initialStartingTrack); var finalStartingTrack = managedTrack != null ? managedTrack : initialStartingTrack; return (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: finalStartingTrack); }).ToList();
+            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: DetermineStartingTrack(tcot.SelectMany(tcts => tcts.TrainCars).ToList()))).ToList();
 
             var carsPerStartingTrack = trainCarsWithCargoTypesOnTracks.Select(tcot => new CarsPerTrack(tcot.StartingTrack, tcot.TrainCarsWithCargoTypes.Select(tcwt => tcwt.TrainCar.logicCar).ToList())).ToList();
 
@@ -457,11 +397,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var trainCarCount = Math.Min(ChooseNumberOfCarsNotExceedingLength(trainCars, destination.RelationMaxTrainLength, random), maxCarCount);
                 var destinationTrainCars = trainCars.Take(trainCarCount).ToList();
                 var startingTrack = DetermineStartingTrack(destinationTrainCars);
-                var tryGetManagedTrackFromStarting = GetClosestYardTrackOrganizerManagedTrack(startingTrack);
-                if (tryGetManagedTrackFromStarting != null)
-                {
-                    startingTrack = tryGetManagedTrackFromStarting;
-                }
+
                 yield return (destinationTrainCars, destination, startingTrack);
 
                 remainingCars = remainingCars.Skip(trainCarCount).ToList();
