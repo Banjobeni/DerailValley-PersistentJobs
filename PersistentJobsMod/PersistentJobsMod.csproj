@@ -177,6 +177,8 @@
     <Publicize Include="Assembly-CSharp:CarStateSave.debtTrackerCar" />
     <Publicize Include="Assembly-CSharp:TrainCarPlatesController.UpdateCarHealthData" />
     <Publicize Include="Assembly-CSharp:TrainCarPlatesController.UpdateCargoHealthData" />
+    <Publicize Include="Assembly-CSharp:JobSaveManager.GetYardTrackWithId" />
+    <Publicize Include="Assembly-CSharp:JobSaveManager.LoadJobChain" />
   </ItemGroup>
   <ItemGroup />
 </Project>

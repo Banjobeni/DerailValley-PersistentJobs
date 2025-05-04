@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.Utils;
 using HarmonyLib;
 using UnityEngine;
 
@@ -11,7 +13,25 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
     /// <summary>reserves tracks for taken jobs when loading save file</summary>
     [HarmonyPatch]
     public static class JobSaveManager_Patches {
-        [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
+        [HarmonyPatch(typeof(JobSaveManager), nameof(JobSaveManager.GetYardTrackWithId))]
+        [HarmonyPostfix]
+        public static void GetYardTrackWithId_Postfix(string trackId, ref Track __result) {
+            if (__result == null) {
+                // Vanilla looks up tracks only using YardTracksOrganizer
+                Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} not found using YardTracksOrganizer");
+
+                var foundTrack = RailTrackRegistry.LogicToRailTrack.Keys.FirstOrDefault(track => track.ID.FullID == trackId);
+
+                if (foundTrack != null) {
+                    Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} identified using track.ID.FullID");
+                    __result = foundTrack;
+                } else {
+                    Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} not found using track.ID.FullID");
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(JobSaveManager), nameof(JobSaveManager.LoadJobChain))]
         [HarmonyPostfix]
         public static void LoadJobChain_Postfix(JobChainSaveData chainSaveData) {
             try {
@@ -34,7 +54,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
             }
         }
 
-        [HarmonyPatch(typeof(JobSaveManager), "LoadJobChain")]
+        [HarmonyPatch(typeof(JobSaveManager), nameof(JobSaveManager.LoadJobChain))]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> LoadJobChain_Transpiler(IEnumerable<CodeInstruction> instructionsEnumerable, MethodBase originalMethod) {
             var instructions = instructionsEnumerable.ToList();
