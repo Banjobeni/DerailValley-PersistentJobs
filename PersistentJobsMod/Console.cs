@@ -1,5 +1,8 @@
 ﻿using System.Linq;
 using CommandTerminal;
+using DV.Logic.Job;
+using DV.ThingTypes;
+using DV.Utils;
 using PersistentJobsMod.HarmonyPatches.Distance;
 using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using PersistentJobsMod.Persistence;
@@ -9,14 +12,26 @@ using Random = System.Random;
 namespace PersistentJobsMod {
     public static class Console {
         [RegisterCommand("PJ.ClearStationSpawnFlag", Help = "PersistentJobsMod: Clear the flag for a station such that it may spawn cars again.", MinArgCount = 1, MaxArgCount = 1)]
-        public static void ClearStationSpawnFlag(CommandArg[] args) {
-            var stationId = args[0].String;
+        public static void ClearStationSpawnFlag(CommandArg[] args)
+        {
+            var uInput = args[0].String;
 
-            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(stationId)) {
-                StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(stationId, false);
-                Debug.Log($"Cleared station spawn flag of {stationId}.");
-            } else {
-                Debug.Log("Station spawn flag was not set. See PJ.ListStationSpawnFlag for alist of currently set flags.");
+            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(uInput))
+            {
+                StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(uInput, false);
+                Debug.Log($"Cleared station spawn flag of {uInput}.");
+            }
+            else if (uInput == "all" || uInput == "All" || uInput == "*")
+            {
+                foreach (var item in StationIdCarSpawningPersistence.Instance.GetAllSetStationSpawnedCarFlags())
+                {
+                    StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(item, false);
+                    Debug.Log($"Cleared station spawn flag of {item}.");
+                }
+            }
+            else
+            {
+                Debug.Log($"No station spawn flag was cleared. Either your input of {uInput} does not corespond to a station, or its flag was not set. See PJ.ListStationSpawnFlag for alist of currently set flags.");
             }
         }
 
@@ -87,6 +102,35 @@ namespace PersistentJobsMod {
         private static void ExpireAvailableJobs(StationController stationController) {
             Debug.Log($"Expiring {stationController.logicStation.availableJobs.Count} jobs in {stationController.logicStation.ID}");
             StationController_Patches.ExpireAllAvailableJobsInStation_Original(stationController);
+        }
+
+        [RegisterCommand("PJ.ExpireJobForConsistOfCar", Help = "PersistentJobsMod: Expire the job of the consist of a specific car immediately. To identify the car, use the ID on the car plate.", MinArgCount = 1, MaxArgCount = 1)]
+        public static void ExpireJobForConsistOfCar(CommandArg[] args)
+        {
+            var trainCarID = args[0].String;
+            var trainCar = CarSpawner.Instance.AllCars.FirstOrDefault(tc => tc.ID == trainCarID);
+            if (trainCar == null)
+            {
+                Debug.Log($"Could not find train car with ID {trainCarID}");
+                return;
+            }
+
+            Job jobOfCar = SingletonBehaviour<JobsManager>.Instance.GetJobOfCar(trainCar.logicCar);
+            if (jobOfCar != null)
+            {
+                switch (jobOfCar.State)
+                {
+                    case JobState.Available:
+                        jobOfCar.ExpireJob();
+                        break;
+                    case JobState.InProgress:
+                        SingletonBehaviour<JobsManager>.Instance.AbandonJob(jobOfCar);
+                        break;
+                    default:
+                        Debug.LogError($"Unexpected state {jobOfCar.State}, ignoring force abandon/expire!");
+                        break;
+                }
+            }
         }
     }
 }
