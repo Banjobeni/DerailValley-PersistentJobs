@@ -186,30 +186,26 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         private static Track GetClosestYardTrack(Track startingTrack)
         {
             if (startingTrack == null) return null;
+            Main._modEntry.Logger.Log("Starting search for track " + startingTrack.ID.FullID);
             const int maxDepth = 8;
-            //int maxDepth = Main.Settings.ConnectedTracksMaxSearchDepth;
             var searchedTracks = new HashSet<Track>();
-            var queue = new Queue<(Track track, int depth)>();
-            queue.Enqueue((startingTrack, 0));
+            var yardTracksAndDistance = new List<(Track track, double distance)>();
+            var queue = new Queue<(Track track, int depth, double distance)>();
+            queue.Enqueue((startingTrack, 0, 0));
 
             while (queue.Count > 0)
             {
-                var (currentTrack, depth) = queue.Dequeue();
-                if (!searchedTracks.Add(currentTrack))
-                    continue;
+                var (currentTrack, depth, distanceSoFar) = queue.Dequeue();
+                if (!searchedTracks.Add(currentTrack)) continue;
 
-                //if (YardTracksOrganizer.Instance.IsTrackManagedByOrganizer(currentTrack))
                 if (!currentTrack.ID.IsGeneric())
                 {
-                    return currentTrack;
+                    yardTracksAndDistance.Add((currentTrack, distanceSoFar));
                 }
 
                 // if yardID is some unexpected value (eg. not station or #Y) or search depth exhausted
                 if (currentTrack.ID.yardId != "#Y" || depth >= maxDepth)
-                {
-                    Main._modEntry.Logger.Warning("Exhausted possible near tracks without finding a yard one");
-                    return null;
-                }
+                    continue;
 
                 var connectedTracks = new List<Track>();
                 if (currentTrack.InTrack != null) connectedTracks.Add(currentTrack.InTrack);
@@ -220,11 +216,24 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 foreach (var nextTrack in connectedTracks)
                 {
                     if (!searchedTracks.Contains(nextTrack))
-                        queue.Enqueue((nextTrack, depth + 1));
+                    {
+                        queue.Enqueue((nextTrack, depth + 1, distanceSoFar + currentTrack.length));
+                    }
                 }
             }
 
-            return null;
+            if (yardTracksAndDistance.Count == 0)
+            {
+                Main._modEntry.Logger.Warning("No yard tracks found within search depth.");
+                return null;
+            }
+
+            // Return the closest yard track by searched path length
+            foreach (var consideredTrack in yardTracksAndDistance)
+            {
+                Main._modEntry.Logger.Log($"Final possible track {consideredTrack.track.ID.FullID} at lenght {consideredTrack.distance}");
+            }
+            return yardTracksAndDistance.OrderBy(t => t.distance).First().track;
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
