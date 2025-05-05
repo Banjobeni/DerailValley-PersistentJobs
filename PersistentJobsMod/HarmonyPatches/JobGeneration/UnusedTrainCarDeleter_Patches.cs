@@ -182,6 +182,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
         }
 
+
         private static Track GetClosestYardTrack(Track startingTrack)
         {
             if (startingTrack == null) return null;
