@@ -138,12 +138,22 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
 
                 var reassignedToJobsTrainCars = ReassignJoblessRegularTrainCarsToJobs(regenerateJobsTrainsets, new Random());
-
-                foreach (var tc in reassignedToJobsTrainCars) {
+                if (reassignedToJobsTrainCars.Any())
+                {
+                    foreach (var tc in reassignedToJobsTrainCars) {
                     ___unusedTrainCarsMarkedForDelete.Remove(tc);
-                }
+                    }
 
-                Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                    Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                }
+                // if no input trainsets got jobs reassigned (not near yard tracks) - is this right to ensure they are kept?
+                else
+                {
+                    foreach (var ts in regenerateJobsTrainsets)
+                    {
+                        foreach (var tc in ts.cars)  ___unusedTrainCarsMarkedForDelete.Remove(tc); 
+                    }
+                }
             }
         }
 
@@ -160,8 +170,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random)
         {
             // attempt to get station from yardID, if not possible use distance to station or skip reassigning entirely
-            var stationsAndTrainsets = trainsets.GroupBy(ts => StationBelongingToTrainset(ts) ?? GetNearestStation(ts.cars.First().gameObject.transform.position)).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
-            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
+            var stationsAndTrainsets = trainsets.GroupBy(ts => StationBelongingToTrainset(ts) /*?? GetNearestStation(ts.cars.First().gameObject.transform.position)*/).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
+            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random) ?? Enumerable.Empty<JobChainController>()).ToList();
             return jobChainControllers.SelectMany(jcc => TrainCar.ExtractTrainCars(jcc.carsForJobChain)).ToList();
         }
 
@@ -257,6 +267,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static IReadOnlyList<JobChainController> ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(StationController station, List<Trainset> trainsets, Random random) {
+            if (station is null) return null;
             Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
             var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(GetTrainCarReassignStatus)).ToList();
