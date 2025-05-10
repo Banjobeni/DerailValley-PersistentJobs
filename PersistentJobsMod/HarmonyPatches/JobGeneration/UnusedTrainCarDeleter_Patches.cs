@@ -146,14 +146,14 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                     Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
                 }
-                // if no input trainsets got jobs reassigned (not near yard tracks) - is this right to ensure they are kept?
-                else
+                // if no input trainsets got jobs reassigned (not near yard tracks) - is this right to ensure they are kept, or should they just remain in unused?
+                /*else
                 {
                     foreach (var ts in regenerateJobsTrainsets)
                     {
                         foreach (var tc in ts.cars)  ___unusedTrainCarsMarkedForDelete.Remove(tc); 
                     }
-                }
+                }*/
             }
         }
 
@@ -240,7 +240,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             yardTracksAndDistance.RemoveAll(consideredTrack =>
             {
                 Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
-                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 500;
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 500; //value needs tweaking
                 if (isFarMil)
                 {
                     farAwayMilTracks.Add(consideredTrack);
@@ -286,6 +286,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate empty haul jobs for empty train cars not loadable at this station
             foreach (var carGroup in notLoadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, relation.Station, startingTrack, trainCars, random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -297,6 +298,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate transport jobs for loaded train cars not unloadable at this station
             foreach (var carGroup in notUnloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, relation.Station, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -308,6 +310,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate shunting unload jobs for loaded train cars unloadable at this station
             foreach (var carGroup in unloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = ShuntingUnloadJobGenerator.TryGenerateJobChainController(relation.SourceStation, startingTrack, station, trainCars.ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -502,7 +505,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
 
             if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers
+                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be handeled in SL generation!
                 AddMoreInfoToExceptionHelper.Run(
                     () => throw new InvalidOperationException("could not find any bogie that is on a track"),
                     () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
@@ -510,15 +513,25 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
             // is there value in using the track most cars are on, or taking first is enough? tradeoff between more code or potentially needles calls to GetClosestYardTrack()
             var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
+            Track returnTrack = null;
             if (yardTracksOrganizerManagedTrack != null) {
-                return yardTracksOrganizerManagedTrack;
+                returnTrack = yardTracksOrganizerManagedTrack;
             } else {
                 var yardTrack = GetClosestYardTrack(tracks.First());
-                if (yardTrack != null) return yardTrack;
+                if (yardTrack != null) returnTrack = yardTrack;
                 Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
             }
-            // TODO? skip job creation if no named tracks is found
-            return tracks.First();
+            // skip job creation if train car is way further away from its picked station
+            if (returnTrack != null)
+            {
+                if ((trainCars.First().transform.position - StationController.GetStationByYardID(returnTrack.ID.yardId).transform.position).sqrMagnitude > 1500000f) //value needs to be fine-tuned (probably decreased) !!!
+                {
+                    Debug.Log($"[PersistentJobsMod] cars to far away from station");
+                    returnTrack = null;
+                }
+            }
+
+            return returnTrack;
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {
