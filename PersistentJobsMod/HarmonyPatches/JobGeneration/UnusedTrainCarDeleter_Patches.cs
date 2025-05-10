@@ -186,7 +186,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         private static Track GetClosestYardTrack(Track startingTrack)
         {
             if (startingTrack == null) return null;
-            Main._modEntry.Logger.Log("Starting search for track " + startingTrack.ID.FullID);
+            Main._modEntry.Logger.Log("Starting search for yard track with start at: " + startingTrack.ID.FullID);
             const int maxDepth = 8;
             var searchedTracks = new HashSet<Track>();
             var yardTracksAndDistance = new List<(Track track, double distance)>();
@@ -228,12 +228,28 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return null;
             }
 
-            // Return the closest yard track by searched path length
-            foreach (var consideredTrack in yardTracksAndDistance)
+            // Remove military tracks that are far and return the closest yard track by searched path length
+            var farAwayMilTracks = new HashSet<(Track track, double distance)>();
+            yardTracksAndDistance.RemoveAll(consideredTrack =>
             {
-                Main._modEntry.Logger.Log($"Final possible track {consideredTrack.track.ID.FullID} at lenght {consideredTrack.distance}");
+                Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 500;
+                if (isFarMil)
+                {
+                    farAwayMilTracks.Add(consideredTrack);
+                }
+                return isFarMil;
+            });
+
+            if (yardTracksAndDistance.Count == 0 && farAwayMilTracks.Count > 0)
+            {
+                var fallback = farAwayMilTracks.OrderBy(t => t.distance).First();
+                Main._modEntry.Logger.Log($"Returning military track {fallback.track.ID.FullID} at length {fallback.distance} since no other tracks are close enough");
+                return fallback.track;
             }
-            return yardTracksAndDistance.OrderBy(t => t.distance).First().track;
+            var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
+            Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
+            return pickedTrack.track;
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
