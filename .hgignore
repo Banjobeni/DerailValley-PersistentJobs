@@ -1,0 +1,9 @@
+syntax: glob
+PersistentJobsMod/Directory.Build.props
+.vs/
+*.DotSettings.user
+*.csproj.user
+PersistentJobsMod/bin/
+PersistentJobsMod/obj/
+_ReSharper.Caches/
+packages/
