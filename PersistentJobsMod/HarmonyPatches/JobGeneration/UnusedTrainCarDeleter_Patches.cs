@@ -259,10 +259,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return pickedTrack.track;
         }*/
 
+        //this search gets called twice when generating SL jobs - possible optimization?
         public static (Track Track, double Distance)? GetClosestYardTrack(Track track, double position)
         {
             int searchIterations = 0;
-            const int maxSearchIterations = 320;
+            const int maxSearchIterations = 120;
             if (track == null) return null;
             Main._modEntry.Logger.Log("Starting search for yard track with start at: " + track.ID.FullID);
             var yardTracksAndDistance = new List<(Track track, double distance)>();
@@ -278,7 +279,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             fakeMinHeap.Add((new TrackSide { Track = track, IsStart = false }, track.length - position));
             fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
 
-            while (fakeMinHeap.Any() && searchIterations <= maxSearchIterations)
+            while (fakeMinHeap.Any() && searchIterations <= maxSearchIterations && yardTracksAndDistance.Count <= 6) //the search needs to be clamped by something
             {
                 searchIterations++;
                 var (currentTrackSide, currentDistance) = fakeMinHeap.First();
@@ -313,7 +314,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             yardTracksAndDistance.RemoveAll(consideredTrack =>
             {
                 Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
-                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 400; //value needs tweaking
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 400; //value needs tweaking -- 400 seems fine for mil yard influence
                 if (isFarMil)
                 {
                     farAwayMilTracks.Add(consideredTrack);
@@ -329,7 +330,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
             var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
             Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
-            if (pickedTrack.distance > 1000d)
+            if (pickedTrack.distance > 1000d) //also a value worth playing around with || maybe re-implement this in a more logical place?
             {
                 Main._modEntry.Logger.Log("Track distance too big, skipping");
                 return null;
@@ -617,7 +618,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
             if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be handeled in SL generation!
+                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be handeled in SL generation! elsewhere it´s done
                 AddMoreInfoToExceptionHelper.Run(
                     () => throw new InvalidOperationException("could not find any bogie that is on a track"),
                     () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
@@ -641,7 +642,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // skip job creation if train car is way further away from its picked station
             if (returnTrack != null)
             {
-                if ((trainCars.First().transform.position - StationController.GetStationByYardID(returnTrack.ID.yardId).transform.position).sqrMagnitude > 1500000f) //value needs to be fine-tuned (probably decreased) !!!
+                if ((trainCars.First().transform.position - StationController.GetStationByYardID(returnTrack.ID.yardId).transform.position).sqrMagnitude > 4000000f) //value needs to be fine-tuned, does the OriginShift need to be taken into account here?
                 {
                     Debug.Log($"[PersistentJobsMod] cars too far away from station");
                     returnTrack = null;
