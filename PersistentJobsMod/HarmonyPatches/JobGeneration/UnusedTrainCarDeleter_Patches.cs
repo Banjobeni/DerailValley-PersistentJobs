@@ -190,7 +190,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
 
-        public static Track GetClosestYardTrack(Track startingTrack)
+        /*public static Track GetClosestYardTrack_old(Track startingTrack)
         {
             if (startingTrack == null) return null;
             Main._modEntry.Logger.Log("Starting search for yard track with start at: " + startingTrack.ID.FullID);
@@ -257,6 +257,101 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
             Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
             return pickedTrack.track;
+        }*/
+
+        public static (Track Track, double Distance)? GetClosestYardTrack(Track track, double position)
+        {
+            int searchIterations = 0;
+            const int maxSearchIterations = 320;
+            if (track == null) return null;
+            Main._modEntry.Logger.Log("Starting search for yard track with start at: " + track.ID.FullID);
+            var yardTracksAndDistance = new List<(Track track, double distance)>();
+            if (!track.ID.IsGeneric())
+            {
+                return (track, 0);
+            }
+
+            var fakeMinHeap = new List<(TrackSide TrackSide, double Distance)>();
+            var visited = new HashSet<TrackSide>();
+
+            fakeMinHeap.Add((new TrackSide { Track = track, IsStart = true }, position));
+            fakeMinHeap.Add((new TrackSide { Track = track, IsStart = false }, track.length - position));
+            fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+
+            while (fakeMinHeap.Any() && searchIterations <= maxSearchIterations)
+            {
+                searchIterations++;
+                var (currentTrackSide, currentDistance) = fakeMinHeap.First();
+                Main._modEntry.Logger.Log($"Search iteration {searchIterations - 1} at track {currentTrackSide.Track.ID.FullID} with distance {currentDistance}");
+                fakeMinHeap.RemoveAt(0);
+                if (!visited.Contains(currentTrackSide))
+                {
+                    visited.Add(currentTrackSide);
+
+                    if (!currentTrackSide.Track.ID.IsGeneric())
+                    {
+                        yardTracksAndDistance.Add((currentTrackSide.Track, currentDistance));
+                    }
+
+                    var connectedTrackSides = GetConnectedTrackSides(currentTrackSide);
+                    foreach (var connectedTrackSide in connectedTrackSides)
+                    {
+                        fakeMinHeap.Add((connectedTrackSide, currentDistance));
+                    }
+                    fakeMinHeap.Add((currentTrackSide with { IsStart = !currentTrackSide.IsStart }, currentDistance + currentTrackSide.Track.length));
+                    fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+                }
+            }
+            if (yardTracksAndDistance.Count == 0)
+            {
+                Main._modEntry.Logger.Warning("No yard tracks found within search depth.");
+                return null;
+            }
+
+            // Remove military tracks that are far and return the closest yard track by searched path length
+            var farAwayMilTracks = new HashSet<(Track track, double distance)>();
+            yardTracksAndDistance.RemoveAll(consideredTrack =>
+            {
+                Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 400; //value needs tweaking
+                if (isFarMil)
+                {
+                    farAwayMilTracks.Add(consideredTrack);
+                }
+                return isFarMil;
+            });
+
+            if (yardTracksAndDistance.Count == 0 && farAwayMilTracks.Count > 0)
+            {
+                var fallback = farAwayMilTracks.OrderBy(t => t.distance).First();
+                Main._modEntry.Logger.Log($"Returning military track {fallback.track.ID.FullID} at length {fallback.distance} since no other tracks are close enough");
+                return fallback;
+            }
+            var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
+            Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
+            if (pickedTrack.distance > 1000d)
+            {
+                Main._modEntry.Logger.Log("Track distance too big, skipping");
+                return null;
+            }
+            return pickedTrack;
+        }
+
+        private static List<TrackSide> GetConnectedTrackSides(TrackSide currentTrackSide)
+        {
+            var railTrack = currentTrackSide.Track.RailTrack();
+            var branches = currentTrackSide.IsStart ? railTrack.GetAllInBranches() : railTrack.GetAllOutBranches();
+            if (branches == null)
+            {
+                return new List<TrackSide>();
+            }
+            return branches.Select(b => new TrackSide { Track = b.track.LogicTrack(), IsStart = b.first }).ToList();
+        }
+
+        public record TrackSide
+        {
+            public Track Track { get; set; }
+            public bool IsStart { get; set; }
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
@@ -502,8 +597,25 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
-
+            //var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
+            List<Track> tracks = new();
+            List<double> distances = new();
+            foreach (var tc in trainCars)
+            {
+                if (!tc.derailed)
+                {
+                    if (tc.logicCar.FrontBogieTrack != null)
+                    {
+                        tracks.Add(tc.logicCar.FrontBogieTrack);
+                        distances.Add(tc.FrontBogie.traveller.Span);
+                    }
+                    if (tc.logicCar.RearBogieTrack != null)
+                    {
+                        tracks.Add(tc.logicCar.RearBogieTrack);
+                        distances.Add(tc.RearBogie.traveller.Span);
+                    }
+                }
+            }
             if (!tracks.Any()) {
                 // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be handeled in SL generation!
                 AddMoreInfoToExceptionHelper.Run(
@@ -517,8 +629,13 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             if (yardTracksOrganizerManagedTrack != null) {
                 returnTrack = yardTracksOrganizerManagedTrack;
             } else {
-                var yardTrack = GetClosestYardTrack(tracks.First());
-                if (yardTrack != null) returnTrack = yardTrack;
+                var search = GetClosestYardTrack(tracks.First(), distances.First());
+                if (search.HasValue)
+                {
+                    var yardTrack = search.Value.Track;
+                    returnTrack = yardTrack;
+                }
+
                 Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
             }
             // skip job creation if train car is way further away from its picked station
@@ -526,7 +643,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             {
                 if ((trainCars.First().transform.position - StationController.GetStationByYardID(returnTrack.ID.yardId).transform.position).sqrMagnitude > 1500000f) //value needs to be fine-tuned (probably decreased) !!!
                 {
-                    Debug.Log($"[PersistentJobsMod] cars to far away from station");
+                    Debug.Log($"[PersistentJobsMod] cars too far away from station");
                     returnTrack = null;
                 }
             }
