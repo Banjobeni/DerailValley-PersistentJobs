@@ -74,6 +74,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return;
             }
 
+            if (!StationController.allStations.Where(sc => sc != null && sc.gameObject != null).ToList().Any()) {
+                return;
+            }
+
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
             }
@@ -138,12 +142,22 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
 
                 var reassignedToJobsTrainCars = ReassignJoblessRegularTrainCarsToJobs(regenerateJobsTrainsets, new Random());
-
-                foreach (var tc in reassignedToJobsTrainCars) {
+                if (reassignedToJobsTrainCars.Any())
+                {
+                    foreach (var tc in reassignedToJobsTrainCars) {
                     ___unusedTrainCarsMarkedForDelete.Remove(tc);
-                }
+                    }
 
-                Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                    Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                }
+                // if no input trainsets got jobs reassigned (not near yard tracks) - is this right to ensure they are kept, or should they just remain in unused?
+                /*else
+                {
+                    foreach (var ts in regenerateJobsTrainsets)
+                    {
+                        foreach (var tc in ts.cars)  ___unusedTrainCarsMarkedForDelete.Remove(tc); 
+                    }
+                }*/
             }
         }
 
@@ -157,12 +171,192 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return true;
         }
 
-        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random) {
-            var stationsAndTrainsets = trainsets.GroupBy(ts => GetNearestStation(ts.cars.First().gameObject.transform.position)).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
-
-            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
-
+        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random)
+        {
+            // attempt to get station from yardID, if not possible use distance to station or skip reassigning entirely
+            var stationsAndTrainsets = trainsets.GroupBy(ts => StationBelongingToTrainset(ts) /*?? GetNearestStation(ts.cars.First().gameObject.transform.position)*/).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
+            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random) ?? Enumerable.Empty<JobChainController>()).ToList();
             return jobChainControllers.SelectMany(jcc => TrainCar.ExtractTrainCars(jcc.carsForJobChain)).ToList();
+        }
+
+        public static StationController StationBelongingToTrainset(Trainset ts)
+        {
+            var track = DetermineStartingTrack(ts.cars);
+            if (track != null) 
+            {
+                return StationController.GetStationByYardID(track.ID.yardId); 
+            }
+            else
+            {
+                Main._modEntry.Logger.Warning($"No close yard track found for trainset with car {ts.cars[0].logicCar.ID}, getting by distance instead. Perhaps you have cars left out of normal tracks?");
+                return null; 
+            }
+        }
+
+
+        /*public static Track GetClosestYardTrack_old(Track startingTrack)
+        {
+            if (startingTrack == null) return null;
+            Main._modEntry.Logger.Log("Starting search for yard track with start at: " + startingTrack.ID.FullID);
+            const int maxDepth = 8;
+            var searchedTracks = new HashSet<Track>();
+            var yardTracksAndDistance = new List<(Track track, double distance)>();
+            var queue = new Queue<(Track track, int depth, double distance)>();
+            queue.Enqueue((startingTrack, 0, 0));
+
+            while (queue.Count > 0)
+            {
+                var (currentTrack, depth, distanceSoFar) = queue.Dequeue();
+                if (!searchedTracks.Add(currentTrack)) continue;
+
+                if (!currentTrack.ID.IsGeneric())
+                {
+                    yardTracksAndDistance.Add((currentTrack, distanceSoFar));
+                }
+
+                // if yardID is some unexpected value (eg. not station or #Y) or search depth exhausted
+                if (currentTrack.ID.yardId != "#Y" || depth >= maxDepth)
+                    continue;
+
+                var connectedTracks = new List<Track>();
+                if (currentTrack.InTrack != null) connectedTracks.Add(currentTrack.InTrack);
+                if (currentTrack.OutTrack != null) connectedTracks.Add(currentTrack.OutTrack);
+                if (currentTrack.PossibleInTracks != null) connectedTracks.AddRange(currentTrack.PossibleInTracks);
+                if (currentTrack.PossibleOutTracks != null) connectedTracks.AddRange(currentTrack.PossibleOutTracks);
+
+                foreach (var nextTrack in connectedTracks)
+                {
+                    if (!searchedTracks.Contains(nextTrack))
+                    {
+                        queue.Enqueue((nextTrack, depth + 1, distanceSoFar + currentTrack.length));
+                    }
+                }
+            }
+
+            if (yardTracksAndDistance.Count == 0)
+            {
+                Main._modEntry.Logger.Warning("No yard tracks found within search depth.");
+                return null;
+            }
+
+            // Remove military tracks that are far and return the closest yard track by searched path length
+            var farAwayMilTracks = new HashSet<(Track track, double distance)>();
+            yardTracksAndDistance.RemoveAll(consideredTrack =>
+            {
+                Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 500; //value needs tweaking
+                if (isFarMil)
+                {
+                    farAwayMilTracks.Add(consideredTrack);
+                }
+                return isFarMil;
+            });
+
+            if (yardTracksAndDistance.Count == 0 && farAwayMilTracks.Count > 0)
+            {
+                var fallback = farAwayMilTracks.OrderBy(t => t.distance).First();
+                Main._modEntry.Logger.Log($"Returning military track {fallback.track.ID.FullID} at length {fallback.distance} since no other tracks are close enough");
+                return fallback.track;
+            }
+            var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
+            Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
+            return pickedTrack.track;
+        }*/
+
+        //this search gets called twice when generating SL jobs - possible optimization?
+        public static (Track Track, double Distance)? GetClosestYardTrack(Track track, double position)
+        {
+            int searchIterations = 0;
+            const int maxSearchIterations = 120;
+            if (track == null) return null;
+            Main._modEntry.Logger.Log("Starting search for yard track with start at: " + track.ID.FullID);
+            var yardTracksAndDistance = new List<(Track track, double distance)>();
+            if (!track.ID.IsGeneric())
+            {
+                return (track, 0);
+            }
+
+            var fakeMinHeap = new List<(TrackSide TrackSide, double Distance)>();
+            var visited = new HashSet<TrackSide>();
+
+            fakeMinHeap.Add((new TrackSide { Track = track, IsStart = true }, position));
+            fakeMinHeap.Add((new TrackSide { Track = track, IsStart = false }, track.length - position));
+            fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+
+            while (fakeMinHeap.Any() && searchIterations <= maxSearchIterations && yardTracksAndDistance.Count <= 6) //the search needs to be clamped by something
+            {
+                searchIterations++;
+                var (currentTrackSide, currentDistance) = fakeMinHeap.First();
+                Main._modEntry.Logger.Log($"Search iteration {searchIterations - 1} at track {currentTrackSide.Track.ID.FullID} with distance {currentDistance}");
+                fakeMinHeap.RemoveAt(0);
+                if (!visited.Contains(currentTrackSide))
+                {
+                    visited.Add(currentTrackSide);
+
+                    if (!currentTrackSide.Track.ID.IsGeneric())
+                    {
+                        yardTracksAndDistance.Add((currentTrackSide.Track, currentDistance));
+                    }
+
+                    var connectedTrackSides = GetConnectedTrackSides(currentTrackSide);
+                    foreach (var connectedTrackSide in connectedTrackSides)
+                    {
+                        fakeMinHeap.Add((connectedTrackSide, currentDistance));
+                    }
+                    fakeMinHeap.Add((currentTrackSide with { IsStart = !currentTrackSide.IsStart }, currentDistance + currentTrackSide.Track.length));
+                    fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+                }
+            }
+            if (yardTracksAndDistance.Count == 0)
+            {
+                Main._modEntry.Logger.Warning("No yard tracks found within search depth.");
+                return null;
+            }
+
+            // Remove military tracks that are far and return the closest yard track by searched path length
+            var farAwayMilTracks = new HashSet<(Track track, double distance)>();
+            yardTracksAndDistance.RemoveAll(consideredTrack =>
+            {
+                Main._modEntry.Logger.Log($"Possible track {consideredTrack.track.ID.FullID} at length {consideredTrack.distance}");
+                bool isFarMil = (consideredTrack.track.ID.yardId == "HMB" || consideredTrack.track.ID.yardId == "MFMB") && consideredTrack.distance > 400; //value needs tweaking -- 400 seems fine for mil yard influence
+                if (isFarMil)
+                {
+                    farAwayMilTracks.Add(consideredTrack);
+                }
+                return isFarMil;
+            });
+
+            if (yardTracksAndDistance.Count == 0 && farAwayMilTracks.Count > 0)
+            {
+                var fallback = farAwayMilTracks.OrderBy(t => t.distance).First();
+                Main._modEntry.Logger.Log($"Returning military track {fallback.track.ID.FullID} at length {fallback.distance} since no other tracks are close enough");
+                return fallback;
+            }
+            var pickedTrack = yardTracksAndDistance.OrderBy(t => t.distance).First();
+            Main._modEntry.Logger.Log($"Picked track {pickedTrack.track.ID.FullID} at lenght {pickedTrack.distance}");
+            if (pickedTrack.distance > 1000d) //also a value worth playing around with || maybe re-implement this in a more logical place?
+            {
+                Main._modEntry.Logger.Log("Track distance too big, skipping");
+                return null;
+            }
+            return pickedTrack;
+        }
+
+        private static List<TrackSide> GetConnectedTrackSides(TrackSide currentTrackSide)
+        {
+            var railTrack = currentTrackSide.Track.RailTrack();
+            var branches = currentTrackSide.IsStart ? railTrack.GetAllInBranches() : railTrack.GetAllOutBranches();
+            if (branches == null)
+            {
+                return new List<TrackSide>();
+            }
+            return branches.Select(b => new TrackSide { Track = b.track.LogicTrack(), IsStart = b.first }).ToList();
+        }
+
+        public record TrackSide
+        {
+            public Track Track { get; set; }
+            public bool IsStart { get; set; }
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
@@ -173,6 +367,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static IReadOnlyList<JobChainController> ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(StationController station, List<Trainset> trainsets, Random random) {
+            if (station is null) return null;
             Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
             var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(GetTrainCarReassignStatus)).ToList();
@@ -191,6 +386,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate empty haul jobs for empty train cars not loadable at this station
             foreach (var carGroup in notLoadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, relation.Station, startingTrack, trainCars, random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -202,6 +398,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate transport jobs for loaded train cars not unloadable at this station
             foreach (var carGroup in notUnloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, relation.Station, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -213,6 +410,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate shunting unload jobs for loaded train cars unloadable at this station
             foreach (var carGroup in unloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = ShuntingUnloadJobGenerator.TryGenerateJobChainController(relation.SourceStation, startingTrack, station, trainCars.ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -397,7 +595,6 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var trainCarCount = Math.Min(ChooseNumberOfCarsNotExceedingLength(trainCars, destination.RelationMaxTrainLength, random), maxCarCount);
                 var destinationTrainCars = trainCars.Take(trainCarCount).ToList();
                 var startingTrack = DetermineStartingTrack(destinationTrainCars);
-
                 yield return (destinationTrainCars, destination, startingTrack);
 
                 remainingCars = remainingCars.Skip(trainCarCount).ToList();
@@ -405,24 +602,58 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
-
+            //var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
+            List<Track> tracks = new();
+            List<double> distances = new();
+            foreach (var tc in trainCars)
+            {
+                if (!tc.derailed)
+                {
+                    if (tc.logicCar.FrontBogieTrack != null)
+                    {
+                        tracks.Add(tc.logicCar.FrontBogieTrack);
+                        distances.Add(tc.FrontBogie.traveller.Span);
+                    }
+                    if (tc.logicCar.RearBogieTrack != null)
+                    {
+                        tracks.Add(tc.logicCar.RearBogieTrack);
+                        distances.Add(tc.RearBogie.traveller.Span);
+                    }
+                }
+            }
             if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers
+                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be handeled in SL generation! elsewhere it´s done
                 AddMoreInfoToExceptionHelper.Run(
                     () => throw new InvalidOperationException("could not find any bogie that is on a track"),
                     () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
                 );
             }
-
+            // is there value in using the track most cars are on, or taking first is enough? tradeoff between more code or potentially needles calls to GetClosestYardTrack()
             var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
+            Track returnTrack = null;
             if (yardTracksOrganizerManagedTrack != null) {
-                return yardTracksOrganizerManagedTrack;
+                returnTrack = yardTracksOrganizerManagedTrack;
             } else {
+                var search = GetClosestYardTrack(tracks.First(), distances.First());
+                if (search.HasValue)
+                {
+                    var yardTrack = search.Value.Track;
+                    returnTrack = yardTrack;
+                }
+
                 Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
             }
+            // skip job creation if train car is way further away from its picked station
+            if (returnTrack != null)
+            {
+                if ((trainCars.First().transform.position - StationController.GetStationByYardID(returnTrack.ID.yardId).transform.position).sqrMagnitude > 4000000f) //value needs to be fine-tuned, does the OriginShift need to be taken into account here?
+                {
+                    Debug.Log($"[PersistentJobsMod] cars too far away from station");
+                    returnTrack = null;
+                }
+            }
 
-            return tracks.First();
+            return returnTrack;
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {

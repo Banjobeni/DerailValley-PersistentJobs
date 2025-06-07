@@ -7,6 +7,7 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.HarmonyPatches.JobGeneration;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.Save {
@@ -21,8 +22,10 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
                 Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} not found using YardTracksOrganizer");
 
                 var foundTrack = RailTrackRegistry.LogicToRailTrack.Keys.FirstOrDefault(track => track.ID.FullID == trackId);
+                var search = UnusedTrainCarDeleter_Patches.GetClosestYardTrack(foundTrack, 0d);
 
                 if (foundTrack != null) {
+                    if (search.HasValue) foundTrack = search.Value.Track;
                     Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} identified using track.ID.FullID");
                     __result = foundTrack;
                 } else {
