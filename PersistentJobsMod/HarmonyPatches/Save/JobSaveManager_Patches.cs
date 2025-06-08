@@ -22,10 +22,10 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
                 Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} not found using YardTracksOrganizer");
 
                 var foundTrack = RailTrackRegistry.LogicToRailTrack.Keys.FirstOrDefault(track => track.ID.FullID == trackId);
-                var search = UnusedTrainCarDeleter_Patches.GetClosestYardTrack(foundTrack, 0d);
+                var search = UnusedTrainCarDeleter_Patches.Search(foundTrack, 0d, 400000, (track, _) => !track.ID.IsGeneric());
 
                 if (foundTrack != null) {
-                    if (search.HasValue) foundTrack = search.Value.Track;
+                    if (search.TrackOrNull != null) foundTrack = search.TrackOrNull;
                     Main._modEntry.Logger.Log($"{nameof(JobSaveManager_Patches)}.{nameof(GetYardTrackWithId_Postfix)}: Track {trackId} identified using track.ID.FullID");
                     __result = foundTrack;
                 } else {
