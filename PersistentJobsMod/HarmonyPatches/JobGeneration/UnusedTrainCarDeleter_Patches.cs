@@ -74,6 +74,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return;
             }
 
+            if (!StationController.allStations.Where(sc => sc != null && sc.gameObject != null).ToList().Any()) {
+                return;
+            }
+
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
             }
@@ -138,12 +142,22 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
 
                 var reassignedToJobsTrainCars = ReassignJoblessRegularTrainCarsToJobs(regenerateJobsTrainsets, new Random());
-
-                foreach (var tc in reassignedToJobsTrainCars) {
+                if (reassignedToJobsTrainCars.Any())
+                {
+                    foreach (var tc in reassignedToJobsTrainCars) {
                     ___unusedTrainCarsMarkedForDelete.Remove(tc);
-                }
+                    }
 
-                Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                    Main._modEntry.Logger.Log($"assigned {reassignedToJobsTrainCars.Count} train cars to new jobs");
+                }
+                // if no input trainsets got jobs reassigned (not near yard tracks) - is this right to ensure they are kept, or should they just remain in unused?
+                /*else
+                {
+                    foreach (var ts in regenerateJobsTrainsets)
+                    {
+                        foreach (var tc in ts.cars)  ___unusedTrainCarsMarkedForDelete.Remove(tc); 
+                    }
+                }*/
             }
         }
 
@@ -157,12 +171,32 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             return true;
         }
 
-        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random) {
-            var stationsAndTrainsets = trainsets.GroupBy(ts => GetNearestStation(ts.cars.First().gameObject.transform.position)).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
-
-            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
-
+        public static IReadOnlyList<TrainCar> ReassignJoblessRegularTrainCarsToJobs(IReadOnlyList<Trainset> trainsets, Random random)
+        {
+            var trainsetsByStation = trainsets.GroupBy(StationBelongingToTrainset);
+            var stationsAndTrainsets = trainsetsByStation.Where(g => g.Key != null).Select(g => (Station: g.Key, Trainsets: g.ToList()));
+            var skippedGroup = trainsetsByStation.FirstOrDefault(g => g.Key == null);
+            if (skippedGroup != null && skippedGroup.Any())
+            {
+                var carIds = skippedGroup.SelectMany(ts => ts.cars).Select(c => c.ID);
+                Main._modEntry.Logger.Log($"Skipping job regeneration for cars [{string.Join(", ", carIds)}] because their station could not be determined (e.g., they might be derailed).");
+            }
+            var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random) ?? Enumerable.Empty<JobChainController>()).ToList();
             return jobChainControllers.SelectMany(jcc => TrainCar.ExtractTrainCars(jcc.carsForJobChain)).ToList();
+        }
+
+        public static StationController StationBelongingToTrainset(Trainset ts)
+        {
+            var track = DetermineStartingTrack(ts.cars);
+            if (track != null) 
+            {
+                return StationController.GetStationByYardID(track.ID.yardId); 
+            }
+            else
+            {
+                Main._modEntry.Logger.Warning($"Error getting track for car {ts.cars[0].logicCar.ID}");
+                return null; 
+            }
         }
 
         private static void FinalizeJobChainControllerAndGenerateFirstJob(JobChainController jobChainController) {
@@ -173,6 +207,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static IReadOnlyList<JobChainController> ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(StationController station, List<Trainset> trainsets, Random random) {
+            if (station is null) return null;
             Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
             var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(GetTrainCarReassignStatus)).ToList();
@@ -191,6 +226,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate empty haul jobs for empty train cars not loadable at this station
             foreach (var carGroup in notLoadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, relation.Station, startingTrack, trainCars, random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -202,6 +238,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate transport jobs for loaded train cars not unloadable at this station
             foreach (var carGroup in notUnloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, relation.Station, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -213,6 +250,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             // generate shunting unload jobs for loaded train cars unloadable at this station
             foreach (var carGroup in unloadableConsecutiveTrainCarGroups) {
                 foreach (var (trainCars, relation, startingTrack) in ChooseTrainCarsRelationAndChopByMaxLength(carGroup, station.proceduralJobsRuleset.maxCarsPerJob, random)) {
+                    if (startingTrack is null) return null;
                     var jobChainController = ShuntingUnloadJobGenerator.TryGenerateJobChainController(relation.SourceStation, startingTrack, station, trainCars.ToList(), random);
                     if (jobChainController != null) {
                         FinalizeJobChainControllerAndGenerateFirstJob(jobChainController);
@@ -397,32 +435,81 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var trainCarCount = Math.Min(ChooseNumberOfCarsNotExceedingLength(trainCars, destination.RelationMaxTrainLength, random), maxCarCount);
                 var destinationTrainCars = trainCars.Take(trainCarCount).ToList();
                 var startingTrack = DetermineStartingTrack(destinationTrainCars);
-
                 yield return (destinationTrainCars, destination, startingTrack);
 
                 remainingCars = remainingCars.Skip(trainCarCount).ToList();
             }
         }
 
+        //for some reason gets called twice for SL job generation - potential problem for derailed cars also with SL (could not reproduce currently)
         private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
-
+            List<Track> tracks = new();
+            List<double> distances = new();
+            List<Vector3> positions = new();
+            foreach (var tc in trainCars)
+            {
+                if (tc != null)
+                {
+                    if (!tc.derailed)
+                    {
+                        if (tc.logicCar.FrontBogieTrack != null)
+                        {
+                            tracks.Add(tc.logicCar.FrontBogieTrack);
+                            distances.Add(tc.FrontBogie.traveller.Span);
+                            if (tc.transform.position != null)
+                            {
+                                positions.Add(tc.transform.position);
+                            }
+                        }
+                        if (tc.logicCar.RearBogieTrack != null)
+                        {
+                            tracks.Add(tc.logicCar.RearBogieTrack);
+                            distances.Add(tc.RearBogie.traveller.Span);
+                            if (tc.transform.position != null)
+                            {
+                                positions.Add(tc.transform.position);
+                            }
+                        }
+                    }
+                }
+            }
             if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers
+                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be looked at in SL generation! elsewhere it´s done
                 AddMoreInfoToExceptionHelper.Run(
                     () => throw new InvalidOperationException("could not find any bogie that is on a track"),
                     () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
                 );
             }
+            
+            Track returnTrack = null;
+            if (tracks.Count > 0 && (distances.Count == tracks.Count && positions.Count == tracks.Count))
+            {
+                    var representativeTrack = tracks.GroupBy(x => x).OrderByDescending(g => g.Count()).First().Key;
+                    int index = tracks.IndexOf(representativeTrack);
+                    var rDistance = distances[index];
+                    var rPosition = positions[index];
 
-            var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
-            if (yardTracksOrganizerManagedTrack != null) {
-                return yardTracksOrganizerManagedTrack;
-            } else {
-                Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
+                var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
+                if (yardTracksOrganizerManagedTrack != null) {
+                    returnTrack = yardTracksOrganizerManagedTrack;
+                } else {
+                    var search = Search(representativeTrack, rDistance, 800, (foundTrack, distance) => DoesTrackMatch(foundTrack, distance, rPosition));
+                    if (search.TrackOrNull != null)
+                    {
+                        var yardTrack = search;
+                        returnTrack = yardTrack.TrackOrNull;
+                    }
+                    else
+                    {
+                        Debug.Log($"[PersistentJobsMod] Could not determine a starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
+                    }
+                }
             }
-
-            return tracks.First();
+            else
+            {
+                Main._modEntry.Logger.Error("Car track/distance/position not corresponding");
+            }
+            return returnTrack;
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {
@@ -599,6 +686,111 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             foreach (var trainCar in trainCars) {
                 PlayerSpawnedCarUtilities.ConvertPlayerSpawnedTrainCar(trainCar);
             }
+        }
+
+        private static bool DoesTrackMatch(Track track, double distance, Vector3 carPosition)
+        {
+            if (track.ID.IsGeneric())
+            {
+                return false;
+            }
+
+            if (IsSubstationMilitaryTrack(track) && distance > 400d)
+            {
+                return false;
+            }
+
+            var stationControllerDistance = (StationController.GetStationByYardID(track.ID.yardId).transform.position - carPosition).magnitude;
+            if (stationControllerDistance > 20000f) //can be decreased probably - test at east exit from HB
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsSubstationMilitaryTrack(Track track)
+        {
+            var yardID = track.ID.yardId;
+            if (yardID == "MB")
+            {
+                return false;
+            }
+
+            if (yardID.EndsWith("MB"))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static (Track TrackOrNull, double? Distance, int? steps, int totalIterations) Search(Track track, double trackPosition, double maxTrackDistance, Func<Track, double, bool> doesTrackMatch)
+        {
+            if (doesTrackMatch(track, 0))
+            {
+                return (track, 0, 0, 0);
+            }
+
+            var fakeMinHeap = new List<(TrackSide TrackSide, double Distance, int Steps)>();
+            var visited = new HashSet<TrackSide>();
+
+            if (trackPosition < maxTrackDistance)
+            {
+                fakeMinHeap.Add((new TrackSide { Track = track, IsStart = true }, trackPosition, 1));
+            }
+            if (track.length - trackPosition < maxTrackDistance)
+            {
+                fakeMinHeap.Add((new TrackSide { Track = track, IsStart = false }, track.length - trackPosition, 1));
+            }
+            fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+
+            int iterations = 0;
+            while (fakeMinHeap.Any())
+            {
+                iterations++;
+                var (currentTrackSide, currentDistance, currentSteps) = fakeMinHeap.First();
+                fakeMinHeap.RemoveAt(0);
+                if (!visited.Contains(currentTrackSide))
+                {
+                    visited.Add(currentTrackSide);
+
+                    if (doesTrackMatch(currentTrackSide.Track, currentDistance))
+                    {
+                        return (currentTrackSide.Track, currentDistance, currentSteps, iterations);
+                    }
+
+                    var connectedTrackSides = GetConnectedTrackSides(currentTrackSide);
+                    foreach (var connectedTrackSide in connectedTrackSides)
+                    {
+                        fakeMinHeap.Add((connectedTrackSide, currentDistance, currentSteps + 1));
+                    }
+                    if (currentDistance + currentTrackSide.Track.length < maxTrackDistance)
+                    {
+                        fakeMinHeap.Add((currentTrackSide with { IsStart = !currentTrackSide.IsStart }, currentDistance + currentTrackSide.Track.length, currentSteps + 1));
+                    }
+                    fakeMinHeap.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+                }
+            }
+
+            return (null, null, null, iterations);
+        }
+
+        private static List<TrackSide> GetConnectedTrackSides(TrackSide currentTrackSide)
+        {
+            var railTrack = currentTrackSide.Track.RailTrack();
+            var branches = currentTrackSide.IsStart ? railTrack.GetAllInBranches() : railTrack.GetAllOutBranches();
+            if (branches == null)
+            {
+                return new List<TrackSide>();
+            }
+            return branches.Select(b => new TrackSide { Track = b.track.LogicTrack(), IsStart = b.first }).ToList();
+        }
+
+        public record TrackSide
+        {
+            public Track Track { get; set; }
+            public bool IsStart { get; set; }
         }
     }
 }
