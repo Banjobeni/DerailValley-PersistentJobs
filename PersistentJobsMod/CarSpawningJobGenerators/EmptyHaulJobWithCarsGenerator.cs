@@ -12,7 +12,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
         public static JobChainController TryGenerateJobChainController(StationController startingStation, bool requirePlayerLicensesCompatible, Random random) {
             var possibleCargoGroupsAndTrainCarCountOrNull = CargoGroupsAndCarCountProvider.GetOrNull(startingStation.proceduralJobsRuleset.inputCargoGroups, startingStation.proceduralJobsRuleset, requirePlayerLicensesCompatible, CargoGroupsAndCarCountProvider.CargoGroupLicenseKind.Cars, random);
 
-            if (possibleCargoGroupsAndTrainCarCountOrNull == null) {
+            if (possibleCargoGroupsAndTrainCarCountOrNull == null || possibleCargoGroupsAndTrainCarCountOrNull.Value.availableCargoGroups == null || !(possibleCargoGroupsAndTrainCarCountOrNull.Value.availableCargoGroups.Any()) || possibleCargoGroupsAndTrainCarCountOrNull.Value.countTrainCars < 1) {
                 return null;
             }
 
