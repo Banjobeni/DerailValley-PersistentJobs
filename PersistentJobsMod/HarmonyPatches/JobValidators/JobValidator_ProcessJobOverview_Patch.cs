@@ -149,6 +149,26 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
 
+            var jobChainController = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>()
+                .SelectMany(sjc => sjc.GetCurrentJobChains())
+                .FirstOrDefault(jcc => jcc.currentJobInChain == job);
+
+            if (jobChainController != null)
+            {
+                var staticJobDef = jobChainController.jobChain.FirstOrDefault(jd => jd.job == job);
+                if (staticJobDef != null)
+                {
+                    if (staticJobDef is StaticShuntingLoadJobDefinition shuntingLoadJobDef)
+                    {
+                        shuntingLoadJobDef.destinationTrack = wm.WarehouseTrack;
+                    }
+                    else
+                    {
+                        Traverse.Create(staticJobDef).Field("destinationTrack").SetValue(wm.WarehouseTrack);
+                    }
+                }
+            }
+
             Main._modEntry.Logger.Log("    done!");
         }
 
