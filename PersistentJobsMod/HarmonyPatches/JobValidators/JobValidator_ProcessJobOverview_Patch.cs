@@ -271,7 +271,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 TaskUtilities.TaskDoDfs(
                     task, t => {
                         if (t is TransportTask transportTask) {
-                            // Extract corresponding car information to be used as the identification instead of the intended track
+                            // Extract corresponding car information to be used as the identification in conjunction with the intended track
                             List<Car> carData = transportTask.GetTaskData().cars;
                             // We only changes the destination track if the set of cars is identical to our previous modifications
                             if (transportTask.destinationTrack == intendedDestinationTrack && carData == relatedCars) {
