@@ -188,36 +188,40 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 } else {
                     if (jobChainController.jobDefToCurrentlyReservedTracks.TryGetValue(staticJobDefinition, out var trackReservations)) {
                         // Trying to extract Job's Car & intended Track information for Shunting Unload Jobs
+                        // Restricting the alternative method to only Shunting Unload Jobs
 
-                        List<CarsPerTrack> originalCptData = ExtractCarsPerTrackInfoFromJobDefinition(staticJobDefinition);
+                        List<CarsPerTrack> originalCptData = null;
 
-                        for (var j = 0; j < trackReservations.Count; j++) {
+                        if (staticJobDefinition is StaticShuntingUnloadJobDefinition staticShuntingUnloadJobDefinition)
+                        {
+                            originalCptData = ExtractCarsPerTrackInfoFromShuntingUnloadJobDefinition(staticShuntingUnloadJobDefinition);
+                        }
+                            for (var j = 0; j < trackReservations.Count; j++) {
 
 
-                            var intendedDestinationTrack = trackReservations[j].track;
-                            var lengthToBeReserved = trackReservations[j].reservedLength;
-                            if (YardTracksOrganizer.Instance.GetFreeSpaceOnTrack(intendedDestinationTrack) >= lengthToBeReserved) {
-                                YardTracksOrganizer.Instance.ReserveSpace(intendedDestinationTrack, lengthToBeReserved, false);
-                            } else {
-                                // not enough space to reserve; find a different track with enough space & update job data
-                                var replacementTrack = GetReplacementTrack(intendedDestinationTrack, lengthToBeReserved, random);
-                                if (replacementTrack == null) {
-                                    Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{job.ID}]. Skipping track reservation!");
+                                var intendedDestinationTrack = trackReservations[j].track;
+                                var lengthToBeReserved = trackReservations[j].reservedLength;
+                                if (YardTracksOrganizer.Instance.GetFreeSpaceOnTrack(intendedDestinationTrack) >= lengthToBeReserved) {
+                                    YardTracksOrganizer.Instance.ReserveSpace(intendedDestinationTrack, lengthToBeReserved, false);
                                 } else {
-                                    YardTracksOrganizer.Instance.ReserveSpace(replacementTrack, lengthToBeReserved, false);
-                                    // Query the cars from original Job information to be used as additional information for subsequent track change
-                                    List<Car> relatedCars = QueryRelatedCarsFromCptInfoByTrackReservationIndex(j, originalCptData);
+                                    // not enough space to reserve; find a different track with enough space & update job data
+                                    var replacementTrack = GetReplacementTrack(intendedDestinationTrack, lengthToBeReserved, random);
+                                    if (replacementTrack == null) {
+                                        Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{job.ID}]. Skipping track reservation!");
+                                    } else {
+                                        YardTracksOrganizer.Instance.ReserveSpace(replacementTrack, lengthToBeReserved, false);
+                                        // Query the cars from original Job information to be used as additional information for subsequent track change
+                                        List<Car> relatedCars = QueryRelatedCarsFromCptInfoByTrackReservationIndex(j, originalCptData);
+                                        ReplaceDestinationTrackInStaticJobDefinition(staticJobDefinition, intendedDestinationTrack, replacementTrack, relatedCars);
 
-                                    ReplaceDestinationTrackInStaticJobDefinition(staticJobDefinition, intendedDestinationTrack, replacementTrack, relatedCars);
+                                        // update reservation data
+                                        trackReservations.RemoveAt(j);
+                                        trackReservations.Insert(j, new TrackReservation(replacementTrack, lengthToBeReserved));
 
-                                    // update reservation data
-                                    trackReservations.RemoveAt(j);
-                                    trackReservations.Insert(j, new TrackReservation(replacementTrack, lengthToBeReserved));
-
-                                    didAnyTrackChange = true;
+                                        didAnyTrackChange = true;
+                                    }
                                 }
                             }
-                        }
                     } else {
                         Debug.LogError($"[PersistentJobs] No reservation data for jobChain[{i}] found!" + " Reservation data can be empty, but it needs to be in jobDefToCurrentlyReservedTracks.", staticJobDefinition);
                     }
@@ -227,79 +231,119 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return didAnyTrackChange;
         }
 
-        private static void ReplaceDestinationTrackInStaticJobDefinition(StaticJobDefinition staticJobDefinition, Track intendedDestinationTrack, Track replacementTrack, List<Car> relatedCars) {
+        private static void ReplaceDestinationTrackInStaticJobDefinition(StaticJobDefinition staticJobDefinition, Track intendedDestinationTrack, Track replacementTrack, List<Car> relatedCars)
+        {
             // update static job definition data
-            if (staticJobDefinition is StaticEmptyHaulJobDefinition emptyHaulJobDefinition) {
+            if (staticJobDefinition is StaticEmptyHaulJobDefinition emptyHaulJobDefinition)
+            {
                 emptyHaulJobDefinition.destinationTrack = replacementTrack;
-            } else if (staticJobDefinition is StaticShuntingLoadJobDefinition shuntingLoadJobDefinition) {
+            }
+            else if (staticJobDefinition is StaticShuntingLoadJobDefinition shuntingLoadJobDefinition)
+            {
                 shuntingLoadJobDefinition.destinationTrack = replacementTrack;
-            } else if (staticJobDefinition is StaticTransportJobDefinition transportJobDefinition) {
+            }
+            else if (staticJobDefinition is StaticTransportJobDefinition transportJobDefinition)
+            {
                 transportJobDefinition.destinationTrack = replacementTrack;
-            } else if (staticJobDefinition is StaticShuntingUnloadJobDefinition shuntingUnloadJobDefinition) {
+            }
+            else if (staticJobDefinition is StaticShuntingUnloadJobDefinition shuntingUnloadJobDefinition)
+            {
                 shuntingUnloadJobDefinition.carsPerDestinationTrack
                     = shuntingUnloadJobDefinition.carsPerDestinationTrack
                     // We change the track information if and only if both track ID and car ID fit,
                     // as the set of the cars should always remain the same even if the destination track changes
                     .Select(cpt => cpt.track == intendedDestinationTrack && cpt.cars == relatedCars ? new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
                     .ToList();
-            } else {
+            }
+            else
+            {
                 // attempt to replace track via Traverse for unknown job types
                 var replacedDestination = false;
-                try {
+                try
+                {
                     var destinationTrackField = Traverse.Create(staticJobDefinition).Field("destinationTrack");
                     var carsPerDestinationTrackField = Traverse.Create(staticJobDefinition).Field("carsPerDestinationTrack");
-                    if (destinationTrackField.FieldExists()) {
+                    if (destinationTrackField.FieldExists())
+                    {
                         destinationTrackField.SetValue(replacementTrack);
                         replacedDestination = true;
-                    } else if (carsPerDestinationTrackField.FieldExists()) {
+                    }
+                    else if (carsPerDestinationTrackField.FieldExists())
+                    {
                         carsPerDestinationTrackField.SetValue(
                             carsPerDestinationTrackField.GetValue<List<CarsPerTrack>>()
                                 .Select(cpt => cpt.track == intendedDestinationTrack ? new CarsPerTrack(replacementTrack, cpt.cars) : cpt)
                                 .ToList());
                         replacedDestination = true;
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     Debug.LogError(e);
                 }
-                if (!replacedDestination) {
+                if (!replacedDestination)
+                {
                     Debug.LogError($"[PersistentJobs] Unaccounted for JobType[{staticJobDefinition.job.jobType}] encountered while reserving track space for Job[{staticJobDefinition.job.ID}].");
                 }
             }
 
-            // update task data
-            foreach (var task in staticJobDefinition.job.tasks) {
-                TaskUtilities.TaskDoDfs(
-                    task, t => {
-                        if (t is TransportTask transportTask) {
+            // Create additional case for Shunting Unload Job Track Reservation, so that the other working algorithms are unaffected
+            // Should have a more elegant way of handling the case
+            if (staticJobDefinition is StaticShuntingUnloadJobDefinition)
+            {
+                foreach (var task in staticJobDefinition.job.tasks)
+                {
+                    TaskUtilities.TaskDoDfs(
+                    task, t =>
+                    {
+                        if (t is TransportTask transportTask)
+                        {
                             // Extract corresponding car information to be used as the identification in conjunction with the intended track
                             List<Car> carData = transportTask.GetTaskData().cars;
                             // We only changes the destination track if the set of cars is identical to our previous modifications
-                            if (transportTask.destinationTrack == intendedDestinationTrack && carData == relatedCars) {
+                            if (transportTask.destinationTrack == intendedDestinationTrack && carData == relatedCars)
+                            {
                                 transportTask.destinationTrack = replacementTrack;
                             }
                         }
                     });
+                }
+            } else {
+                // the original method
+                // update task data
+                foreach (var task in staticJobDefinition.job.tasks)
+                {
+                    TaskUtilities.TaskDoDfs(
+                        task, t => {
+                            if (t is TransportTask transportTask)
+                            {
+                                if (transportTask.destinationTrack == intendedDestinationTrack)
+                                {
+                                    transportTask.destinationTrack = replacementTrack;
+                                }
+                            }
+                        });
+                }
             }
         }
 
-        private static List<CarsPerTrack> ExtractCarsPerTrackInfoFromJobDefinition(StaticJobDefinition staticJobDefinition)
+        private static List<CarsPerTrack> ExtractCarsPerTrackInfoFromShuntingUnloadJobDefinition(StaticShuntingUnloadJobDefinition staticShuntingUnloadJobDefinition)
         {
-
-            if (staticJobDefinition is StaticShuntingUnloadJobDefinition staticShuntingUnloadJobDefinition)
+            List<CarsPerTrack> cptInfo = new List<CarsPerTrack>();
+            for (int i = 0; i < staticShuntingUnloadJobDefinition.carsPerDestinationTrack.Count; i++)
             {
-                List<CarsPerTrack> cptInfo = new List<CarsPerTrack>();
-                for (int i = 0; i < staticShuntingUnloadJobDefinition.carsPerDestinationTrack.Count; i++)
-                {
-                    CarsPerTrack newCpt = new CarsPerTrack(staticShuntingUnloadJobDefinition.carsPerDestinationTrack[i].track, staticShuntingUnloadJobDefinition.carsPerDestinationTrack[i].cars);
-                    cptInfo.Add(newCpt);
-                }
-                return cptInfo;
+                CarsPerTrack newCpt = new CarsPerTrack(staticShuntingUnloadJobDefinition.carsPerDestinationTrack[i].track, staticShuntingUnloadJobDefinition.carsPerDestinationTrack[i].cars);
+                cptInfo.Add(newCpt);
             }
-            return null;
+            return cptInfo;
         }
 
         private static List<Car> QueryRelatedCarsFromCptInfoByTrackReservationIndex(int reservationIndex, List<CarsPerTrack> cptInfo)
         {
+            if (cptInfo == null)
+            {
+                return null;
+            }
             return cptInfo[reservationIndex].cars;
         }
 
