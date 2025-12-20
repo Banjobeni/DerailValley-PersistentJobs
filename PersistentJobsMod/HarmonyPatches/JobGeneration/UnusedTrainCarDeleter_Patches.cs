@@ -132,6 +132,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var candidateTrainSets = regularTrainCars.Select(tc => tc.trainset).Distinct().ToList();
 
                 var regenerateJobsTrainsets = candidateTrainSets
+                    .Where(ts => ts.cars.Any(c => !c.derailed))
                     .Where(ts => !ts.cars.Any(trainCarsToIgnoreHashset.Contains))
                     .Where(ts => skipDistanceCheckForRegularTrainCars || AreAllCarsFarEnoughAwayFromPlayer(ts, TrainCarJobRegenerationSquareDistance)).ToList();
 
@@ -210,7 +211,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             if (station is null) return null;
             Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
-            var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(GetTrainCarReassignStatus)).ToList();
+            var statusTrainCarGroups = trainsets.Where(ts => ts.cars.Any(c => !c.derailed)).SelectMany(ts => ts.cars.GroupConsecutiveBy(GetTrainCarReassignStatus)).ToList();
 
             var emptyConsecutiveTrainCarGroups = statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.Empty).Select(s => s.Items).ToList();
             var loadedConsecutiveTrainCarGroups = statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.Loaded).Select(s => s.Items).ToList();
@@ -441,7 +442,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
         }
 
-        //for some reason gets called twice for SL job generation - potential problem for derailed cars also with SL (could not reproduce currently)
+        //for some reason gets called twice for SL job generation - not a breaking problem just an inefficency
         private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
             List<Track> tracks = new();
             List<double> distances = new();
@@ -474,7 +475,6 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
             if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers -- needs to be looked at in SL generation! elsewhere it´s done
                 AddMoreInfoToExceptionHelper.Run(
                     () => throw new InvalidOperationException("could not find any bogie that is on a track"),
                     () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
