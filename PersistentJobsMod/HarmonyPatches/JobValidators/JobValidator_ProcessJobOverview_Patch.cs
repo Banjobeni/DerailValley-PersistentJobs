@@ -149,6 +149,22 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     t => Traverse.Create(t).Field("destinationTrack").SetValue(wm.WarehouseTrack));
             }
 
+            // When changing destination track for SL job, update also StaticJobDefinition so the change persist through save/load
+            var jobChainController = UnityEngine.Object.FindObjectsOfType<StationProceduralJobsController>()
+                .SelectMany(sjc => sjc.GetCurrentJobChains())
+                .FirstOrDefault(jcc => jcc.currentJobInChain == job);
+
+            if (jobChainController != null) {
+                var staticJobDef = jobChainController.jobChain.FirstOrDefault(jd => jd.job == job);
+                if (staticJobDef != null) {
+                    if (staticJobDef is StaticShuntingLoadJobDefinition shuntingLoadJobDef) {
+                        shuntingLoadJobDef.destinationTrack = wm.WarehouseTrack;
+                    } else {
+                        Traverse.Create(staticJobDef).Field("destinationTrack").SetValue(wm.WarehouseTrack);
+                    }
+                }
+            }
+
             Main._modEntry.Logger.Log("    done!");
         }
 
@@ -199,7 +215,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                                     Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{job.ID}]. Skipping track reservation!");
                                 } else {
                                     YardTracksOrganizer.Instance.ReserveSpace(replacementTrack, lengthToBeReserved, false);
-                                    
+
                                     ReplaceDestinationTrackInStaticJobDefinition(staticJobDefinition, intendedDestinationTrack, replacementTrack);
 
                                     // update reservation data

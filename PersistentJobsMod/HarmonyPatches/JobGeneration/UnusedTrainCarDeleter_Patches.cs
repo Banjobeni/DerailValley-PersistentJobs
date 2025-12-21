@@ -74,6 +74,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return;
             }
 
+            if (StationController.allStations.Any(sc => sc?.gameObject == null)) {
+                return;
+            }
+
             if (___unusedTrainCarsMarkedForDelete.Count == 0) {
                 return;
             }

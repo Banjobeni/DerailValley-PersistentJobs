@@ -15,26 +15,31 @@ namespace PersistentJobsMod.Licensing {
 
             var trainCarCount = rng.Next(carCountRuleset.minCarsPerJob, maxCarsPerJob + 1);
 
+            if (trainCarCount < 1) {
+                // really shouldn't happen, but just in case
+                return null;
+            }
+
             if (!requirePlayerLicensesCompatible) {
                 return (cargoGroups, trainCarCount);
             }
 
             Main._modEntry.Logger.Log("CargoGroupsAndCarCountProvider: forcing license requirements");
 
+            var licensedCargoGroups = GetLicensedCargoGroups(cargoGroups, licenseKind);
+
+            if (licensedCargoGroups.Count > 0) {
+                return (licensedCargoGroups, trainCarCount);
+            }
+
+            return null;
+        }
+
+        private static List<CargoGroup> GetLicensedCargoGroups(List<CargoGroup> cargoGroups, CargoGroupLicenseKind licenseKind) {
             if (licenseKind == CargoGroupLicenseKind.Cargo) {
-                var licensedCargoGroups = cargoGroups.Where(cg => LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))).ToList();
-                if (licensedCargoGroups.Count == 0) {
-                    return null;
-                }
-
-                return (licensedCargoGroups, trainCarCount);
+                return cargoGroups.Where(cg => LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CargoRequiredLicenses))).ToList();
             } else {
-                var licensedCargoGroups = cargoGroups.Where(cg => LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CarRequiredLicenses))).ToList();
-                if (licensedCargoGroups.Count == 0) {
-                    return null;
-                }
-
-                return (licensedCargoGroups, trainCarCount);
+                return cargoGroups.Where(cg => LicenseManager.Instance.IsLicensedForJob(JobLicenseType_v2.ToV2List(cg.CarRequiredLicenses))).ToList();
             }
         }
     }

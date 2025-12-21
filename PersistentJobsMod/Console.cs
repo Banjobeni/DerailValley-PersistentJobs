@@ -75,9 +75,7 @@ namespace PersistentJobsMod {
         [RegisterCommand("PJ.ExpireAllAvailableJobs", Help = "PersistentJobsMod: Expire all available (not accepted) jobs such that the cars of those jobs will be jobless. Use the station ID as argument to restrict it to jobs in that station.", MinArgCount = 0, MaxArgCount = 1)]
         public static void ExpireAllJobs(CommandArg[] args) {
             if (args.Length == 0) {
-                foreach (var stationController in StationController.allStations) {
-                    ExpireAvailableJobs(stationController);
-                }
+                ExpireAvailableJobsInAllStations();
             } else {
                 var stationID = args[0].String;
                 var stationController = StationController.allStations.FirstOrDefault(s => s.logicStation.ID == stationID);
@@ -86,11 +84,17 @@ namespace PersistentJobsMod {
                     return;
                 }
 
-                ExpireAvailableJobs(stationController);
+                ExpireAvailableJobsInStation(stationController);
             }
         }
 
-        private static void ExpireAvailableJobs(StationController stationController) {
+        public static void ExpireAvailableJobsInAllStations() {
+            foreach (var stationController in StationController.allStations) {
+                ExpireAvailableJobsInStation(stationController);
+            }
+        }
+
+        public static void ExpireAvailableJobsInStation(StationController stationController) {
             Debug.Log($"Expiring {stationController.logicStation.availableJobs.Count} jobs in {stationController.logicStation.ID}");
             StationController_Patches.ExpireAllAvailableJobsInStation_Original(stationController);
         }
