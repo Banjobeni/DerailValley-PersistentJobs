@@ -349,7 +349,17 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
 
-            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups.Select(tcot => (TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(), StartingTrack: DetermineStartingTrack(tcot.SelectMany(tcts => tcts.TrainCars).ToList()))).ToList();
+            var trainCarsWithCargoTypesOnTracks = sameTrackTrainCarTypeGroups
+                .Select(tcot => (
+                    TrainCarsWithCargoTypes: tcot.SelectMany(tctg => tctg.TrainCars.Zip(CarSpawnGroupsRandomizer.ChooseCargoTypesForNumberOfCars(trainCarType2CargoTypes[tctg.TrainCarType], tctg.TrainCars.Count, random), (tc, ct) => (TrainCar: tc, CargoType: ct))).ToList(),
+                    StartingTrack: DetermineStartingTrackOrNull(tcot.SelectMany(tcts => tcts.TrainCars).ToList())
+                    ))
+                .Where(tcst => tcst.StartingTrack != null)
+                .ToList();
+
+            if (trainCarsWithCargoTypesOnTracks.Count == 0) {
+                return null;
+            }
 
             var carsPerStartingTrack = trainCarsWithCargoTypesOnTracks.Select(tcot => new CarsPerTrack(tcot.StartingTrack, tcot.TrainCarsWithCargoTypes.Select(tcwt => tcwt.TrainCar.logicCar).ToList())).ToList();
 
@@ -400,33 +410,45 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 var destination = random.GetRandomElement(destinations);
                 var trainCarCount = Math.Min(ChooseNumberOfCarsNotExceedingLength(trainCars, destination.RelationMaxTrainLength, random), maxCarCount);
                 var destinationTrainCars = trainCars.Take(trainCarCount).ToList();
-                var startingTrack = DetermineStartingTrack(destinationTrainCars);
+                var startingTrack = DetermineStartingTrackOrNull(destinationTrainCars);
 
-                yield return (destinationTrainCars, destination, startingTrack);
+                if (startingTrack != null) {
+                    yield return (destinationTrainCars, destination, startingTrack);
+                }
 
                 remainingCars = remainingCars.Skip(trainCarCount).ToList();
             }
         }
 
-        private static Track DetermineStartingTrack(IReadOnlyList<TrainCar> trainCars) {
-            var tracks = trainCars.SelectMany(tc => new[] { tc.logicCar.FrontBogieTrack, tc.logicCar.RearBogieTrack }).WhereNotNull().Distinct().ToList();
+        private static Track DetermineStartingTrackOrNull(IReadOnlyList<TrainCar> trainCars) {
+            var medianCarCount = trainCars.Count / 2;
 
-            if (!tracks.Any()) {
-                // TODO avoid calls to this method for all derailed cars or handle a null return in callers
-                AddMoreInfoToExceptionHelper.Run(
-                    () => throw new InvalidOperationException("could not find any bogie that is on a track"),
-                    () => $"an attempt to use the cars {string.Join(", ", trainCars.Select(tc => tc.ID))} for a job failed, possibly because all cars are derailed"
-                );
+            var nonDerailedBogies = trainCars.SelectMany((tc, index) => new[] { (MedianDistance: Math.Abs(index - medianCarCount), Bogie: tc.FrontBogie), (MedianDistance: Math.Abs(index - medianCarCount), Bogie: tc.RearBogie) })
+                .Where(t => t.Bogie.track != null)
+                .OrderBy(t => t.MedianDistance)
+                .ToList();
+
+            if (nonDerailedBogies.Count == 0) {
+                // all bogies are derailed
+                return null;
             }
 
-            var yardTracksOrganizerManagedTrack = tracks.FirstOrDefault(YardTracksOrganizer.Instance.IsTrackManagedByOrganizer);
-            if (yardTracksOrganizerManagedTrack != null) {
-                return yardTracksOrganizerManagedTrack;
-            } else {
-                Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))}");
+            var bogieNamedTrackOrNull = nonDerailedBogies.Select(b => b.Bogie.track).Distinct().FirstOrDefault(t => !t.LogicTrack().ID.IsGeneric());
+            if (bogieNamedTrackOrNull != null) {
+                return bogieNamedTrackOrNull.LogicTrack();
             }
 
-            return tracks.First();
+            var (_, bogieOrNull) = nonDerailedBogies.First();
+
+            var foundTrackOrNull = TrackUtilities.FindNearestNamedTrackOrNull(bogieOrNull.track.LogicTrack(), bogieOrNull.traveller.Span, bogieOrNull.transform.position);
+
+            if (foundTrackOrNull != null) {
+                return foundTrackOrNull;
+            }
+
+            Debug.Log($"[PersistentJobsMod] Could not determine a nice-looking starting track for train cars {string.Join(", ", trainCars.Select(tc => tc.ID))} by searching for nearest named track");
+
+            return null;
         }
 
         private static int ChooseNumberOfCarsNotExceedingLength(IReadOnlyList<TrainCar> trainCars, double maxLength, Random random) {
