@@ -107,6 +107,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="Utilities\AdditionalInformationException.cs" />
     <Compile Include="Utilities\AddMoreInfoToExceptionHelper.cs" />
+    <Compile Include="Utilities\CarTrackAssignment.cs" />
     <Compile Include="Utilities\ExceptionCatchingCoroutineIterator.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\RandomExtensions.cs" />

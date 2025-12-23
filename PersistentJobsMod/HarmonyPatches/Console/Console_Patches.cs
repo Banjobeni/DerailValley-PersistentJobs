@@ -10,8 +10,9 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
         [HarmonyPatch(typeof(DV.Console), "Dev_TeleportTrainToTrack")]
         [HarmonyPrefix]
         public static bool Dev_TeleportTrainToTrack_Prefix(CommandArg[] args) {
-            if (Terminal.IssuedError)
+            if (Terminal.IssuedError) {
                 return false;
+            }
 
             var trackId = args[0].String.ToLower();
             var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.LogicTrack().ID.FullDisplayID.ToLower() == trackId);
