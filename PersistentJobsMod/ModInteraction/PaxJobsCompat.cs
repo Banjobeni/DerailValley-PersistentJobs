@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 using static PersistentJobsMod.HarmonyPatches.JobGeneration.UnusedTrainCarDeleter_Patches;
 using Random = System.Random;
 
@@ -154,7 +155,7 @@ namespace PersistentJobsMod.ModInteraction
 
         private static object GetStationData(string yardId) => _GetStationData?.Invoke(null, new object[] { yardId }); // output is IPassDestination : PassStationData
 
-        private static object GetRouteTrackById(string trackId) => _GetRouteTrackById?.Invoke(null, new object[] { trackId });
+        private static object GetRouteTrackById(string trackFullDisplayId) => _GetRouteTrackById?.Invoke(null, new object[] { trackFullDisplayId });
 
         private static List<Track> AllPaxTracksForStationData(string yardId) => ((IEnumerable<Track>)_AllTracksProperty.GetValue(GetStationData(yardId))).ToList();
 
@@ -168,13 +169,7 @@ namespace PersistentJobsMod.ModInteraction
 
         private static double GetRouteTrackLength(object routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack);
 
-        private static bool CanFitInStation(object stationData, List<TrainCar> trainCars)
-        {
-            float consistLength = GetConsistLength(trainCars);
-
-            return GetPlatforms(stationData)
-                .Any(rt => consistLength <= GetRouteTrackLength(rt));
-        }
+        private static bool CanFitInStation(object stationData, List<TrainCar> trainCars) => GetPlatforms(stationData).Any(rt => (float)GetConsistLength(trainCars) <= GetRouteTrackLength(rt));
 
         private static JobType PickPassengerJobType(int carCount)
         {
@@ -187,13 +182,40 @@ namespace PersistentJobsMod.ModInteraction
         private static List<JobChainController> TryGeneratePassengerJob(StationController station, List<TrainCar> trainCars, List<object> fittingPlatforms, JobType jobType)
         {
             List<JobChainController> result = new();
-            var routeTrack = RandomExtensions.GetRandomElement(_Random, fittingPlatforms);
-            var consistInfo = CreatePassConsistInfo(routeTrack, TrainCar.ExtractLogicCars(trainCars));
+
+            if (trainCars.Count() > 20) result.AddRange(HandleSplitOrFail(trainCars, station));
+
+            object preferredRouteTrack = null;
+            var currentTrackLogic = CarTrackAssignment.FindNearestNamedTrackOrNull(trainCars);
+            if (currentTrackLogic != null)
+            {
+                var currentRouteTrackObject = GetRouteTrackById(currentTrackLogic.ID.FullDisplayID);
+                if (currentRouteTrackObject != null)
+                {
+                    Main._modEntry.Logger.Log($"Current track for consist starting with {trainCars.First().ID} is {GetRouteTractTrackField(currentRouteTrackObject)}");
+
+                    string currentTrackId = GetRouteTractTrackField(currentRouteTrackObject).ID.FullDisplayID;
+                    if (fittingPlatforms.Any(rt => GetRouteTractTrackField(rt).ID.FullDisplayID == currentTrackId)) preferredRouteTrack = currentRouteTrackObject;
+                }
+                else Main._modEntry.Logger.Log($"Didn´t find PaxJobs RouteTrack for current track {currentTrackLogic.ID.FullID}");
+            }
+            else Main._modEntry.Logger.Log($"Couldn´t get current track for consist starting with {trainCars.First().ID}");
+
+            preferredRouteTrack ??= RandomExtensions.GetRandomElement(_Random, fittingPlatforms);
+            if (preferredRouteTrack == null)
+            {
+                Main._modEntry.Logger.Log($"No fitting platforms found for consist starting with {trainCars.First().ID} to generate a job.");
+                result.AddRange(HandleSplitOrFail(trainCars, station));
+                return result;
+            }
+
+            var consistInfo = CreatePassConsistInfo(preferredRouteTrack, TrainCar.ExtractLogicCars(trainCars));
 
             if (TryGenerateJob(station.stationInfo.YardID, jobType, consistInfo, out JobChainController passangerChainController))
             {
                 Main._modEntry.Logger.Log($"Successfully reassigned pax consist starting with {trainCars.First().ID} to job {passangerChainController.currentJobInChain.ID}");
                 result.Add(passangerChainController);
+                return result;
             }
 
             result.AddRange(HandleSplitOrFail(trainCars, station));
@@ -271,6 +293,8 @@ namespace PersistentJobsMod.ModInteraction
                 HandleLoadedPaxCars(tcs, station, out List<JobChainController> jobChainControllers);
                 result.AddRange(jobChainControllers);
             }
+
+            foreach (var jcc in result) FinalizeJobChainControllerAndGenerateFirstJob(jcc);
             return result;
         }
 
@@ -298,9 +322,9 @@ namespace PersistentJobsMod.ModInteraction
             return trainCarGroups;
         }
 
-        private static Track GetRandomFittingPlatform(StationController targetStation, List<TrainCar> trainCars)
+        private static Track GetRandomFittingPlatform(StationController targetStation, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
         {
-            var fittingPlatforms = GetFittingPlatformsForStation(targetStation, trainCars);
+            var fittingPlatforms = GetFittingPlatformsForStation(targetStation, trainCars, onlyTerminusTracks);
 
             if (!fittingPlatforms.Any()) return null;
 
@@ -308,13 +332,15 @@ namespace PersistentJobsMod.ModInteraction
             return GetRouteTractTrackField(randomRouteTrack);
         }
 
-        private static List<object> GetFittingPlatformsForStation(StationController station, List<TrainCar> trainCars)
+        private static List<object> GetFittingPlatformsForStation(StationController station, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
         {
             var stationData = GetStationData(station.stationInfo.YardID);
-            return stationData == null ? new List<object>() : (GetPlatforms(stationData).Where(rt => (float)GetConsistLength(trainCars) <= GetRouteTrackLength(rt)).ToList());
+            return stationData == null ? new List<object>() : (GetPlatforms(stationData, onlyTerminusTracks).Where(rt => GetConsistLength(trainCars) <= GetRouteTrackLength(rt)).ToList());
         }
 
-        private static StationController FindDestinationStation(StationController origin, List<TrainCar> trainCars) => AllPaxStations().Distinct().Where(st => st != origin).Where(st => CanFitInStation(GetStationData(st.stationInfo.YardID), trainCars)).OrderBy(_ => _Random.Next()).FirstOrDefault();
+        private static float CalculateCrowDistanceBetweenThings(Vector3 thing1, Vector3 thing2) => (thing1 - thing2).sqrMagnitude;
+
+        private static StationController FindDestinationStation(StationController origin, List<TrainCar> trainCars) => AllPaxStations().Distinct().Where(st => st != origin).Where(st => CanFitInStation(GetStationData(st.stationInfo.YardID), trainCars)).OrderBy(sc => CalculateCrowDistanceBetweenThings(trainCars.First().transform.position, sc.stationRange.transform.position)).FirstOrDefault();
 
         private static bool TryGetStationContext(List<TrainCar> trainCars, StationController station, out Track startingTrack)
         {
@@ -360,11 +386,10 @@ namespace PersistentJobsMod.ModInteraction
                 StationController viableDestStation = FindDestinationStation(station, trainCars);
                 if (viableDestStation != null)
                 {
-                    Track possibleDestinationTrack = GetRandomFittingPlatform(viableDestStation, trainCars);
+                    Track possibleDestinationTrack = GetRandomFittingPlatform(viableDestStation, trainCars, true);
                     JobChainController transportJobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, viableDestStation, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), _Random, false, possibleDestinationTrack);
                     if (transportJobChainController != null)
                     {
-                        FinalizeJobChainControllerAndGenerateFirstJob(transportJobChainController);
                         jobChainControllers.Add(transportJobChainController);
                         return;
                     }
@@ -377,7 +402,7 @@ namespace PersistentJobsMod.ModInteraction
                 }
             }
 
-            Main._modEntry.Logger.Error("[HandleEmptyPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
+            Main._modEntry.Logger.Error("[HandleLoadedPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
         }
 
         private static void HandleEmptyPaxCars(List<TrainCar> trainCars, StationController station, out List<JobChainController> jobChainControllers)
@@ -397,6 +422,7 @@ namespace PersistentJobsMod.ModInteraction
                 }
 
                 JobType jobType = PickPassengerJobType(trainCars.Count);
+                if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn´t have any valid outgoing express routes 
                 jobChainControllers.AddRange(TryGeneratePassengerJob(station, trainCars, fittingPlatforms, jobType));
                 return;
             }
@@ -411,7 +437,6 @@ namespace PersistentJobsMod.ModInteraction
                     JobChainController emptyHaulJobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, viableDestStation, startingTrack, trainCars, _Random, possibleDestinationTrack);
                     if (emptyHaulJobChainController != null)
                     {
-                        FinalizeJobChainControllerAndGenerateFirstJob(emptyHaulJobChainController);
                         jobChainControllers.Add(emptyHaulJobChainController);
                         return;
                     }
