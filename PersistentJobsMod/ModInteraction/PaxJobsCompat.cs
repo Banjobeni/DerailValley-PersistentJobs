@@ -26,6 +26,8 @@ namespace PersistentJobsMod.ModInteraction
         private static Type _PassengerJobGenerator;
         private static Type _IPassDestination;
         private static Type _PassJobType;
+        private static Type _PassengerChainController;
+        private static Type _PassengerHaulJobDefinition;
 
         private static ConstructorInfo _RouteTrackCtor;
         private static ConstructorInfo _PassConsistInfoCtor;
@@ -39,8 +41,10 @@ namespace PersistentJobsMod.ModInteraction
 
         private static PropertyInfo _AllTracksProperty;
         private static PropertyInfo _RouteTrackLengthProp;
+        private static PropertyInfo _TrainCarsToTransportProp;
 
         private static FieldInfo _RouteTrackTrackField;
+        private static FieldInfo _StartingTrackField;
 
         private static Random _Random;
 
@@ -60,6 +64,8 @@ namespace PersistentJobsMod.ModInteraction
                 _PassengerJobGenerator = CompatAccess.Type("PassengerJobs.Generation.PassengerJobGenerator");
                 _IPassDestination = CompatAccess.Type("PassengerJobs.Generation.IPassDestination");
                 _PassJobType = CompatAccess.Type("PassengerJobs.Generation.PassJobType");
+                _PassengerChainController = CompatAccess.Type("PassengerJobs.Generation.PassengerChainController");
+                _PassengerHaulJobDefinition = CompatAccess.Type("PassengerJobs.Generation.PassengerHaulJobDefinition");
 
                 _TryGetInstance = CompatAccess.Method(_PassengerJobGenerator, "TryGetInstance");
                 _GenerateJob = CompatAccess.Method(_PassengerJobGenerator, "GenerateJob", new[] { typeof(JobType), _PassConsistInfo });
@@ -71,8 +77,10 @@ namespace PersistentJobsMod.ModInteraction
 
                 _AllTracksProperty = CompatAccess.Property(_IPassDestination, "AllTracks");
                 _RouteTrackLengthProp = CompatAccess.Property(_RouteTrack, "Length");
+                _TrainCarsToTransportProp = CompatAccess.Property(_PassengerHaulJobDefinition, "TrainCarsToTransport");
 
                 _RouteTrackTrackField = CompatAccess.Field(_RouteTrack, "Track");
+                _StartingTrackField = CompatAccess.Field(_PassengerHaulJobDefinition, "StartingTrack");
 
                 _RouteTrackCtor = CompatAccess.Ctor(_RouteTrack, new[] { _IPassDestination, typeof(Track) });
                 _PassConsistInfoCtor = CompatAccess.Ctor(_PassConsistInfo, new[] { _RouteTrack, typeof(List<Car>) });
@@ -159,6 +167,8 @@ namespace PersistentJobsMod.ModInteraction
 
         private static List<Track> AllPaxTracksForStationData(string yardId) => ((IEnumerable<Track>)_AllTracksProperty.GetValue(GetStationData(yardId))).ToList();
 
+        private static List<Car> GetTrainCarsForPaxJobDefinition(StaticJobDefinition staticPaxJobDefinition) => (List<Car>)_TrainCarsToTransportProp.GetValue(staticPaxJobDefinition);
+
         private static IEnumerable<object> GetPlatforms(object stationData, bool onlyTerminusTracks = false)
         {
             var result = _GetPlatforms.Invoke(stationData, new object[] { onlyTerminusTracks });
@@ -166,6 +176,8 @@ namespace PersistentJobsMod.ModInteraction
         }
 
         private static Track GetRouteTractTrackField(object routeTrack) => (Track)_RouteTrackTrackField.GetValue(routeTrack);
+
+        private static object GetPaxHaulJobDefStartingRouteTrackField(StaticJobDefinition staticPaxJobDefinition) => _StartingTrackField.GetValue(staticPaxJobDefinition);
 
         private static double GetRouteTrackLength(object routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack);
 
@@ -270,6 +282,31 @@ namespace PersistentJobsMod.ModInteraction
             Main._modEntry.Logger.Log($"Found {emptyConsecutiveTrainCarGroups.Count} empty pax train car groups with a total of {emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             Main._modEntry.Logger.Log($"Found {loadedConsecutiveTrainCarGroups.Count} loaded pax train car groups with a total of {loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             return (emptyConsecutiveTrainCarGroups, loadedConsecutiveTrainCarGroups);
+        }
+
+        private static void AddTransportTaskToTop(JobChainController paxJobChainController)
+        {
+            if (_PassengerChainController.IsInstanceOfType(paxJobChainController))
+            {
+                var staticPaxJobDefinition = paxJobChainController.jobChain.FirstOrDefault();
+                if (staticPaxJobDefinition != null)
+                {
+                    var job = staticPaxJobDefinition.job;
+                    var cars = paxJobChainController.carsForJobChain;
+                    Main._modEntry.Logger.Log($"Attempting to add task to {job.ID}");
+                    var headSequentialTask = (SequentialTasks)job.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Sequential);
+                    if (headSequentialTask != null)
+                    {
+                        var newTransportTask = JobsGenerator.CreateTransportTask(cars, GetRouteTractTrackField(GetPaxHaulJobDefStartingRouteTrackField(staticPaxJobDefinition)), CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(cars)));
+                        var newParallelHoldingTask = new ParallelTasks(new List<Task> { newTransportTask });
+                        newParallelHoldingTask.SetJobBelonging(job);
+                        headSequentialTask.tasks.AddFirst(newParallelHoldingTask);
+                    }
+                    else Main._modEntry.Logger.Error($"Couldn´t extract head sequential task of {job.ID}");
+                }
+                else Main._modEntry.Logger.Error($"Couldn´t get job definition");
+            }
+
         }
 
         public static List<JobChainController> DecideForPaxCarGroups(List<IReadOnlyList<TrainCar>> paxConsecutiveTrainCarGroups, StationController station)
@@ -423,7 +460,14 @@ namespace PersistentJobsMod.ModInteraction
 
                 JobType jobType = PickPassengerJobType(trainCars.Count);
                 if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn´t have any valid outgoing express routes 
-                jobChainControllers.AddRange(TryGeneratePassengerJob(station, trainCars, fittingPlatforms, jobType));
+
+                List<JobChainController> processedControllers = new();
+                foreach (var jcc in TryGeneratePassengerJob(station, trainCars, fittingPlatforms, jobType))
+                {
+                    AddTransportTaskToTop(jcc);
+                    processedControllers.Add(jcc);
+                }
+                jobChainControllers.AddRange(processedControllers);
                 return;
             }
             else
