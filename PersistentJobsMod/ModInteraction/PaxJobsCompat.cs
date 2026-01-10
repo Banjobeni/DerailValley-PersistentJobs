@@ -236,17 +236,31 @@ namespace PersistentJobsMod.ModInteraction
 
             Track currentTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(trainCars);
             object preferredRouteTrack = SelectStartPlatformRouteTrack(currentTrack, fittingPlatforms);
-            if (preferredRouteTrack == null)
+            if (preferredRouteTrack == null || GetRouteTractTrackField(preferredRouteTrack).ID == null)
             {
                 Main._modEntry.Logger.Log($"No fitting platforms found for consist starting with {trainCars.First().ID}");
                 result.AddRange(HandleSplitOrFail(trainCars, station));
                 return result;
             }
 
+            if (!fittingPlatforms.Contains(preferredRouteTrack))
+            {
+                Main._modEntry.Logger.Error("Selected RouteTrack is not in fitting platforms list");
+                return result;
+            }
+
+            Main._modEntry.Logger.Log($"Picked platform {GetRouteTractTrackField(preferredRouteTrack).ID.FullDisplayID} ");
+
             if (TryGenerateJob(station.stationInfo.YardID, jobType, CreatePassConsistInfo(preferredRouteTrack, TrainCar.ExtractLogicCars(trainCars)), out JobChainController passangerChainController))
             {
                 Main._modEntry.Logger.Log($"Successfully reassigned pax consist starting with {trainCars.First().ID} to job {passangerChainController.currentJobInChain.ID}");
-                if (GetRouteTractTrackField(preferredRouteTrack).ID.FullDisplayID != currentTrack.ID.FullDisplayID) AddTransportTaskToTop(passangerChainController, currentTrack, GetRouteTractTrackField(preferredRouteTrack));
+                
+                /*if (GetRouteTractTrackField(preferredRouteTrack).ID.FullDisplayID != currentTrack.ID.FullDisplayID && passangerChainController != null)
+                {
+                    AddTransportTaskToTop(passangerChainController, currentTrack, GetRouteTractTrackField(preferredRouteTrack));
+                }
+                else { passangerChainController.FinalizeSetupAndGenerateFirstJob(); }*/
+
                 result.Add(passangerChainController);
                 return result;
             }
@@ -309,9 +323,20 @@ namespace PersistentJobsMod.ModInteraction
         {
             if (_PassengerChainController.IsInstanceOfType(paxJobChainController))
             {
+                if (!paxJobChainController.jobChain.Any())
+                {
+                    Main._modEntry.Logger.Error("jcc jobChain field is null or empty");
+                    return;
+                }
+                paxJobChainController.FinalizeSetupAndGenerateFirstJob();
                 var staticPaxJobDefinition = paxJobChainController.jobChain.FirstOrDefault();
                 if (staticPaxJobDefinition != null)
                 {
+                    if (staticPaxJobDefinition.job == null)
+                    {
+                        Main._modEntry.Logger.Error("staticJobDefinition.job is null");
+                        return;
+                    }
                     var job = staticPaxJobDefinition.job;
                     var cars = paxJobChainController.carsForJobChain;
                     Main._modEntry.Logger.Log($"Attempting to add task to {job.ID}");
@@ -327,7 +352,6 @@ namespace PersistentJobsMod.ModInteraction
                 }
                 else Main._modEntry.Logger.Error($"Couldn´t get job definition");
             }
-
         }
 
         public static List<JobChainController> DecideForPaxCarGroups(List<IReadOnlyList<TrainCar>> paxConsecutiveTrainCarGroups, StationController station)
@@ -352,7 +376,7 @@ namespace PersistentJobsMod.ModInteraction
                 result.AddRange(jobChainControllers);
             }
 
-            foreach (var jcc in result) FinalizeJobChainControllerAndGenerateFirstJob(jcc);
+            //foreach (var jcc in result) if (_PassengerChainController.IsInstanceOfType(jcc)) FinalizeJobChainControllerAndGenerateFirstJob(jcc);
             return result;
         }
 
@@ -448,6 +472,7 @@ namespace PersistentJobsMod.ModInteraction
                     JobChainController transportJobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, viableDestStation, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), _Random, false, possibleDestinationTrack);
                     if (transportJobChainController != null)
                     {
+                        transportJobChainController.FinalizeSetupAndGenerateFirstJob();
                         jobChainControllers.Add(transportJobChainController);
                         return;
                     }
@@ -495,6 +520,7 @@ namespace PersistentJobsMod.ModInteraction
                     JobChainController emptyHaulJobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, viableDestStation, startingTrack, trainCars, _Random, possibleDestinationTrack);
                     if (emptyHaulJobChainController != null)
                     {
+                        emptyHaulJobChainController.FinalizeSetupAndGenerateFirstJob();
                         jobChainControllers.Add(emptyHaulJobChainController);
                         return;
                     }
