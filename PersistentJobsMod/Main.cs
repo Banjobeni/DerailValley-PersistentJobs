@@ -13,6 +13,7 @@ namespace PersistentJobsMod {
     public static class Main {
         // ReSharper disable InconsistentNaming
         public static UnityModManager.ModEntry _modEntry;
+        public static Harmony Harmony;
         public static float _initialDistanceRegular = 0f;
         public static float _initialDistanceAnyJobTaken = 0f;
         // ReSharper restore InconsistentNaming
@@ -32,8 +33,8 @@ namespace PersistentJobsMod {
         public static void Load(UnityModManager.ModEntry modEntry) {
             _modEntry = modEntry;
 
-            var harmony = new Harmony(modEntry.Info.Id);
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            Harmony = new Harmony(modEntry.Info.Id);
+            Harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             Settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
 

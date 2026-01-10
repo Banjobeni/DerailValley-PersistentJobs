@@ -38,6 +38,8 @@ namespace PersistentJobsMod.ModInteraction
         private static MethodInfo _GetStationData;
         private static MethodInfo _GetRouteTrackById;
         private static MethodInfo _GetPlatforms;
+        private static MethodInfo _PHJD_GenerateJob;
+        private static MethodInfo _PHJD_GenJobPostfix;
 
         private static PropertyInfo _AllTracksProperty;
         private static PropertyInfo _RouteTrackLengthProp;
@@ -45,6 +47,7 @@ namespace PersistentJobsMod.ModInteraction
 
         private static FieldInfo _RouteTrackTrackField;
         private static FieldInfo _StartingTrackField;
+        private static FieldInfo _TaskStartingTrackField;
 
         private static Random _Random;
 
@@ -74,6 +77,7 @@ namespace PersistentJobsMod.ModInteraction
                 _GetStationData = CompatAccess.Method(_RouteManager, "GetStationData");
                 _GetRouteTrackById = CompatAccess.Method(_RouteManager, "GetRouteTrackById");
                 _GetPlatforms = CompatAccess.Method(_IPassDestination, "GetPlatforms", new[] { typeof(bool) });
+                _PHJD_GenerateJob = CompatAccess.Method(_PassengerHaulJobDefinition, "GenerateJob", new Type[] { typeof(Station), typeof(float), typeof(float), typeof(string), typeof(JobLicenses) });
 
                 _AllTracksProperty = CompatAccess.Property(_IPassDestination, "AllTracks");
                 _RouteTrackLengthProp = CompatAccess.Property(_RouteTrack, "Length");
@@ -81,6 +85,7 @@ namespace PersistentJobsMod.ModInteraction
 
                 _RouteTrackTrackField = CompatAccess.Field(_RouteTrack, "Track");
                 _StartingTrackField = CompatAccess.Field(_PassengerHaulJobDefinition, "StartingTrack");
+                _TaskStartingTrackField = CompatAccess.Field(typeof(TransportTask), "startingTrack");
 
                 _RouteTrackCtor = CompatAccess.Ctor(_RouteTrack, new[] { _IPassDestination, typeof(Track) });
                 _PassConsistInfoCtor = CompatAccess.Ctor(_PassConsistInfo, new[] { _RouteTrack, typeof(List<Car>) });
@@ -89,12 +94,25 @@ namespace PersistentJobsMod.ModInteraction
 
                 _PassengerExpress = Traverse.Create(_PassJobType).Field("Express").GetValue<JobType>();
                 _PassengerLocal = Traverse.Create(_PassJobType).Field("Local").GetValue<JobType>();
+
+                _PHJD_GenJobPostfix = typeof(PaxJobsCompat).GetMethod(nameof(GenerateJob_Postfix), BindingFlags.Static | BindingFlags.NonPublic);
+                if (_PHJD_GenerateJob != null && _PHJD_GenJobPostfix != null)
+                {
+                    Main.Harmony.Patch(_PHJD_GenerateJob, postfix: new HarmonyMethod(_PHJD_GenJobPostfix));
+                    Main._modEntry.Logger.Log("Successfully patched PassengerHaulJobDefinition.GenerateJob");
+                }
+                else
+                {
+                    Main._modEntry.Logger.Error("Failed to find methods required to patch PassengerHaulJobDefinition.GenerateJob");
+                    throw new MethodAccessException();
+                }
             }
             catch (Exception e)
             {
                 Main._modEntry.Logger.LogException("Failed to initilize PaxJobsCompat when resolving types and methods", e);
                 return false;
             }
+
             return true;
         }
 
@@ -180,6 +198,8 @@ namespace PersistentJobsMod.ModInteraction
             var result = _GetPlatforms.Invoke(stationData, new object[] { onlyTerminusTracks });
             if (result is System.Collections.IEnumerable enumerable) foreach (var item in enumerable) yield return item;
         }
+
+        private static List<Track> GetStorageTracks(string yardId) => AllPaxTracksForStationData(yardId).Except(GetPlatforms(GetStationData(yardId)).Select(rt => GetRouteTrackTrackField(rt)).ToList()).ToList();
 
         private static Track GetRouteTrackTrackField(object routeTrack)
         {
@@ -369,14 +389,10 @@ namespace PersistentJobsMod.ModInteraction
             return trainCarGroups;
         }
 
-        private static Track GetRandomFittingPlatform(StationController targetStation, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
+        private static Track GetRandomFittingStorageTrack(StationController targetStation, List<TrainCar> trainCars)
         {
-            var fittingPlatforms = GetFittingPlatformsForStation(targetStation, trainCars, onlyTerminusTracks);
-
-            if (!fittingPlatforms.Any()) return null;
-
-            var randomRouteTrack = fittingPlatforms.GetRandomElement();
-            return GetRouteTrackTrackField(randomRouteTrack);
+            var fittingSPTracks = GetStationData(targetStation.stationInfo.YardID) == null ? new List<Track>() : (GetStorageTracks(targetStation.stationInfo.YardID).Where(t => GetConsistLength(trainCars) <= t.length).ToList());
+            return !fittingSPTracks.Any() ? null : fittingSPTracks.GetRandomElement();
         }
 
         private static List<object> GetFittingPlatformsForStation(StationController station, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
@@ -429,11 +445,11 @@ namespace PersistentJobsMod.ModInteraction
             else
             {
                 Main._modEntry.Logger.Log($"Loaded consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} on track {startingTrack.ID.FullID} needs to be transported to a pax jobs station to get unloaded");
-                //generate FH job to random pax station: use already existing mod logic elswhere -- potentially chnge to use SP tracks which PaxJobs currently doesn´t - wait for update?
+                //generate FH job to random pax station: use already existing mod logic elswhere
                 StationController viableDestStation = FindDestinationStation(station, trainCars);
                 if (viableDestStation != null)
                 {
-                    Track possibleDestinationTrack = GetRandomFittingPlatform(viableDestStation, trainCars, true);
+                    Track possibleDestinationTrack = GetRandomFittingStorageTrack(viableDestStation, trainCars);
                     JobChainController transportJobChainController = TransportJobGenerator.TryGenerateJobChainController(station, startingTrack, viableDestStation, trainCars, trainCars.Select(tc => tc.LoadedCargo).ToList(), _Random, false, possibleDestinationTrack);
                     if (transportJobChainController != null)
                     {
@@ -470,18 +486,18 @@ namespace PersistentJobsMod.ModInteraction
                 }
 
                 JobType jobType = PickPassengerJobType(trainCars.Count);
-                if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn´t have any valid outgoing express routes 
+                if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn´t have any valid outgoing express routes <-- do this dynamically from PaxJobs routes list?
                 jobChainControllers.AddRange(TryGeneratePassengerJob(station, trainCars, fittingPlatforms, jobType));
                 return;
             }
             else
             {
                 Main._modEntry.Logger.Log($"Empty consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} on track {startingTrack.ID.FullID} needs to be transported to a pax jobs station to get reassigned a pax job");
-                //generate LH job to random pax station: use already existing mod logic elswhere -- potentially chnge to use SP tracks which PaxJobs currently doesn´t - wait for update?
+                //generate LH job to random pax station: use already existing mod logic elswhere
                 StationController viableDestStation = FindDestinationStation(station, trainCars);
                 if (viableDestStation != null)
                 {
-                    Track possibleDestinationTrack = GetRandomFittingPlatform(viableDestStation, trainCars);
+                    Track possibleDestinationTrack = GetRandomFittingStorageTrack(viableDestStation, trainCars);
                     JobChainController emptyHaulJobChainController = EmptyHaulJobGenerator.GenerateEmptyHaulJobWithExistingCarsOrNull(station, viableDestStation, startingTrack, trainCars, _Random, possibleDestinationTrack);
                     if (emptyHaulJobChainController != null)
                     {
@@ -499,6 +515,37 @@ namespace PersistentJobsMod.ModInteraction
             }
 
             Main._modEntry.Logger.Error("[HandleEmptyPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
+        }
+
+#pragma warning disable IDE0060 // Remove unused parameter
+        private static void GenerateJob_Postfix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses)
+#pragma warning restore IDE0060 // Remove unused parameter
+        {
+            object startingRouteTrack = _StartingTrackField.GetValue(__instance);
+            List<Car> trainCars = (List<Car>)_TrainCarsToTransportProp.GetValue(__instance);
+            var carsTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(trainCars));
+
+            if (GetRouteTrackTrackField(startingRouteTrack).ID.FullDisplayID != carsTrack.ID.FullDisplayID)
+            {
+                var jobs = jobOriginStation.availableJobs;
+                jobs.Reverse();
+
+                foreach (var job in jobs)
+                {
+                    if (job.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Sequential) is not SequentialTasks sequential) continue;
+
+                    if (sequential.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Transport) is not TransportTask transport) continue;
+
+                    if ((bool)!transport.GetTaskData().cars.SequenceEqual(trainCars)) continue;
+
+                    var startTrack = (Track)_TaskStartingTrackField.GetValue(transport);
+                    if (startTrack == null || startTrack.ID.FullDisplayID == carsTrack.ID.FullDisplayID) continue;
+
+                    _TaskStartingTrackField.SetValue(transport, carsTrack);
+                    Main._modEntry.Logger.Log($"Changed start strack for job {job.ID}");
+                    break;
+                }
+            }
         }
     }
 }
