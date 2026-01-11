@@ -115,6 +115,7 @@
     <Compile Include="Extensions\TrackExtension.cs" />
     <Compile Include="Utilities\PaymentAndBonusTimeUtilities.cs" />
     <Compile Include="Utilities\PlayerSpawnedCarUtilities.cs" />
+    <Compile Include="Utilities\ReflectionUtilities.cs" />
     <Compile Include="Utilities\TaskUtilities.cs" />
     <Compile Include="Utilities\TranspilingUtilities.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
@@ -149,22 +150,15 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-
-<Target Name="PostBuildCopyWithBackup" AfterTargets="Build">
-  <PropertyGroup>
-    <DeployDir>$(DvInstallDir)\Mods\PersistentJobsMod\</DeployDir>
-    <DeployFile>$(DeployDir)$(TargetFileName)</DeployFile>
-    <BackupFile>$(DeployFile).OLD</BackupFile>
-  </PropertyGroup>
-  <Move
-    SourceFiles="$(DeployFile)"
-    DestinationFiles="$(BackupFile)"
-    Condition="Exists('$(DeployFile)')" />
-  <Copy
-    SourceFiles="$(TargetPath)"
-    DestinationFiles="$(DeployFile)" />
-</Target>
-
+  <Target Name="PostBuildCopyWithBackup" AfterTargets="Build">
+    <PropertyGroup>
+      <DeployDir>$(DvInstallDir)\Mods\PersistentJobsMod\</DeployDir>
+      <DeployFile>$(DeployDir)$(TargetFileName)</DeployFile>
+      <BackupFile>$(DeployFile).OLD</BackupFile>
+    </PropertyGroup>
+    <Move SourceFiles="$(DeployFile)" DestinationFiles="$(BackupFile)" Condition="Exists('$(DeployFile)')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DeployFile)" />
+  </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

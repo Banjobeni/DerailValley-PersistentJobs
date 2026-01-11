@@ -5,18 +5,36 @@ using HarmonyLib;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.JobGenerators;
 using PersistentJobsMod.Utilities;
+using static PersistentJobsMod.Utilities.ReflectionUtilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using static PersistentJobsMod.HarmonyPatches.JobGeneration.UnusedTrainCarDeleter_Patches;
+using static PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags;
 using Random = System.Random;
+
+#region RefType using
+using ConsistManagerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.ConsistManager>;
+using ExpressStationsChainDataRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.ExpressStationsChainData>;
+using IPassDestinationRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.IPassDestination>;
+using PassConsistInfoRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassConsistInfo>;
+using PassengerChainControllerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerChainController>;
+using PassengerHaulJobDefinitionRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerHaulJobDefinition>;
+using PassengerJobGeneratorRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerJobGenerator>;
+using PassJobTypeRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassJobType>;
+using RouteManagerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteManager>;
+using RouteResultRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteResult>;
+using RouteTrackRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteTrack>;
+using RouteTypeRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteType>;
+#endregion
 
 namespace PersistentJobsMod.ModInteraction
 {
     public static class PaxJobsCompat
     {
+        #region Reflection setup
         private static Assembly asm;
 
         private static Type _RouteManager;
@@ -36,7 +54,6 @@ namespace PersistentJobsMod.ModInteraction
         private static ConstructorInfo _PassConsistInfoCtor;
         private static ConstructorInfo _PassengerJccCtor;
         private static ConstructorInfo _ExpressStChainDataCtor;
-
 
         private static MethodInfo _TryGetInstance;
         private static MethodInfo _GenerateJob;
@@ -71,7 +88,6 @@ namespace PersistentJobsMod.ModInteraction
 
         private static object _RouteTypeExpress;
         private static object _RouteTypeLocal;
-
         public static bool Initialize()
         {
             try
@@ -150,17 +166,24 @@ namespace PersistentJobsMod.ModInteraction
             return true;
         }
 
-        internal static class CompatAccess
+        public class Tags
         {
-            public static Type Type(string fullName) => AccessTools.TypeByName(fullName) ?? throw new TypeLoadException($"Type not found: {fullName}");
-            public static MethodInfo Method(Type type, string name, Type[] args = null) => (args == null ? AccessTools.Method(type, name) : AccessTools.Method(type, name, args)) ?? throw new MissingMethodException(type.FullName, name);
-            public static ConstructorInfo Ctor(Type type, Type[] args) => AccessTools.Constructor(type, args) ?? throw new MissingMethodException(type.FullName, ".ctor");
-            public static PropertyInfo Property(Type type, string name) => AccessTools.Property(type, name) ?? throw new MissingMemberException(type.FullName, name);
-            public static FieldInfo Field(Type type, string name) => AccessTools.Field(type, name) ?? throw new MissingFieldException(type.FullName, name);
-            public static Type IEnumerableOf(Type elementType) => typeof(IEnumerable<>).MakeGenericType(elementType);
+            public sealed class RouteManager { };
+            public sealed class ConsistManager { };
+            public sealed class RouteTrack { };
+            public sealed class PassConsistInfo { };
+            public sealed class PassengerJobGenerator { };
+            public sealed class IPassDestination { };
+            public sealed class PassJobType { };
+            public sealed class PassengerChainController { };
+            public sealed class PassengerHaulJobDefinition { };
+            public sealed class RouteResult { };
+            public sealed class RouteType { };
+            public sealed class ExpressStationsChainData { };
         }
+        #endregion
 
-        private static bool TryGetGenerator(string yardId, out object generator)
+        /*private static bool TryGetGenerator(string yardId, out object generator)
         {
             generator = null;
             var args = new object[] { yardId, null };
@@ -172,10 +195,10 @@ namespace PersistentJobsMod.ModInteraction
 
             generator = args[1];
             return generator != null;
-        }
+        }*/
 
         //public static bool TryGenerateJob(string yardId, JobType jobType, object passConsistInfo, out JobChainController passengerChainController)
-        public static bool TryGenerateJob(StationController station, JobType jobType, object startingRouteTrack, List<TrainCar> trainCars, out JobChainController passengerChainController)
+        private static bool TryGenerateJob(StationController station, JobType jobType, RouteTrackRef startingRouteTrack, List<TrainCar> trainCars, out JobChainController passengerChainController)
         {
             passengerChainController = null;
             if (!AStartGameData.carsAndJobsLoadingFinished) return false;
@@ -200,13 +223,13 @@ namespace PersistentJobsMod.ModInteraction
             return passengerChainController != null;
         }
 
-        private static object CreateRouteTrack(object IPassDestination, Track terminalTrack) => _RouteTrackCtor.Invoke(new object[] { IPassDestination, terminalTrack });
+        private static RouteTrackRef CreateRouteTrack(IPassDestinationRef IPassDestination, Track terminalTrack) => new(_RouteTrackCtor.Invoke(new object[] { IPassDestination.Value, terminalTrack }));
 
-        private static object CreatePassConsistInfo(object routeTrack, List<Car> cars) => _PassConsistInfoCtor.Invoke(new object[] { routeTrack, cars });
+        private static object CreatePassConsistInfo(RouteTrackRef routeTrack, List<Car> cars) => _PassConsistInfoCtor.Invoke(new object[] { routeTrack.Value, cars });
 
-        private static object CreatePassJcc(GameObject jobChainGameObject) => _PassengerJccCtor.Invoke(new object[] { jobChainGameObject });
+        private static PassengerChainControllerRef CreatePassJcc(GameObject jobChainGameObject) => new(_PassengerJccCtor.Invoke(new object[] { jobChainGameObject }));
 
-        private static object CreateExpressStationsChainData(string chainOriginYardId, string[] chainDestinationYardIds) => _ExpressStChainDataCtor.Invoke(new object[] { chainOriginYardId, chainDestinationYardIds });
+        private static ExpressStationsChainDataRef CreateExpressStationsChainData(string chainOriginYardId, string[] chainDestinationYardIds) => new(_ExpressStChainDataCtor.Invoke(new object[] { chainOriginYardId, chainDestinationYardIds }));
 
         public static bool IsPaxCars(TrainCar car)
         {
@@ -226,58 +249,58 @@ namespace PersistentJobsMod.ModInteraction
 
         private static List<StationController> AllPaxStations() => StationController.allStations.Where(st => IsPassengerStation(st.stationInfo.YardID)).ToList();
 
-        private static object GetStationData(string yardId) => _GetStationData.Invoke(null, new object[] { yardId }); // output is IPassDestination : PassStationData
+        private static IPassDestinationRef GetStationData(string yardId) => new(_GetStationData.Invoke(null, new object[] { yardId })); // output is IPassDestination : PassStationData
 
-        private static object GetRoute(string yardId, object routeType, IEnumerable<string> existingDests, double minLength = 0) => _GetRoute?.Invoke(null, new object[] { GetStationData(yardId), routeType, existingDests, minLength });
+        private static RouteResultRef GetRoute(string yardId, object routeType, IEnumerable<string> existingDests, double minLength = 0) => new(_GetRoute?.Invoke(null, new object[] { GetStationData(yardId).Value, routeType, existingDests, minLength }));
 
-        private static object GetRouteTrackByIdOrNull(string trackFullDisplayId)
+        private static RouteTrackRef GetRouteTrackByIdOrNull(string trackFullDisplayId)
         {
-            object routeTrackObj = _GetRouteTrackById?.Invoke(null, new object[] { trackFullDisplayId });
-            if (routeTrackObj is null) return null;
-            Track trackField = GetRouteTrackTrackField(routeTrackObj);
-            if (trackField == null || trackField.RailTrack() == null || trackField.ID == null || trackField.ID.FullDisplayID == null) return null;
-            return routeTrackObj;
+            RouteTrackRef routeTrack = new(_GetRouteTrackById?.Invoke(null, new object[] { trackFullDisplayId }));
+            if (routeTrack.Value is null) return new(null);
+            Track trackField = GetRouteTrackTrackField(routeTrack);
+            if (trackField == null || trackField.RailTrack() == null || trackField.ID == null || trackField.ID.FullDisplayID == null) return new(null);
+            return routeTrack;
         }
 
         private static List<Track> AllPaxTracksForStationData(string yardId) => ((IEnumerable<Track>)_AllTracksProperty.GetValue(GetStationData(yardId))).ToList();
 
-        private static string YardIdFromPaxStation(object passStationData) => (string)_PaxStYardIdProperty.GetValue(passStationData);
+        private static string YardIdFromPaxStation(IPassDestinationRef passStationData) => (string)_PaxStYardIdProperty.GetValue(passStationData.Value);
 
-        private static IEnumerable<object> GetPlatforms(object stationData, bool onlyTerminusTracks = false)
+        private static IEnumerable<RouteTrackRef> GetPlatforms(IPassDestinationRef stationData, bool onlyTerminusTracks = false)
         {
-            var result = _GetPlatforms.Invoke(stationData, new object[] { onlyTerminusTracks });
-            if (result is System.Collections.IEnumerable enumerable) foreach (var item in enumerable) yield return item;
+            var result = _GetPlatforms.Invoke(stationData.Value, new object[] { onlyTerminusTracks });
+            if (result is System.Collections.IEnumerable enumerable) foreach (var item in enumerable) yield return new(item);
         }
 
         private static List<Track> GetStorageTracks(string yardId) => AllPaxTracksForStationData(yardId).Except(GetPlatforms(GetStationData(yardId)).Select(rt => GetRouteTrackTrackField(rt)).ToList()).ToList();
 
-        private static Track GetRouteTrackTrackField(object routeTrack)
+        private static Track GetRouteTrackTrackField(RouteTrackRef routeTrack)
         {
-            if (routeTrack == null) return null;
-            var track = (Track)_RouteTrackTrackField.GetValue(routeTrack);
+            if (routeTrack.Value == null) return null;
+            var track = (Track)_RouteTrackTrackField.GetValue(routeTrack.Value);
             if (track == null || track.RailTrack() == null || track.ID == null || track.ID.FullDisplayID == null) return null;
             return track;
         }
 
-        private static object GetRouteTrackStationField(object routeTrack)
+        private static IPassDestinationRef GetRouteTrackStationField(RouteTrackRef routeTrack)
         {
-            if (routeTrack == null) return null;
-            var iPassDest = _RouteTrackStationField.GetValue(routeTrack);
-            if (iPassDest == null) return null;
-            return iPassDest;
+            if (routeTrack.Value == null) return new(null);
+            var iPassDest = _RouteTrackStationField.GetValue(routeTrack.Value);
+            if (iPassDest == null) return new(null);
+            return new(iPassDest);
         }
 
-        private static double GetRouteTrackLength(object routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack);
+        private static double GetRouteTrackLength(RouteTrackRef routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack.Value);
 
         private static PaymentCalculationData GetJobPaymentData(IEnumerable<TrainCarLivery> carTypes, bool empty = false) => (PaymentCalculationData)_GetJobPaymentData.Invoke(null, new object[] { carTypes, empty });
 
-        private static bool CanFitInStation(object stationData, List<TrainCar> trainCars) => GetPlatforms(stationData).Any(rt => (float)GetConsistLength(trainCars) <= GetRouteTrackLength(rt));
+        private static bool CanFitInStation(IPassDestinationRef stationData, List<TrainCar> trainCars) => GetPlatforms(stationData).Any(rt => (float)GetConsistLength(trainCars) <= GetRouteTrackLength(rt));
 
-        private static object GetRouteType(JobType type) => _GetRouteType.Invoke(null, new object[] { type });
+        private static RouteTypeRef GetRouteType(JobType type) => new(_GetRouteType.Invoke(null, new object[] { type }));
 
-        private static object GetRouteResultTracksArray(object routeResult) => _RouteResultTracksField.GetValue(routeResult);
+        private static object GetRouteResultTracksArray(RouteResultRef routeResult) => _RouteResultTracksField.GetValue(routeResult.Value);
 
-        private static float GetTotalHaulDistance(StationController startStation, object destinations) => (float)_GetTotalHaulDistance.Invoke(null, new object[] { startStation, destinations });
+        private static float GetTotalHaulDistance(StationController startStation, Array destinations) => (float)_GetTotalHaulDistance.Invoke(null, new object[] { startStation, destinations });
 
         private static JobType PickPassengerJobType(int carCount)
         {
@@ -287,11 +310,11 @@ namespace PersistentJobsMod.ModInteraction
             return _PassengerExpress;
         }
 
-        private static object PopulateExpressJobExistingCars(JobChainController chainController, Station startStation, object startTrack, object routeResult, List<Car> logicCars, StationsChainData chainData, float timeLimit, float initialPay) => _PopulateExpressJobExistingCars?.Invoke(null, new object[] { chainController, startStation, startTrack, routeResult, logicCars, chainData, timeLimit, initialPay });
+        private static PassengerHaulJobDefinitionRef PopulateExpressJobExistingCars(JobChainController chainController, Station startStation, RouteTrackRef startTrack, RouteResultRef routeResult, List<Car> logicCars, StationsChainData chainData, float timeLimit, float initialPay) => new(_PopulateExpressJobExistingCars?.Invoke(null, new object[] { chainController, startStation, startTrack.Value, routeResult.Value, logicCars, chainData, timeLimit, initialPay }));
 
-        private static object SelectStartPlatformRouteTrack(Track currentTrack, List<object> fittingPlatforms)
+        private static RouteTrackRef SelectStartPlatformRouteTrack(Track currentTrack, List<RouteTrackRef> fittingPlatforms)
         {
-            if (!fittingPlatforms.Any()) return null;
+            if (!fittingPlatforms.Any()) return new(null);
 
             if (currentTrack != null)
             {
@@ -302,7 +325,7 @@ namespace PersistentJobsMod.ModInteraction
                     return track != null && track.ID.FullDisplayID == currentTrackId;
                 });
 
-                if (matchingPlatform != null)
+                if (matchingPlatform.Value != null)
                 {
                     Main._modEntry.Logger.Log($"Using current platform track {currentTrackId} as PaxJobs start platform");
                     return matchingPlatform;
@@ -318,7 +341,7 @@ namespace PersistentJobsMod.ModInteraction
             }).FirstOrDefault();
         }
 
-        private static List<JobChainController> TryGeneratePassengerJob(StationController station, List<TrainCar> trainCars, List<object> fittingPlatforms, JobType jobType)
+        private static List<JobChainController> TryGeneratePassengerJob(StationController station, List<TrainCar> trainCars, List<RouteTrackRef> fittingPlatforms, JobType jobType)
         {
             List<JobChainController> result = new();
             if (trainCars.Count() > 20)
@@ -328,8 +351,8 @@ namespace PersistentJobsMod.ModInteraction
             }
 
             Track currentTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(trainCars);
-            object preferredRouteTrack = SelectStartPlatformRouteTrack(currentTrack, fittingPlatforms);
-            if (preferredRouteTrack == null || GetRouteTrackTrackField(preferredRouteTrack).ID == null)
+            var preferredRouteTrack = SelectStartPlatformRouteTrack(currentTrack, fittingPlatforms);
+            if (preferredRouteTrack.Value == null || GetRouteTrackTrackField(preferredRouteTrack).ID == null)
             {
                 Main._modEntry.Logger.Log($"No fitting platforms found for consist starting with {trainCars.First().ID}");
                 result.AddRange(HandleSplitOrFail(trainCars, station));
@@ -344,7 +367,7 @@ namespace PersistentJobsMod.ModInteraction
 
             Main._modEntry.Logger.Log($"Picked platform {GetRouteTrackTrackField(preferredRouteTrack).ID.FullDisplayID} ");
 
-            //if (TryGenerateJob(station.stationInfo.YardID, jobType, CreatePassConsistInfo(preferredRouteTrack, TrainCar.ExtractLogicCars(trainCars)), out JobChainController passangerChainController))
+            //if (TryGenerateJob(station.stationInfo.YardID, jobType, CreatePassConsistInfo(preferredRouteTrack, TrainCar.ExtractLogicCars(cars)), out JobChainController passangerChainController))
             if (TryGenerateJob(station, jobType, preferredRouteTrack, trainCars, out JobChainController passangerChainController))
             {
                 Main._modEntry.Logger.Log($"Successfully reassigned pax consist starting with {trainCars.First().ID} to job {passangerChainController.currentJobInChain.ID}");
@@ -371,7 +394,7 @@ namespace PersistentJobsMod.ModInteraction
                 foreach (var emptyTrainCars in emptyConsecutiveTrainCarGroups)
                 {
                     Main._modEntry.Logger.Log($"Spilitting consist starting with car {emptyTrainCars.First().ID}");
-                    var (first, second) = SplitInHalf((List<TrainCar>)emptyTrainCars);
+                    var (first, second) = emptyTrainCars.SplitInHalf();
                     HandleEmptyPaxCars(first, station, out List<JobChainController> outJobChainControllers);
                     result.AddRange(outJobChainControllers);
                     HandleEmptyPaxCars(second, station, out outJobChainControllers);
@@ -384,7 +407,7 @@ namespace PersistentJobsMod.ModInteraction
                 foreach (var loadedTrainCars in loadedConsecutiveTrainCarGroups)
                 {
                     Main._modEntry.Logger.Log($"Spilitting consist starting with car {loadedTrainCars.First().ID}");
-                    var (first, second) = SplitInHalf((List<TrainCar>)loadedTrainCars);
+                    var (first, second) = loadedTrainCars.SplitInHalf();
                     HandleLoadedPaxCars(first, station, out List<JobChainController> outJobChainControllers);
                     result.AddRange(outJobChainControllers);
                     HandleLoadedPaxCars(second, station, out outJobChainControllers);
@@ -455,22 +478,13 @@ namespace PersistentJobsMod.ModInteraction
             return result;
         }
 
-        public static (List<T> first, List<T> second) SplitInHalf<T>(IList<T> source)
-        {
-            if (source.Count() < 2) return (null, null);
-            int mid = (source.Count + 1) / 2;
-            var first = source.Take(mid).ToList();
-            var second = source.Skip(mid).ToList();
-            return (first, second);
-        }
-
         public static List<IReadOnlyList<TrainCar>> FilterTrainCarGroups(List<IReadOnlyList<TrainCar>> trainCarGroups)
         {
             trainCarGroups.RemoveAll(trainCars =>
             {
                 if (trainCars == null || trainCars.Count == 0)
                 {
-                    Main._modEntry.Logger.Error("[FilterTrainCarGroups] Invalid trainCars input thrown out");
+                    Main._modEntry.Logger.Error("[FilterTrainCarGroups] Invalid cars input thrown out");
                     return true;
                 }
                 if (CarTrackAssignment.FindNearestNamedTrackOrNull(trainCars) == null) return true;
@@ -482,14 +496,14 @@ namespace PersistentJobsMod.ModInteraction
 
         private static Track GetRandomFittingStorageTrack(StationController targetStation, List<TrainCar> trainCars)
         {
-            var fittingSPTracks = GetStationData(targetStation.stationInfo.YardID) == null ? new List<Track>() : (GetStorageTracks(targetStation.stationInfo.YardID).Where(t => GetConsistLength(trainCars) <= t.length).ToList());
+            var fittingSPTracks = GetStationData(targetStation.stationInfo.YardID).Value != null ? (GetStorageTracks(targetStation.stationInfo.YardID).Where(t => GetConsistLength(trainCars) <= t.length).ToList()) : new List<Track>();
             return !fittingSPTracks.Any() ? null : fittingSPTracks.GetRandomElement();
         }
 
-        private static List<object> GetFittingPlatformsForStation(StationController station, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
+        private static List<RouteTrackRef> GetFittingPlatformsForStation(StationController station, List<TrainCar> trainCars, bool onlyTerminusTracks = false)
         {
             var stationData = GetStationData(station.stationInfo.YardID);
-            return stationData == null ? new List<object>() : (GetPlatforms(stationData, onlyTerminusTracks).Where(rt => GetConsistLength(trainCars) <= GetRouteTrackLength(rt)).ToList());
+            return stationData.Value == null ? new List<RouteTrackRef>() : (GetPlatforms(stationData, onlyTerminusTracks).Where(rt => GetConsistLength(trainCars) <= GetRouteTrackLength(rt)).ToList());
         }
 
         private static float CalculateCrowDistanceBetweenThings(Vector3 thing1, Vector3 thing2) => (thing1 - thing2).sqrMagnitude;
@@ -513,7 +527,7 @@ namespace PersistentJobsMod.ModInteraction
             return true;
         }
 
-        private static bool BuildAndGenerateJob(StationController startingStation, object startingRouteTrack, List<TrainCar> trainCars, JobType jobType, out JobChainController passengerChainController)
+        private static bool BuildAndGenerateJob(StationController startingStation, RouteTrackRef startingRouteTrack, List<TrainCar> trainCars, JobType jobType, out JobChainController passengerChainController)
         {
             passengerChainController = null;
             //object startingRouteTrack = GetRouteTrackByIdOrNull(startingTrack.ID.FullDisplayID);
@@ -521,22 +535,22 @@ namespace PersistentJobsMod.ModInteraction
                 .Where(j => (j.jobType == _PassengerExpress) || (j.jobType == _PassengerLocal))
                 .Select(j => j.chainData.chainDestinationYardId);
 
-            var destinations = GetRoute(startingStation.stationInfo.YardID, GetRouteType(jobType), currentDests, GetConsistLength(trainCars));
-            if (destinations == null) return false;
+            var destinations = GetRoute(startingStation.stationInfo.YardID, GetRouteType(jobType).Value, currentDests, GetConsistLength(trainCars));
+            if (destinations.Value == null) return false;
 
             var jobCarTypes = TrainCar.ExtractLogicCars(trainCars).Select(c => c.carType).ToList();
 
             if (GetRouteResultTracksArray(destinations) is not Array rrTracksArray || rrTracksArray.Length == 0) return false;
-            var destinationTracks = rrTracksArray.Cast<object>().Select(t => _RouteTrackTrackField.GetValue(t)).Cast<Track>().ToList();
-            var destinationRouteTracksYardIDs = rrTracksArray.Cast<object>().Select(d => YardIdFromPaxStation(GetRouteTrackStationField(d)));
+            var destinationTracks = rrTracksArray.Cast<object>().Select(o => new Foreign<RouteTrackRef>(o)).Select(rt => (Track)_RouteTrackTrackField.GetValue(rt.Value)).ToList();
+            var destinationRouteTracksYardIDs = rrTracksArray.Cast<object>().Select(d => YardIdFromPaxStation(GetRouteTrackStationField(new RouteTrackRef(d))));
 
             // create job chain controller
             string destString = string.Join(" - ", destinationRouteTracksYardIDs);
             var chainJobObject = new GameObject($"ChainJob[Passenger]: {startingStation.stationInfo.YardID} - {destString}");
             chainJobObject.transform.SetParent(startingStation.transform);
-            var chainController = (JobChainController)CreatePassJcc(chainJobObject);
+            var chainController = (JobChainController)CreatePassJcc(chainJobObject).Value;
 
-            var chainData = (StationsChainData)CreateExpressStationsChainData(startingStation.stationInfo.YardID, destinationRouteTracksYardIDs.ToArray());
+            var chainData = (StationsChainData)CreateExpressStationsChainData(startingStation.stationInfo.YardID, destinationRouteTracksYardIDs.ToArray()).Value;
             PaymentCalculationData transportPaymentData = GetJobPaymentData(jobCarTypes);
 
             float haulDistance = GetTotalHaulDistance(startingStation, rrTracksArray);
@@ -545,7 +559,7 @@ namespace PersistentJobsMod.ModInteraction
 
             chainController.carsForJobChain = TrainCar.ExtractLogicCars(trainCars);
 
-            var jobDefinition = (StaticJobDefinition)PopulateExpressJobExistingCars(chainController, startingStation.logicStation, startingRouteTrack, destinations, TrainCar.ExtractLogicCars(trainCars), chainData, bonusLimit, transportPayment);
+            var jobDefinition = (StaticJobDefinition)PopulateExpressJobExistingCars(chainController, startingStation.logicStation, startingRouteTrack, destinations, TrainCar.ExtractLogicCars(trainCars), chainData, bonusLimit, transportPayment).Value;
             if (jobDefinition == null)
             {
                 Main._modEntry.Logger.Warning($"Failed to generate transport job definition for {chainController.jobChainGO.name}");
@@ -662,9 +676,9 @@ namespace PersistentJobsMod.ModInteraction
         private static void GenerateJob_Postfix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
-            object startingRouteTrack = _StartingTrackField.GetValue(__instance);
-            List<Car> trainCars = (List<Car>)_TrainCarsToTransportProp.GetValue(__instance);
-            var carsTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(trainCars));
+            RouteTrackRef startingRouteTrack = new(_StartingTrackField.GetValue(__instance));
+            List<Car> cars = (List<Car>)_TrainCarsToTransportProp.GetValue(__instance);
+            var carsTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(cars));
 
             if (GetRouteTrackTrackField(startingRouteTrack).ID.FullDisplayID != carsTrack.ID.FullDisplayID)
             {
@@ -677,7 +691,7 @@ namespace PersistentJobsMod.ModInteraction
 
                     if (sequential.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Transport) is not TransportTask transport) continue;
 
-                    if ((bool)!transport.GetTaskData().cars.SequenceEqual(trainCars)) continue;
+                    if ((bool)!transport.GetTaskData().cars.SequenceEqual(cars)) continue;
 
                     var startTrack = (Track)_TaskStartingTrackField.GetValue(transport);
                     if (startTrack == null || startTrack.ID.FullDisplayID == carsTrack.ID.FullDisplayID) continue;

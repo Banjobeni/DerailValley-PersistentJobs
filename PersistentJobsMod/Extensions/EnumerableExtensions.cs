@@ -9,7 +9,7 @@ namespace PersistentJobsMod.Extensions {
         }
 
         public static IEnumerable<(TKey Key, IReadOnlyList<TItem> Items)> GroupConsecutiveBy<TKey, TItem>(this IEnumerable<TItem> items, Func<TItem, TKey> getKey, IEqualityComparer<TKey> keyEqualityComparer = null) {
-            keyEqualityComparer = keyEqualityComparer ?? EqualityComparer<TKey>.Default;
+            keyEqualityComparer ??= EqualityComparer<TKey>.Default;
 
             (TKey key, List<TItem> items)? current = null;
 
@@ -35,6 +35,20 @@ namespace PersistentJobsMod.Extensions {
 
         public static IReadOnlyList<T> ToReadOnlyList<T>(this IEnumerable<T> enumerable) {
             return enumerable.ToList();
+        }
+
+        public static (List<T> First, List<T> Second) SplitInHalf<T>(this IEnumerable<T> source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            var list = source as IList<T> ?? source.ToList();
+
+            if (list.Count < 2) return (null, null);
+
+            int mid = (list.Count + 1) / 2;
+            var first = list.Take(mid).ToList();
+            var second = list.Skip(mid).ToList();
+
+            return (first, second);
         }
     }
 }
