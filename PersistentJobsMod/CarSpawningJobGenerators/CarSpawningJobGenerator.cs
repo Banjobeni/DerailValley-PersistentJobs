@@ -18,10 +18,12 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
         }
 
         private static IEnumerator<(string NextStageName, object Result)> GenerateProceduralJobsCoroutineCore(StationProceduralJobsController instance, StationProceduralJobsRuleset stationProceduralJobsRuleset) {
+            var alreadyPresentJobsCount = instance.stationController.logicStation.availableJobs.Count;
+            var maxGeneratableJobsNum = stationProceduralJobsRuleset.jobsCapacity - alreadyPresentJobsCount;
             var generateJobsAttempts = 0;
             var forcePlayerLicensedJobGeneration = true;
-            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation started. At most {stationProceduralJobsRuleset.jobsCapacity} job chains will be generated.");
-            while (instance.stationController.logicStation.availableJobs.Count < stationProceduralJobsRuleset.jobsCapacity && generateJobsAttempts < 30) {
+            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation started. {alreadyPresentJobsCount} jobs already present. At most {maxGeneratableJobsNum} job chains will be generated.");
+            while (instance.stationController.logicStation.availableJobs.Count < maxGeneratableJobsNum && generateJobsAttempts < 30) {
                 yield return ("generate next job", WaitFor.FixedUpdate);
 
                 if (generateJobsAttempts > 10 & forcePlayerLicensedJobGeneration) {

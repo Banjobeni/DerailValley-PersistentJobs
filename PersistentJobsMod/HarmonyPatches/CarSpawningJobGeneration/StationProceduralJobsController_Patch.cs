@@ -1,6 +1,7 @@
 ﻿using System;
 using HarmonyLib;
 using PersistentJobsMod.CarSpawningJobGenerators;
+using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Persistence;
 using UnityEngine;
 
@@ -18,6 +19,12 @@ namespace PersistentJobsMod.HarmonyPatches.CarSpawningJobGeneration {
                 if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(__instance.stationController)) {
                     Main._modEntry.Logger.Log($"Station {__instance.stationController.logicStation.ID} has already spawned cars, skipping jobs-with-cars generation");
                 } else {
+                    if (Main.PaxJobsPresent && PaxJobsCompat.AllPaxStations().Contains(__instance.stationController))
+                    {
+                        PaxJobsCompat.OverrideSpawnFlagForPaxJ = true;
+                        PaxJobsCompat.PaxJobsOrigGenJobsInStation(__instance.stationController.stationInfo.YardID);
+                    }
+
                     StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(__instance.stationController, true);
 
                     __instance.StopJobGeneration();

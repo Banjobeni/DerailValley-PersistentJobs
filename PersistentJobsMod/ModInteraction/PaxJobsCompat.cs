@@ -28,6 +28,7 @@ using RouteManagerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<
 using RouteResultRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteResult>;
 using RouteTrackRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteTrack>;
 using RouteTypeRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteType>;
+using PersistentJobsMod.Persistence;
 #endregion
 
 namespace PersistentJobsMod.ModInteraction
@@ -69,6 +70,8 @@ namespace PersistentJobsMod.ModInteraction
         private static MethodInfo _GetJobPaymentData;
         private static MethodInfo _GetTotalHaulDistance;
         private static MethodInfo _PopulateExpressJobExistingCars;
+        private static MethodInfo _PaxJGeneratorStartGenerationAsync;
+        private static MethodInfo _PJGStartGenAsyncPrefix;
 
         private static PropertyInfo _AllTracksProperty;
         private static PropertyInfo _RouteTrackLengthProp;
@@ -80,6 +83,7 @@ namespace PersistentJobsMod.ModInteraction
         private static FieldInfo _TaskStartingTrackField;
         private static FieldInfo _RouteResultTracksField;
         private static FieldInfo _RouteTrackStationField;
+        private static FieldInfo _PaxJGeneratorStContField;
 
         private static Random _Random;
 
@@ -120,6 +124,7 @@ namespace PersistentJobsMod.ModInteraction
                 _GetJobPaymentData = CompatAccess.Method(_PassengerJobGenerator, "GetJobPaymentData", new[] { typeof(IEnumerable<TrainCarLivery>), typeof(bool) });
                 _GetTotalHaulDistance = CompatAccess.Method(_PassengerJobGenerator, "GetTotalHaulDistance", new[] { typeof(StationController), CompatAccess.IEnumerableOf(_RouteTrack) });
                 _PopulateExpressJobExistingCars = CompatAccess.Method(_PassengerJobGenerator, "PopulateExpressJobExistingCars", new[] { typeof(JobChainController), typeof(Station), _RouteTrack, _RouteResult, typeof(List<Car>), typeof(StationsChainData), typeof(float), typeof(float) });
+                _PaxJGeneratorStartGenerationAsync = CompatAccess.Method(_PassengerJobGenerator, "StartGenerationAsync");
 
                 _AllTracksProperty = CompatAccess.Property(_IPassDestination, "AllTracks");
                 _RouteTrackLengthProp = CompatAccess.Property(_RouteTrack, "Length");
@@ -131,6 +136,7 @@ namespace PersistentJobsMod.ModInteraction
                 _TaskStartingTrackField = CompatAccess.Field(typeof(TransportTask), "startingTrack");
                 _RouteResultTracksField = CompatAccess.Field(_RouteResult, "Tracks");
                 _RouteTrackStationField = CompatAccess.Field(_RouteTrack, "Station");
+                _PaxJGeneratorStContField = CompatAccess.Field(_PassengerJobGenerator, "Controller");
 
                 _RouteTrackCtor = CompatAccess.Ctor(_RouteTrack, new[] { _IPassDestination, typeof(Track) });
                 _PassConsistInfoCtor = CompatAccess.Ctor(_PassConsistInfo, new[] { _RouteTrack, typeof(List<Car>) });
@@ -154,6 +160,18 @@ namespace PersistentJobsMod.ModInteraction
                 else
                 {
                     Main._modEntry.Logger.Error("Failed to find methods required to patch PassengerHaulJobDefinition.GenerateJob");
+                    throw new MethodAccessException();
+                }
+
+                _PJGStartGenAsyncPrefix = typeof(PaxJobsCompat).GetMethod(nameof(StartGenerationAsync_Prefix), BindingFlags.Static | BindingFlags.NonPublic);
+                if (_PaxJGeneratorStartGenerationAsync != null && _PJGStartGenAsyncPrefix != null)
+                {
+                    Main.Harmony.Patch(_PaxJGeneratorStartGenerationAsync, prefix: new HarmonyMethod(_PJGStartGenAsyncPrefix));
+                    Main._modEntry.Logger.Log("Successfully patched PassengerJobGenerator.StartGenerationAsync");
+                }
+                else
+                {
+                    Main._modEntry.Logger.Error("Failed to find methods required to patch PassengerJobGenerator.StartGenerationAsync");
                     throw new MethodAccessException();
                 }
             }
@@ -182,8 +200,10 @@ namespace PersistentJobsMod.ModInteraction
             public sealed class ExpressStationsChainData { };
         }
         #endregion
+        
+        public static bool OverrideSpawnFlagForPaxJ = false;
 
-        /*private static bool TryGetGenerator(string yardId, out object generator)
+        private static bool TryGetGenerator(string yardId, out object generator)
         {
             generator = null;
             var args = new object[] { yardId, null };
@@ -195,7 +215,18 @@ namespace PersistentJobsMod.ModInteraction
 
             generator = args[1];
             return generator != null;
-        }*/
+        }
+
+        public static void PaxJobsOrigGenJobsInStation(string yardId)
+        {
+            if (!TryGetGenerator(yardId, out object generator))
+            {
+                Main._modEntry.Logger.Error($"PaxJobsGenerator for {yardId} was null, this shouldn´t happen!");
+                return;
+            }
+            _PaxJGeneratorStartGenerationAsync.Invoke(generator, new object[0]);
+            Main._modEntry.Logger.Log($"Started PaxJ generation with cars in {yardId}");
+        }
 
         //public static bool TryGenerateJob(string yardId, JobType jobType, object passConsistInfo, out JobChainController passengerChainController)
         private static bool TryGenerateJob(StationController station, JobType jobType, RouteTrackRef startingRouteTrack, List<TrainCar> trainCars, out JobChainController passengerChainController)
@@ -247,7 +278,7 @@ namespace PersistentJobsMod.ModInteraction
 
         private static bool IsPassengerStation(string yardId) => (bool)(_IsPassengerStation?.Invoke(null, new object[] { yardId }));
 
-        private static List<StationController> AllPaxStations() => StationController.allStations.Where(st => IsPassengerStation(st.stationInfo.YardID)).ToList();
+        public static List<StationController> AllPaxStations() => StationController.allStations.Where(st => IsPassengerStation(st.stationInfo.YardID)).ToList();
 
         private static IPassDestinationRef GetStationData(string yardId) => new(_GetStationData.Invoke(null, new object[] { yardId })); // output is IPassDestination : PassStationData
 
@@ -672,6 +703,7 @@ namespace PersistentJobsMod.ModInteraction
             Main._modEntry.Logger.Error("[HandleEmptyPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
         }
 
+        #region PaxJobs Patches
 #pragma warning disable IDE0060 // Remove unused parameter
         private static void GenerateJob_Postfix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses)
 #pragma warning restore IDE0060 // Remove unused parameter
@@ -702,5 +734,22 @@ namespace PersistentJobsMod.ModInteraction
                 }
             }
         }
+
+        private static bool StartGenerationAsync_Prefix(object __instance)
+        {
+            StationController generatingStation = (StationController)_PaxJGeneratorStContField.GetValue(__instance);
+            if (StationIdCarSpawningPersistence.Instance.GetHasStationSpawnedCarsFlag(generatingStation) && !OverrideSpawnFlagForPaxJ)
+            {
+                Main._modEntry.Logger.Log($"Station {generatingStation.logicStation.ID} has already spawned cars, skipping passanger jobs with new cars generation");
+                return false;
+            }
+            else
+            {
+                Main._modEntry.Logger.Log($"Station {generatingStation.logicStation.ID} is generating passanger jobs with cars");
+                OverrideSpawnFlagForPaxJ = false;
+                return true;
+            }
+        }
+        #endregion
     }
 }
