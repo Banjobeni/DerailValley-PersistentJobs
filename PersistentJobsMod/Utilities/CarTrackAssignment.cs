@@ -1,11 +1,25 @@
+using DV.Logic.Job;
+using DV.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DV.Logic.Job;
 using UnityEngine;
 
 namespace PersistentJobsMod.Utilities {
     public static class CarTrackAssignment {
+
+        public static List<TrainCar> TrainCarsByGuid(IEnumerable<string> carGuid)
+        {
+            List<TrainCar> trainCars = new();
+
+            foreach (var car in carGuid)
+            {
+                trainCars.Add(SingletonBehaviour<TrainCarRegistry>.Instance.GetTrainCarByCarGuid(car) ?? throw new NullReferenceException($"Car GUID {car} does not correspond to any existing car"));
+            }
+
+            return trainCars;
+        }
+
         public static Track FindNearestNamedTrackOrNull(IReadOnlyList<TrainCar> trainCars) {
             var medianCarCount = trainCars.Count / 2;
 

@@ -23,5 +23,30 @@ namespace PersistentJobsMod.Utilities
             public Foreign(object value) => Value = value /*?? throw new ArgumentNullException(nameof(value))*/;
             public override string ToString() => $"{typeof(TTag).Name}";
         }
+
+        public static void PatchPrefix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, prefix: hm), (target.DeclaringType.Name + "." + target.Name));
+
+        public static void PatchPostfix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, postfix: hm), (target.DeclaringType.Name + "." + target.Name));
+
+        private static void PatchMethod(MethodInfo target, Type patchContainer, string patchMethodName, Action<Harmony, MethodInfo, HarmonyMethod> applyPatch, string logName)
+        {
+            if (target == null)
+            {
+                Main._modEntry.Logger.Error($"Target method not found for {logName}");
+                throw new MethodAccessException();
+            }
+
+            var patchMethod = patchContainer.GetMethod(patchMethodName, BindingFlags.Static | BindingFlags.NonPublic);
+
+            if (patchMethod == null)
+            {
+                Main._modEntry.Logger.Error($"Patch method '{patchMethodName}' not found for {logName}");
+                throw new MethodAccessException();
+            }
+
+            applyPatch(Main.Harmony, target, new HarmonyMethod(patchMethod));
+
+            Main._modEntry.Logger.Log($"Successfully patched {logName}");
+        }
     }
 }
