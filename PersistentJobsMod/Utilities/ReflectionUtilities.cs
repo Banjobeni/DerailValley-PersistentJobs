@@ -36,7 +36,7 @@ namespace PersistentJobsMod.Utilities
                 throw new MethodAccessException();
             }
 
-            var patchMethod = patchContainer.GetMethod(patchMethodName, BindingFlags.Static | BindingFlags.NonPublic);
+            var patchMethod = patchContainer.GetMethod(patchMethodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
             if (patchMethod == null)
             {
