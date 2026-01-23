@@ -295,6 +295,18 @@ namespace PersistentJobsMod.ModInteraction
 
         private static ExpressStationsChainDataRef CreateExpressStationsChainData(string chainOriginYardId, string[] chainDestinationYardIds) => new(_ExpressStChainDataCtor.Invoke(new object[] { chainOriginYardId, chainDestinationYardIds }));
 
+        public static bool IsPaxJobDefinition(StaticJobDefinition jobDefinition, out PassengerHaulJobDefinitionRef passengerHaulJobDefinition)
+        {
+            passengerHaulJobDefinition = new(null);
+            if (jobDefinition == null) return false;
+            var job = jobDefinition.job;
+            if (job == null) return false;
+            bool correctType = (job.jobType == _PassengerExpress || job.jobType == _PassengerLocal);
+            bool correctDef = _PassengerHaulJobDefinition.IsInstanceOfType(jobDefinition);
+            passengerHaulJobDefinition = new(jobDefinition);
+            return correctType && correctDef;
+        }
+
         public static bool IsPaxCars(TrainCar car)
         {
             var carLiveries = (IEnumerable<TrainCarLivery>)_GetPassengerCars.Invoke(null, null);
@@ -356,7 +368,7 @@ namespace PersistentJobsMod.ModInteraction
 
         //private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(_AllPlatformControllers.ToList().WhereNotNull().First(), new object[] {id}));
         private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(null, new object[] { id }));
-
+            
         private static string GetRouteTrackPlatformIdField(RouteTrackRef routeTrack) => (string)_RTPlatformIdProp.GetValue(routeTrack.Value);
 
         private static double GetRouteTrackLength(RouteTrackRef routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack.Value);
@@ -722,8 +734,11 @@ namespace PersistentJobsMod.ModInteraction
             var newJob = new Job(superTask, jobType, timeLimit, initialWage, chainData, forcedJobId, requiredLicenses);
             _StaticJobDefJobField.SetValue(__instance, newJob);
 
-            var startPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(startingRouteTrack)).Value;
-            newJob.JobTaken += (j, _) => _PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { j, false });
+            if (!loaded)
+            {
+                var startPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(startingRouteTrack)).Value;
+                newJob.JobTaken += (j, _) => _PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { j, false });
+            }
 
             for (int i = 0; i < destinationTracks.Count - 1; i++)
             {
