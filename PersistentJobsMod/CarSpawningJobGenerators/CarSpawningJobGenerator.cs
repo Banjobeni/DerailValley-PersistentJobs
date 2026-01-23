@@ -52,7 +52,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 }
             }
 
-            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation ended. {instance.stationController.logicStation.availableJobs.Count} jobs were generated with {generateJobsAttempts} job generation attempts");
+            Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation ended. {instance.stationController.logicStation.availableJobs.Count - alreadyPresentJobsCount} jobs were generated with {generateJobsAttempts} job generation attempts");
 
             instance.generationCoro = null;
         }
