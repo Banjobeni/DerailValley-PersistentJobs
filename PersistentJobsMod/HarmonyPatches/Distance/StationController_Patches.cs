@@ -25,9 +25,12 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
         [HarmonyPatch(typeof(StationController), "Start")]
         public static void Start_Postfix(StationController __instance)
         {
-            var generateTrackSignsMethod = ReflectionUtilities.CompatAccess.Method(typeof(StationController), "GenerateTrackIdObject", new[] {typeof(List<RailTrack>) });
-            var tracksForGen = RailTrackRegistry.Instance.AllTracks.Where(rt => ((rt.LogicTrack().ID.yardId == __instance.stationInfo.YardID) && ((new string[] {"D", "P"}).Contains((string)ReflectionUtilities.CompatAccess.Field(typeof(TrackID), "trackType").GetValue(rt.LogicTrack().ID))))).ToList();
-            generateTrackSignsMethod.Invoke(__instance, new object[] {tracksForGen});
+            if (Main.Settings.GenerateTrackSigns)
+            {
+                var generateTrackSignsMethod = ReflectionUtilities.CompatAccess.Method(typeof(StationController), "GenerateTrackIdObject", new[] { typeof(List<RailTrack>) });
+                var tracksForGen = RailTrackRegistry.Instance.AllTracks.Where(rt => ((rt.LogicTrack().ID.yardId == __instance.stationInfo.YardID) && ((new string[] { "D", "P" }).Contains((string)ReflectionUtilities.CompatAccess.Field(typeof(TrackID), "trackType").GetValue(rt.LogicTrack().ID))))).ToList();
+                generateTrackSignsMethod.Invoke(__instance, new object[] { tracksForGen });
+            }
         }
     }
 }

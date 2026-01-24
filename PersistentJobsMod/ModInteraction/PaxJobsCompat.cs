@@ -87,6 +87,7 @@ namespace PersistentJobsMod.ModInteraction
         private static MethodInfo _ExtractPassengerJobData;
         private static MethodInfo _GetBookletTemplateData;
         private static MethodInfo _CreateLoadTaskPage;
+        private static MethodInfo _CreateCoupleTaskPage;
 
         private static PropertyInfo _AllTracksProperty;
         private static PropertyInfo _RouteTrackLengthProp;
@@ -161,6 +162,7 @@ namespace PersistentJobsMod.ModInteraction
                 _ExtractPassengerJobData = CompatAccess.Method(_BookletUtility, "ExtractPassengerJobData", new[] { typeof(Job_data) });
                 _GetBookletTemplateData = CompatAccess.Method(_BookletCreator_JobPatch, "GetBookletTemplateData", new[] { typeof(Job_data) });
                 _CreateLoadTaskPage = CompatAccess.Method(_BookletUtility, "CreateLoadTaskPage", new[] { _PassengerJobData, _PassStopInfo, typeof(int), typeof(int), typeof(int) });
+                _CreateCoupleTaskPage = CompatAccess.Method(_BookletUtility, "CreateCoupleTaskPage", new[] { _PassengerJobData, typeof(int), typeof(int), typeof(int) });
 
                 _AllTracksProperty = CompatAccess.Property(_IPassDestination, "AllTracks");
                 _RouteTrackLengthProp = CompatAccess.Property(_RouteTrack, "Length");
@@ -204,6 +206,8 @@ namespace PersistentJobsMod.ModInteraction
                 PatchPostfix(_GetBookletTemplateData, typeof(PaxJobsCompat), nameof(GetBookletTemplateData_Postfix));
 
                 PatchPrefix(_CreateLoadTaskPage, typeof(PaxJobsCompat), nameof(CreateLoadTaskPage_Prefix));
+
+                PatchPrefix(_CreateCoupleTaskPage, typeof(PaxJobsCompat), nameof(CreateCoupleTaskPage_Prefix));
 
             }
             catch (Exception e)
@@ -368,7 +372,7 @@ namespace PersistentJobsMod.ModInteraction
 
         //private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(_AllPlatformControllers.ToList().WhereNotNull().First(), new object[] {id}));
         private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(null, new object[] { id }));
-            
+
         private static string GetRouteTrackPlatformIdField(RouteTrackRef routeTrack) => (string)_RTPlatformIdProp.GetValue(routeTrack.Value);
 
         private static double GetRouteTrackLength(RouteTrackRef routeTrack) => (double)_RouteTrackLengthProp.GetValue(routeTrack.Value);
@@ -737,7 +741,7 @@ namespace PersistentJobsMod.ModInteraction
             if (!loaded)
             {
                 var startPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(startingRouteTrack)).Value;
-                newJob.JobTaken += (j, _) => _PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { j, false });
+                _PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { newJob, false });
             }
 
             for (int i = 0; i < destinationTracks.Count - 1; i++)
@@ -981,6 +985,16 @@ namespace PersistentJobsMod.ModInteraction
                 }
             }
             return true;
+        }
+
+        private static bool CreateCoupleTaskPage_Prefix(ref TemplatePaperData __result, object[] __args)
+        {
+            PassengerJobDataRef jobData = new(__args[0]);
+            var baseJobData = (TransportJobData)(jobData.Value);
+            var station = baseJobData.job.chainOriginStationInfo;
+            var startingTrack = baseJobData.job.tasksData.FirstOrDefault(t => t.instanceTaskType == TaskType.Sequential)?.nestedTasks.FirstOrDefault(t => t.instanceTaskType == TaskType.Transport)?.startTrackID ?? baseJobData.startingTrack;
+            __result = (TemplatePaperData)(CompatAccess.Method(typeof(BookletCreator_Job), "CreateCoupleTaskPaperData", new[] { typeof(int), typeof(string), typeof(Color), typeof(string), typeof(List<Car_data>), typeof(List<CargoType>), typeof(int), typeof(int) })).Invoke(null, new object[] { (int)__args[1], station.YardID, station.StationColor, startingTrack.TrackPartOnly, baseJobData.transportingCars, baseJobData.transportedCargoPerCar, (int)__args[2], (int)__args[3] });
+            return false;
         }
 
         private static void GetBookletTemplateData_Postfix(Job_data job, ref List<TemplatePaperData> __result)
