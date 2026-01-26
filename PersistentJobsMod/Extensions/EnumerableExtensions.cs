@@ -50,5 +50,35 @@ namespace PersistentJobsMod.Extensions {
 
             return (first, second);
         }
+
+        public static bool MultisetEquals<T>(this IEnumerable<T> first, IEnumerable<T> second, IEqualityComparer<T> comparer = null)
+        {
+            if (ReferenceEquals(first, second)) return true;
+            if (first == null || second == null) return false;
+
+            comparer ??= EqualityComparer<T>.Default;
+            var lookup = new Dictionary<T, int>(comparer);
+
+            foreach (var item in first)
+            {
+                if (lookup.TryGetValue(item, out int count))
+                    lookup[item] = count + 1;
+                else
+                    lookup[item] = 1;
+            }
+
+            foreach (var item in second)
+            {
+                if (!lookup.TryGetValue(item, out int count)) return false;
+
+                count--;
+                if (count == 0)
+                    lookup.Remove(item);
+                else
+                    lookup[item] = count;
+            }
+
+            return lookup.Count == 0;
+        }
     }
 }
