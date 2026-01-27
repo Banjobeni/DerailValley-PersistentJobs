@@ -246,8 +246,8 @@ namespace PersistentJobsMod.ModInteraction
 			public sealed class PlatformController { };
 			public sealed class PassengerJobData { };
 
-			public class PaxJobModifiedFlag : MonoBehaviour { }
-			public class PaxJobJobTakenFlag : MonoBehaviour { }
+			public class PaxJobModifiedFlag : MonoBehaviour { };
+			public class PaxJobJobTakenFlag : MonoBehaviour { public JobChainSaveData jobChainSaveData; };
 		}
 		#endregion
 
@@ -707,19 +707,212 @@ namespace PersistentJobsMod.ModInteraction
 			return true;
 		}
 
-        enum PaxJobGenerationMode
-        {
-            Vanilla,                    
-            Empty_OnPlatform,
-            Empty_OffPlatform,
-            Loaded,
-            Loaded_Taken_FromSave,
-            Empty_Taken_FromSave
-        }
+		internal readonly struct PaxJobContext
+		{
+#nullable enable
+			public readonly object JobDefinitionInstance;
+			public readonly StaticJobDefinition BaseJobDefinition;
+			public readonly JobChainSaveData? JobChainSaveData;
 
+			public readonly string ForcedJobId;
+			public readonly bool FromSave;
+			public readonly bool JobTaken;
 
+			public readonly Station OriginStation;
+			public readonly float TimeLimit;
+			public readonly float InitialWage;
+			public readonly JobLicenses RequiredLicenses;
 
-        private static bool GeneratePaxJobOverride(List<Car> cars, RouteTrackRef startingRouteTrack, List<RouteTrackRef> destinationTracks, object __instance, Station jobOriginStation, float timeLimit = 0, float initialWage = 0, string forcedJobId = null, JobLicenses requiredLicenses = JobLicenses.Basic, bool loaded = false, bool tracksMismatch = false, bool fromSave = false, bool taken = false)
+			public readonly IReadOnlyList<Car> Cars;
+			public readonly float TotalCapacity;
+			public readonly bool CarsLoaded;
+
+			public readonly RouteTrackRef StartingRouteTrack;
+			public readonly Track StartingTrack;
+			public readonly Track CarsCurrentTrack;
+
+			public readonly IReadOnlyList<RouteTrackRef> DestinationRouteTracks;
+			public readonly IReadOnlyList<Track> DestinationTracks;
+
+			public readonly bool WasModifiedAtSave;
+
+			public PaxJobContext(object jobDefinitionInstance, JobChainSaveData jobChainSaveData, Station originStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses, IReadOnlyList<Car> cars, RouteTrackRef startingRouteTrack, IReadOnlyList<RouteTrackRef> destinationRouteTracks, bool jobTaken, bool wasModifiedAtSave)
+			{
+				JobDefinitionInstance = jobDefinitionInstance;
+				BaseJobDefinition = (StaticJobDefinition)jobDefinitionInstance;
+				JobChainSaveData = jobChainSaveData;
+
+				OriginStation = originStation;
+				TimeLimit = timeLimit;
+				InitialWage = initialWage;
+				ForcedJobId = forcedJobId;
+				FromSave = !string.IsNullOrEmpty(forcedJobId);
+				JobTaken = jobTaken;
+				WasModifiedAtSave = wasModifiedAtSave;
+				RequiredLicenses = requiredLicenses;
+
+				Cars = cars;
+				CarsLoaded = cars.Any(c => c.CurrentCargoTypeInCar != CargoType.None);
+				TotalCapacity = cars.Sum(c => c.capacity);
+
+				StartingRouteTrack = startingRouteTrack;
+				StartingTrack = GetRouteTrackTrackField(startingRouteTrack);
+				CarsCurrentTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars((List<Car>)cars));
+
+				DestinationRouteTracks = destinationRouteTracks;
+				DestinationTracks = destinationRouteTracks.Select(rt => GetRouteTrackTrackField(rt)).ToArray();
+			}
+#nullable disable
+		}
+
+		internal enum PaxJobGenerationMode
+		{
+			None,
+			Empty_OnPlatform,
+			Empty_OffPlatform,
+			Loaded,
+			Loaded_Taken_From_Empty,
+			Loaded_Taken_From_Loaded,
+			Empty_Taken
+		}
+
+		private static PaxJobGenerationMode GetPaxJobGenerationMode(PaxJobContext genCtx)
+		{
+			if (!genCtx.JobTaken)
+			{
+				if (genCtx.CarsLoaded) return PaxJobGenerationMode.Loaded;
+				if (genCtx.CarsCurrentTrack == genCtx.StartingTrack) return PaxJobGenerationMode.Empty_OnPlatform;
+				else return PaxJobGenerationMode.Empty_OffPlatform;
+			}
+			else
+			{
+				if (genCtx.CarsLoaded)
+				{
+					var chainSaveData = genCtx.JobChainSaveData;
+					if (!(chainSaveData == null || chainSaveData.currentJobTaskData == null || chainSaveData.currentJobTaskData.Length == 0))
+					{
+						var headTask = chainSaveData.currentJobTaskData[0];
+						if ((headTask.type == TaskType.Sequential) && (headTask is ComplexTaskSaveData complexData && complexData.tasksData.Length > 0))
+						{
+							//there are two warehouse tasks for each intermediate stations + the initial load + final unload
+							int numWarehouseTasks = complexData.tasksData.Count(tsd => tsd.type == TaskType.Warehouse);
+							if ((numWarehouseTasks % 2) == 0) return PaxJobGenerationMode.Loaded_Taken_From_Empty;
+							else return PaxJobGenerationMode.Loaded_Taken_From_Loaded;
+						}
+					}
+				}
+				else
+				{
+					return PaxJobGenerationMode.Empty_Taken;
+				}
+			}
+
+			return PaxJobGenerationMode.None;
+		}
+
+		private static void DestinationsTasks(ref List<Task> taskList, PaxJobContext genCtx)
+		{
+			var destinationTracks = genCtx.DestinationRouteTracks;
+			for (int i = 0; i < destinationTracks.Count; i++)
+			{
+				bool isLast = (i == (destinationTracks.Count - 1));
+				var unloadTask = CreatePaxBoardingTask(destinationTracks[i], genCtx.TotalCapacity, false, isLast, genCtx.JobDefinitionInstance);
+				taskList.Add(unloadTask);
+
+				if (!isLast)
+				{
+					var loadTask = CreatePaxBoardingTask(destinationTracks[i], genCtx.TotalCapacity, true, false, genCtx.JobDefinitionInstance);
+					taskList.Add(loadTask);
+				}
+			}
+		}
+
+		private static SequentialTasks BuildUpTasks(PaxJobContext genCtx, PaxJobGenerationMode mode)
+		{
+			var taskList = new List<Task>();
+
+			switch (mode)
+			{
+				case PaxJobGenerationMode.Empty_OnPlatform:
+					taskList.Add(CreatePaxBoardingTask(genCtx.StartingRouteTrack, genCtx.TotalCapacity, true, false, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				case PaxJobGenerationMode.Empty_OffPlatform:
+					taskList.Add(CreatePaxTransportTask(genCtx.CarsCurrentTrack, genCtx.StartingTrack, genCtx.JobDefinitionInstance));
+					taskList.Add(CreatePaxBoardingTask(genCtx.StartingRouteTrack, genCtx.TotalCapacity, true, false, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				case PaxJobGenerationMode.Loaded:
+					taskList.Add(CreatePaxTransportTask(genCtx.CarsCurrentTrack, genCtx.CarsCurrentTrack, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				case PaxJobGenerationMode.Loaded_Taken_From_Empty:
+					if (genCtx.WasModifiedAtSave) taskList.Add(CreatePaxTransportTask(genCtx.StartingTrack, genCtx.StartingTrack, genCtx.JobDefinitionInstance));
+					taskList.Add(CreatePaxBoardingTask(genCtx.StartingRouteTrack, genCtx.TotalCapacity, true, false, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				case PaxJobGenerationMode.Loaded_Taken_From_Loaded:
+					if (genCtx.WasModifiedAtSave) taskList.Add(CreatePaxTransportTask(genCtx.StartingTrack, genCtx.StartingTrack, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				case PaxJobGenerationMode.Empty_Taken:
+					if (genCtx.WasModifiedAtSave) taskList.Add(CreatePaxTransportTask(genCtx.CarsCurrentTrack, genCtx.StartingTrack, genCtx.JobDefinitionInstance));
+					taskList.Add(CreatePaxBoardingTask(genCtx.StartingRouteTrack, genCtx.TotalCapacity, true, false, genCtx.JobDefinitionInstance));
+					DestinationsTasks(ref taskList, genCtx);
+					break;
+
+				default:
+					throw new InvalidOperationException("Task list could not be built!");
+			}
+
+			return new(taskList);
+		}
+
+		private static bool GeneratePaxJob(PaxJobContext genCtx)
+		{
+			try
+			{
+				var genMode = GetPaxJobGenerationMode(genCtx);
+				var chainData = (StationsChainData)CreateExpressStationsChainData(genCtx.OriginStation.ID, genCtx.DestinationRouteTracks.Select(rt => (GetRouteTrackTrackField(rt)).ID.yardId).ToArray()).Value;
+				var superTask = BuildUpTasks(genCtx, genMode);
+				var currentRouteType = _PHJD_RouteTypeField.GetValue(genCtx.JobDefinitionInstance);
+				var jobType = currentRouteType.Equals(_RouteTypeExpress) ? _PassengerExpress : _PassengerLocal;
+				var newJob = new Job(superTask, jobType, genCtx.TimeLimit, genCtx.InitialWage, chainData, genCtx.ForcedJobId, genCtx.RequiredLicenses);
+				_StaticJobDefJobField.SetValue(genCtx.JobDefinitionInstance, newJob);
+
+				if (genCtx.FromSave) Main._modEntry.Logger.Log($"Loading job {genCtx.ForcedJobId} from save with gen mode {genMode}");
+
+				if (genMode == PaxJobGenerationMode.Empty_OnPlatform || genMode == PaxJobGenerationMode.Empty_OffPlatform || genMode == PaxJobGenerationMode.Empty_Taken)
+				{
+					var startPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(genCtx.StartingRouteTrack)).Value;
+					_PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { newJob, false });
+				}
+
+				for (int i = 0; i < genCtx.DestinationRouteTracks.Count - 1; i++)
+				{
+					var destPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(genCtx.DestinationRouteTracks[i])).Value;
+					newJob.JobTaken += (j, _) => _PlatformRegisterOutgoingJob.Invoke(destPlatController, new object[] { j, false });
+				}
+
+				var finalPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(genCtx.DestinationRouteTracks.Last())).Value;
+				newJob.JobTaken += (j, _) => _PlatformRegisterIncomingJob.Invoke(finalPlatController, new object[] { j, false });
+
+				genCtx.OriginStation.AddJobToStation(genCtx.BaseJobDefinition.job);
+				return true;
+			}
+			catch(Exception ex) 
+			{
+				Main._modEntry.Logger.LogException("Failed to generate pax job due to: ", ex);
+				return false;
+			}
+		}
+
+		/*private static bool GeneratePaxJobOverride(List<Car> cars, RouteTrackRef startingRouteTrack, List<RouteTrackRef> destinationTracks, object __instance, Station jobOriginStation, float timeLimit = 0, float initialWage = 0, string forcedJobId = null, JobLicenses requiredLicenses = JobLicenses.Basic, bool loaded = false, bool tracksMismatch = false, bool fromSave = false, bool taken = false)
 		{
 			// taken from PaxJobs - mostly original method code - in order to avoid using transpiler
 			float totalCapacity = 0;
@@ -781,7 +974,7 @@ namespace PersistentJobsMod.ModInteraction
 
 			jobOriginStation.AddJobToStation(baseJobDef.job);
 			return true;
-		}
+		}*/
 
 		private static void HandleLoadedPaxCars(List<TrainCar> trainCars, StationController station, out List<JobChainController> jobChainControllers)
 		{
@@ -893,14 +1086,25 @@ namespace PersistentJobsMod.ModInteraction
 			if (_DestinationTracksField.GetValue(__instance) is not Array rrTracksArray || rrTracksArray.Length == 0) return false;
 			var destinationTracks = rrTracksArray.Cast<object>().Select(o => new RouteTrackRef(o)).ToList();
 
+			var definitionGO = ((MonoBehaviour)__instance).gameObject;
+			bool modified = definitionGO.GetComponent<PaxJobModifiedFlag>() != null;
+			var takenFlag = definitionGO.GetComponent<PaxJobJobTakenFlag>();
+			JobChainSaveData chainSaveData = takenFlag?.jobChainSaveData;
+			bool taken = takenFlag != null;
+
 			if ((cars == null) || (cars.Count == 0) || (startingRouteTrack.Value == null) || (destinationTracks == null))
 			{
 				Main._modEntry.Logger.Log("Failed to generate passengers job, bad data");
 				return false;
 			}
-
 			bool loaded = cars.Any(c => c.CurrentCargoTypeInCar != CargoType.None);
-			if (string.IsNullOrEmpty(forcedJobId)) /*generating new job case*/
+
+			PaxJobContext genCtx = new(__instance, chainSaveData, jobOriginStation, timeLimit, initialWage, forcedJobId, requiredLicenses, cars, startingRouteTrack, destinationTracks, taken, modified);
+
+			return !GeneratePaxJob(genCtx);
+		}
+
+			/*if (string.IsNullOrEmpty(forcedJobId)) ///generating new job case
 			{
 				if (loaded)
 				{
@@ -913,24 +1117,8 @@ namespace PersistentJobsMod.ModInteraction
 
 				return true; //if cars are empty and on platform let PaxJobs generate job normally
 			}
-			else /*loading job from save data case*/
+			else //loading job from save data case
 			{
-				//var jobDefComponent = (MonoBehaviour)__instance;
-				//var currentJcc = jobDefComponent.GetComponent<JobChainController>();
-				//var chainsInStation = StationController.GetStationByYardID(jobOriginStation.ID).ProceduralJobsController.GetCurrentJobChains();
-				//var currentJcc = chainsInStation.FirstOrDefault(jcc => jcc.carsForJobChain.MultisetEquals(cars) && jcc.jobChain.Any(sjd => (string)CompatAccess.Field(sjd.GetType(), "forcedJobId").GetValue(sjd) == forcedJobId));
-
-				/*if (currentJcc == null)
-				{
-					Main._modEntry.Logger.Error($"JCC not found on GameObject for job {forcedJobId}");
-					//return true;
-				}*/
-				//bool modified = currentJcc.jobChainGO.GetComponent<PaxJobModifiedFlag>() != null;
-				
-				var definitionGO = ((MonoBehaviour)__instance).gameObject;
-				bool modified = definitionGO.GetComponent<PaxJobModifiedFlag>() != null;
-				bool taken = definitionGO.GetComponent<PaxJobJobTakenFlag>() != null;
-
 				Main._modEntry.Logger.Log($"Job {forcedJobId} getting loaded is {(!modified ? "not " : "")}modified");
 				Main._modEntry.Logger.Log($"Job {forcedJobId} getting loaded was {(!taken ? "not " : "")}taken");
 
@@ -941,7 +1129,7 @@ namespace PersistentJobsMod.ModInteraction
 				}
 				return true;
 			}
-		}
+		}*/
 
 		private static void GenerateJob_Postfix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses, bool __state)
 		{
@@ -988,9 +1176,10 @@ namespace PersistentJobsMod.ModInteraction
 				if (chainSaveData.jobTaken)
 				{
 					Main._modEntry.Logger.Log($"Adding 'JobTaken' flag component to {jcc.jobChainGO.name} at {jcc.jobChain.First().logicStation.ID}");
-					jcc.jobChainGO.AddComponent<PaxJobJobTakenFlag>();
+					var flag = jcc.jobChainGO.AddComponent<PaxJobJobTakenFlag>();
+					flag.jobChainSaveData = chainSaveData;
 				}
-				
+
 
 				var headTask = chainSaveData.currentJobTaskData[0];
 				if (headTask.type != TaskType.Sequential) return;
