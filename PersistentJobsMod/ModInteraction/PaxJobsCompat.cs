@@ -19,15 +19,10 @@ using static PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags;
 using Random = System.Random;
 
 #region RefType using
-using ConsistManagerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.ConsistManager>;
 using ExpressStationsChainDataRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.ExpressStationsChainData>;
 using IPassDestinationRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.IPassDestination>;
-using PassConsistInfoRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassConsistInfo>;
 using PassengerChainControllerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerChainController>;
 using PassengerHaulJobDefinitionRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerHaulJobDefinition>;
-using PassengerJobGeneratorRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerJobGenerator>;
-using PassJobTypeRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassJobType>;
-using RouteManagerRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteManager>;
 using RouteResultRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteResult>;
 using RouteTrackRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteTrack>;
 using RouteTypeRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.RouteType>;
@@ -91,6 +86,7 @@ namespace PersistentJobsMod.ModInteraction
 		private static MethodInfo _GetBookletTemplateData;
 		private static MethodInfo _CreateLoadTaskPage;
 		private static MethodInfo _CreateCoupleTaskPage;
+		private static MethodInfo _CreateCoupleTaskPaperData;
 		private static MethodInfo _LoadPassengerChain;
 
 		private static PropertyInfo _AllTracksProperty;
@@ -170,6 +166,7 @@ namespace PersistentJobsMod.ModInteraction
 				_GetBookletTemplateData = CompatAccess.Method(_BookletCreator_JobPatch, "GetBookletTemplateData", new[] { typeof(Job_data) });
 				_CreateLoadTaskPage = CompatAccess.Method(_BookletUtility, "CreateLoadTaskPage", new[] { _PassengerJobData, _PassStopInfo, typeof(int), typeof(int), typeof(int) });
 				_CreateCoupleTaskPage = CompatAccess.Method(_BookletUtility, "CreateCoupleTaskPage", new[] { _PassengerJobData, typeof(int), typeof(int), typeof(int) });
+				_CreateCoupleTaskPaperData = CompatAccess.Method(typeof(BookletCreator_Job), "CreateCoupleTaskPaperData", new[] { typeof(int), typeof(string), typeof(Color), typeof(string), typeof(List<Car_data>), typeof(List<CargoType>), typeof(int), typeof(int) });
 				_LoadPassengerChain = CompatAccess.Method(_JobSaveManagerPatch, "LoadPassengerChain", new[] { _PassengerChainSaveData });
 
 				_AllTracksProperty = CompatAccess.Property(_IPassDestination, "AllTracks");
@@ -205,7 +202,6 @@ namespace PersistentJobsMod.ModInteraction
 				//_AllPlatformControllers ??= UnityEngine.Object.FindObjectsOfType(_PlatformController) ?? throw new KeyNotFoundException("No platform controllesr present, this shouldn´t happen");
 
 				PatchPrefix(_PHJD_GenerateJob, typeof(PaxJobsCompat), nameof(GenerateJob_Prefix));
-				PatchPostfix(_PHJD_GenerateJob, typeof(PaxJobsCompat), nameof(GenerateJob_Postfix));
 
 				PatchPrefix(_PaxJGeneratorStartGenerationAsync, typeof(PaxJobsCompat), nameof(StartGenerationAsync_Prefix));
 
@@ -278,21 +274,12 @@ namespace PersistentJobsMod.ModInteraction
 			Main._modEntry.Logger.Log($"Started PaxJ generation with cars in {yardId}");
 		}
 
-		//public static bool TryGenerateJob(string yardId, JobType jobType, object passConsistInfo, out JobChainController passengerChainController)
 		private static bool TryGenerateJob(StationController station, JobType jobType, RouteTrackRef startingRouteTrack, List<TrainCar> trainCars, out JobChainController passengerChainController)
 		{
 			passengerChainController = null;
 			if (!AStartGameData.carsAndJobsLoadingFinished) return false;
 			if (trainCars.Any(tc => tc.LoadedCargoAmount > 0.001f)) Main._modEntry.Logger.Log("Cars have cargo...");
 			Main._modEntry.Logger.Log($"Attempting to generate job of type {jobType} in {YardIdFromPaxStation(GetRouteTrackStationField(startingRouteTrack))}");
-
-			/*if (!TryGetGenerator(yardId, out object generator))
-			{
-				Main._modEntry.Logger.Error($"PaxJobsGenerator for {yardId} was null, this shouldn´t happen!");
-				return false;
-			}
-
-			passengerChainController = (JobChainController)_GenerateJob.Invoke(generator, new object[] { jobType, passConsistInfo });*/
 
 			if (!SetupAndGenerateJob(station, startingRouteTrack, trainCars, jobType, out passengerChainController))
 			{
@@ -330,13 +317,7 @@ namespace PersistentJobsMod.ModInteraction
 			return carLiveries != null && car.carLivery != null && carLiveries.Contains(car.carLivery);
 		}
 
-		public static float GetConsistLength(List<TrainCar> trainCars)
-		{
-			return CarSpawner.Instance.GetTotalCarsLength(
-				TrainCar.ExtractLogicCars(trainCars),
-				true
-			);
-		}
+		public static float GetConsistLength(List<TrainCar> trainCars) => CarSpawner.Instance.GetTotalCarsLength(TrainCar.ExtractLogicCars(trainCars), true);
 
 		private static bool IsPassengerStation(string yardId) => (bool)(_IsPassengerStation?.Invoke(null, new object[] { yardId }));
 
@@ -383,7 +364,6 @@ namespace PersistentJobsMod.ModInteraction
 			return new(iPassDest);
 		}
 
-		//private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(_AllPlatformControllers.ToList().WhereNotNull().First(), new object[] {id}));
 		private static PlatformControllerRef GetPlatformControllerForTrack(string id) => new(_PlatformControllerForTrack.Invoke(null, new object[] { id }));
 
 		private static string GetRouteTrackPlatformIdField(RouteTrackRef routeTrack) => (string)_RTPlatformIdProp.GetValue(routeTrack.Value);
@@ -469,7 +449,6 @@ namespace PersistentJobsMod.ModInteraction
 
 			Main._modEntry.Logger.Log($"Picked platform {GetRouteTrackTrackField(preferredRouteTrack).ID.FullDisplayID} ");
 
-			//if (TryGenerateJob(station.stationInfo.YardID, jobType, CreatePassConsistInfo(preferredRouteTrack, TrainCar.ExtractLogicCars(cars)), out JobChainController passangerChainController))
 			if (TryGenerateJob(station, jobType, preferredRouteTrack, trainCars, out JobChainController passangerChainController))
 			{
 				Main._modEntry.Logger.Log($"Successfully reassigned pax consist starting with {trainCars.First().ID} to job {passangerChainController.currentJobInChain.ID}");
@@ -531,30 +510,6 @@ namespace PersistentJobsMod.ModInteraction
 			return (emptyConsecutiveTrainCarGroups, loadedConsecutiveTrainCarGroups);
 		}
 
-		private static void AddTransportTaskToTop(StaticJobDefinition staticPaxJobDefinition, Track currentTrack, Track destinatiionTrack, List<Car> cars)
-		{
-			if (staticPaxJobDefinition != null)
-			{
-				if (staticPaxJobDefinition.job == null)
-				{
-					Main._modEntry.Logger.Error("staticJobDefinition.job is null");
-					return;
-				}
-				var job = staticPaxJobDefinition.job;
-				Main._modEntry.Logger.Log($"Attempting to add task to {job.ID}");
-				var headSequentialTask = (SequentialTasks)job.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Sequential);
-				if (headSequentialTask != null)
-				{
-					var newTransportTask = JobsGenerator.CreateTransportTask(cars, destinatiionTrack, currentTrack);
-					newTransportTask.SetJobBelonging(job);
-					headSequentialTask.tasks.AddFirst(newTransportTask);
-				}
-				else Main._modEntry.Logger.Error($"Couldn´t extract head sequential task of {job.ID}");
-			}
-			else Main._modEntry.Logger.Error($"Couldn´t get job definition");
-
-		}
-
 		public static List<JobChainController> DecideForPaxCarGroups(List<IReadOnlyList<TrainCar>> paxConsecutiveTrainCarGroups, StationController station)
 		{
 			List<JobChainController> result = new();
@@ -571,8 +526,6 @@ namespace PersistentJobsMod.ModInteraction
 			foreach (List<TrainCar> tcs in loadedConsecutiveTrainCarGroups.Cast<List<TrainCar>>())
 			{
 				Main._modEntry.Logger.Log($"Loaded consist of {tcs.Count()} pax cars starting with {tcs.First().ID} is in station {station.stationInfo.Name}");
-				//handling complicated - no inbuilt methods for job generation from already loaded cars
-
 				HandleLoadedPaxCars(tcs, station, out List<JobChainController> jobChainControllers);
 				result.AddRange(jobChainControllers);
 			}
@@ -905,76 +858,12 @@ namespace PersistentJobsMod.ModInteraction
 				genCtx.OriginStation.AddJobToStation(genCtx.BaseJobDefinition.job);
 				return true;
 			}
-			catch(Exception ex) 
+			catch (Exception ex)
 			{
 				Main._modEntry.Logger.LogException("Failed to generate pax job due to: ", ex);
 				return false;
 			}
 		}
-
-		/*private static bool GeneratePaxJobOverride(List<Car> cars, RouteTrackRef startingRouteTrack, List<RouteTrackRef> destinationTracks, object __instance, Station jobOriginStation, float timeLimit = 0, float initialWage = 0, string forcedJobId = null, JobLicenses requiredLicenses = JobLicenses.Basic, bool loaded = false, bool tracksMismatch = false, bool fromSave = false, bool taken = false)
-		{
-			// taken from PaxJobs - mostly original method code - in order to avoid using transpiler
-			float totalCapacity = 0;
-			foreach (var car in cars) totalCapacity += car.capacity;
-			var taskList = new List<Task>();
-			Track currentCarsTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(cars));
-			Track initialTransportDestTrack = null;
-
-			if (!loaded)
-			{
-				var initialLoad = CreatePaxBoardingTask(startingRouteTrack, totalCapacity, true, false, __instance);
-				taskList.Add(initialLoad);
-			}
-			if (tracksMismatch) initialTransportDestTrack = GetRouteTrackTrackField(startingRouteTrack);
-			if (taken) initialTransportDestTrack = GetRouteTrackTrackField(GetFittingPlatformsForStation(StationController.GetStationByYardID(jobOriginStation.ID), TrainCar.ExtractTrainCars(cars)).GetRandomElement());
-			//there has to be some task based in the originating station to get couple page to exist
-			var initialTransportTask = CreatePaxTransportTask((fromSave ? initialTransportDestTrack : currentCarsTrack), initialTransportDestTrack ?? currentCarsTrack, __instance);
-			taskList.Insert(0, initialTransportTask);
-
-			List<string> destinationRouteTracksYardIDs = new();
-
-			for (int i = 0; i < destinationTracks.Count; i++)
-			{
-				bool isLast = (i == (destinationTracks.Count - 1));
-				var unloadTask = CreatePaxBoardingTask(destinationTracks[i], totalCapacity, false, isLast, __instance);
-				taskList.Add(unloadTask);
-
-				if (!isLast)
-				{
-					var loadTask = CreatePaxBoardingTask(destinationTracks[i], totalCapacity, true, false, __instance);
-					taskList.Add(loadTask);
-				}
-
-				destinationRouteTracksYardIDs.Add(GetRouteTrackTrackField(destinationTracks[i]).ID.yardId);
-			}
-
-			var chainData = (StationsChainData)CreateExpressStationsChainData(jobOriginStation.ID, destinationRouteTracksYardIDs.ToArray()).Value;
-			var superTask = new SequentialTasks(taskList);
-			var currentRouteType = _PHJD_RouteTypeField.GetValue(__instance);
-			var jobType = currentRouteType.Equals(_RouteTypeExpress) ? _PassengerExpress : _PassengerLocal;
-			StaticJobDefinition baseJobDef = (StaticJobDefinition)__instance;
-			var newJob = new Job(superTask, jobType, timeLimit, initialWage, chainData, forcedJobId, requiredLicenses);
-			_StaticJobDefJobField.SetValue(__instance, newJob);
-
-			if (!loaded)
-			{
-				var startPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(startingRouteTrack)).Value;
-				_PlatformRegisterOutgoingJob.Invoke(startPlatController, new object[] { newJob, false });
-			}
-
-			for (int i = 0; i < destinationTracks.Count - 1; i++)
-			{
-				var destPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(destinationTracks[i])).Value;
-				newJob.JobTaken += (j, _) => _PlatformRegisterOutgoingJob.Invoke(destPlatController, new object[] { j, false });
-			}
-
-			var finalPlatController = GetPlatformControllerForTrack(GetRouteTrackPlatformIdField(destinationTracks.Last())).Value;
-			newJob.JobTaken += (j, _) => _PlatformRegisterIncomingJob.Invoke(finalPlatController, new object[] { j, false });
-
-			jobOriginStation.AddJobToStation(baseJobDef.job);
-			return true;
-		}*/
 
 		private static void HandleLoadedPaxCars(List<TrainCar> trainCars, StationController station, out List<JobChainController> jobChainControllers)
 		{
@@ -1077,9 +966,8 @@ namespace PersistentJobsMod.ModInteraction
 
 #pragma warning disable IDE0060 // Remove unused parameter
 
-		private static bool GenerateJob_Prefix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses, out bool __state)
+		private static bool GenerateJob_Prefix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses)
 		{
-			__state = true;
 			var instanceBase = (StaticJobDefinition)__instance;
 			List<Car> cars = (List<Car>)_TrainCarsToTransportProp.GetValue(__instance);
 			RouteTrackRef startingRouteTrack = new(_StartingTrackField.GetValue(__instance));
@@ -1102,65 +990,6 @@ namespace PersistentJobsMod.ModInteraction
 			PaxJobContext genCtx = new(__instance, chainSaveData, jobOriginStation, timeLimit, initialWage, forcedJobId, requiredLicenses, cars, startingRouteTrack, destinationTracks, taken, modified);
 
 			return !GeneratePaxJob(genCtx);
-		}
-
-			/*if (string.IsNullOrEmpty(forcedJobId)) ///generating new job case
-			{
-				if (loaded)
-				{
-					return !GeneratePaxJobOverride(cars, startingRouteTrack, destinationTracks, __instance, jobOriginStation, timeLimit, initialWage, forcedJobId, requiredLicenses, loaded: true);
-				}
-				if (GetRouteTrackTrackField(startingRouteTrack) != CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(cars))) //cars not at platform
-				{
-					return !GeneratePaxJobOverride(cars, startingRouteTrack, destinationTracks, __instance, jobOriginStation, timeLimit, initialWage, forcedJobId, requiredLicenses, loaded: false, tracksMismatch: true);
-				}
-
-				return true; //if cars are empty and on platform let PaxJobs generate job normally
-			}
-			else //loading job from save data case
-			{
-				Main._modEntry.Logger.Log($"Job {forcedJobId} getting loaded is {(!modified ? "not " : "")}modified");
-				Main._modEntry.Logger.Log($"Job {forcedJobId} getting loaded was {(!taken ? "not " : "")}taken");
-
-				if (modified)
-				{
-					__state = false;
-					return !GeneratePaxJobOverride(cars, startingRouteTrack, destinationTracks, __instance, jobOriginStation, timeLimit, initialWage, forcedJobId, requiredLicenses, loaded: loaded, fromSave: true, taken: taken);
-				}
-				return true;
-			}
-		}*/
-
-		private static void GenerateJob_Postfix(object __instance, Station jobOriginStation, float timeLimit, float initialWage, string forcedJobId, JobLicenses requiredLicenses, bool __state)
-		{
-			if (__state)
-			{
-				RouteTrackRef startingRouteTrack = new(_StartingTrackField.GetValue(__instance));
-				List<Car> cars = (List<Car>)_TrainCarsToTransportProp.GetValue(__instance);
-				var carsTrack = CarTrackAssignment.FindNearestNamedTrackOrNull(TrainCar.ExtractTrainCars(cars));
-
-				if (GetRouteTrackTrackField(startingRouteTrack).ID.FullDisplayID != carsTrack.ID.FullDisplayID)
-				{
-					var jobs = jobOriginStation.availableJobs;
-					jobs.Reverse();
-
-					foreach (var job in jobs)
-					{
-						if (job.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Sequential) is not SequentialTasks sequential) continue;
-
-						if (sequential.tasks.FirstOrDefault(t => t.InstanceTaskType == TaskType.Transport) is not TransportTask transport) continue;
-
-						if ((bool)!transport.GetTaskData().cars.SequenceEqual(cars)) continue;
-
-						var startTrack = (Track)_TaskStartingTrackField.GetValue(transport);
-						if (startTrack == null || startTrack.ID.FullDisplayID == carsTrack.ID.FullDisplayID) continue;
-
-						_TaskStartingTrackField.SetValue(transport, carsTrack);
-						Main._modEntry.Logger.Log($"Changed start strack for job {job.ID}");
-						break;
-					}
-				}
-			}
 		}
 
 		private static void LoadPassengerChain_Postfix(object __result, object[] __args)
@@ -1276,7 +1105,7 @@ namespace PersistentJobsMod.ModInteraction
 			var baseJobData = (TransportJobData)(jobData.Value);
 			var station = baseJobData.job.chainOriginStationInfo;
 			var startingTrack = baseJobData.job.tasksData.FirstOrDefault(t => t.instanceTaskType == TaskType.Sequential)?.nestedTasks.FirstOrDefault(t => t.instanceTaskType == TaskType.Transport)?.startTrackID ?? baseJobData.startingTrack;
-			__result = (TemplatePaperData)(CompatAccess.Method(typeof(BookletCreator_Job), "CreateCoupleTaskPaperData", new[] { typeof(int), typeof(string), typeof(Color), typeof(string), typeof(List<Car_data>), typeof(List<CargoType>), typeof(int), typeof(int) })).Invoke(null, new object[] { (int)__args[1], station.YardID, station.StationColor, startingTrack.TrackPartOnly, baseJobData.transportingCars, baseJobData.transportedCargoPerCar, (int)__args[2], (int)__args[3] });
+			__result = (TemplatePaperData)_CreateCoupleTaskPaperData.Invoke(null, new object[] { (int)__args[1], station.YardID, station.StationColor, startingTrack.TrackPartOnly, baseJobData.transportingCars, baseJobData.transportedCargoPerCar, (int)__args[2], (int)__args[3] });
 			return false;
 		}
 

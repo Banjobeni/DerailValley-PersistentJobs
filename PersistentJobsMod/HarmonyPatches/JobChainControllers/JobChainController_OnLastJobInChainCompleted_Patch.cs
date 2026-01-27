@@ -114,6 +114,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                 }
                 else Main._modEntry.Logger.Log($"Could not generate subsequent passanger jobs for {lastJobInChain.ID}");
             }
+            else Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing an empty haul job.");
         }
 
         private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob, bool finalize = true) {

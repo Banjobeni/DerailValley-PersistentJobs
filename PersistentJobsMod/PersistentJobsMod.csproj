@@ -154,11 +154,24 @@
   <Target Name="PostBuildCopyWithBackup" AfterTargets="Build">
     <PropertyGroup>
       <DeployDir>$(DvInstallDir)\Mods\PersistentJobsMod\</DeployDir>
-      <DeployFile>$(DeployDir)$(TargetFileName)</DeployFile>
-      <BackupFile>$(DeployFile).OLD</BackupFile>
+      <DeployDll>$(DeployDir)$(TargetFileName)</DeployDll>
+      <DeployPdb>$(DeployDir)$(TargetName).pdb</DeployPdb>
+      <BackupDll>$(DeployDll).OLD</BackupDll>
     </PropertyGroup>
-    <Move SourceFiles="$(DeployFile)" DestinationFiles="$(BackupFile)" Condition="Exists('$(DeployFile)')" />
-    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DeployFile)" />
+  
+    <!-- Backup existing DLL -->
+    <Move SourceFiles="$(DeployDll)"
+          DestinationFiles="$(BackupDll)"
+          Condition="Exists('$(DeployDll)')" />
+  
+    <!-- Copy DLL -->
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFiles="$(DeployDll)" />
+  
+    <!-- Copy PDB if present -->
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
+          DestinationFiles="$(DeployPdb)"
+          Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
   </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

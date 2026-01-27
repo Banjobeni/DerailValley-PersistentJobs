@@ -208,8 +208,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             Main._modEntry.Logger.Log($"Found {emptyConsecutiveTrainCarGroups.Count} empty train car groups with a total of {emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             Main._modEntry.Logger.Log($"Found {loadedConsecutiveTrainCarGroups.Count} loaded train car groups with a total of {loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
-            if (Main.PaxJobsPresent && ((paxConsecutiveTrainCarGroups.SelectMany(g => g).Count() + emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count() + loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()) != trainsets.SelectMany(ts => ts.cars).Count())) Main._modEntry.Logger.Error($"Mismatch in number of cars! Trainset cars: {trainsets.SelectMany(ts => ts.cars).Count()}; Pax cars: {paxConsecutiveTrainCarGroups.SelectMany(g => g).Count()}; empty cars: {emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count()}; loaded cars: {loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()}");
-
+            
             var (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
             var (unloadableConsecutiveTrainCarGroups, notUnloadableConsecutiveTrainCarGroups) = DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(station, loadedConsecutiveTrainCarGroups);
 
