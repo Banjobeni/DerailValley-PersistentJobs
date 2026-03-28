@@ -44,7 +44,7 @@ namespace PersistentJobsMod {
 
             WorldStreamingInit.LoadingFinished += WorldStreamingInitLoadingFinished;
 
-            PaxJobs = UnityModManager.modEntries.FirstOrDefault(m => m.Info.Id == "PassengerJobs" && m.Enabled && m.Active && !m.ErrorOnLoading && m.Version.ToString() == "5.1.1");
+            PaxJobs = UnityModManager.modEntries.FirstOrDefault(m => m.Info.Id == "PassengerJobs" && m.Enabled && m.Active && !m.ErrorOnLoading /*&& m.Version.ToString() == "5.2"*/);
             PaxJobsPresent = (PaxJobs != null);
             if (PaxJobsPresent)
             {
@@ -57,7 +57,7 @@ namespace PersistentJobsMod {
             }
             else
             {
-                _modEntry.Logger.Log($"Targeted version of Passanger Jobs (5.1.1) is not present, inactive, or has ran into errors, skipping mod compatibility");
+                _modEntry.Logger.Log($"Targeted version of optional mod Passanger Jobs (5.2) is not present, inactive, or has ran into errors, skipping mod compatibility");
             }
         }
 

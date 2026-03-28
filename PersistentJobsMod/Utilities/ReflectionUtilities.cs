@@ -24,9 +24,13 @@ namespace PersistentJobsMod.Utilities
             public override string ToString() => $"{typeof(TTag).Name}";
         }
 
+        public static List<(MethodInfo target, Type patchContainer, string patchMethodName)> patchRecord = new();
+
         public static void PatchPrefix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, prefix: hm), (target.DeclaringType.Name + "." + target.Name));
 
         public static void PatchPostfix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, postfix: hm), (target.DeclaringType.Name + "." + target.Name));
+
+        public static void PatchReverse(MethodInfo target, Type patchContainer, string patchMethodName) => PatchReverseMethod(target, patchContainer, patchMethodName, target.DeclaringType.Name + "." + target.Name);
 
         private static void PatchMethod(MethodInfo target, Type patchContainer, string patchMethodName, Action<Harmony, MethodInfo, HarmonyMethod> applyPatch, string logName)
         {
@@ -46,7 +50,32 @@ namespace PersistentJobsMod.Utilities
 
             applyPatch(Main.Harmony, target, new HarmonyMethod(patchMethod));
 
+            patchRecord.Add((target, patchContainer, patchMethodName));
+            
             Main._modEntry.Logger.Log($"Successfully patched {logName}");
+        }
+
+        private static void PatchReverseMethod(MethodInfo target, Type patchContainer, string patchMethodName, string logName)
+        {
+            if (target == null)
+            {
+                Main._modEntry.Logger.Error($"Target method not found for {logName}");
+                throw new MethodAccessException();
+            }
+
+            var patchMethod = patchContainer.GetMethod(patchMethodName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+            if (patchMethod == null)
+            {
+                Main._modEntry.Logger.Error($"Reverse patch method '{patchMethodName}' not found for {logName}");
+                throw new MethodAccessException();
+            }
+
+            Main.Harmony.CreateReversePatcher(target, new HarmonyMethod(patchMethod)).Patch();
+
+            patchRecord.Add((target, patchContainer, patchMethodName));
+
+            Main._modEntry.Logger.Log($"Successfully reverse patched {logName}");
         }
     }
 }

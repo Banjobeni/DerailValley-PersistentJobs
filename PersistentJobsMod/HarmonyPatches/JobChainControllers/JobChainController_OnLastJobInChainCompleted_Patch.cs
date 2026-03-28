@@ -29,9 +29,15 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
             if (!__instance.carsForJobChain.Any()) {
                 // passenger jobs may generate a subsequent job by themselves, thereby clearing trainCarsForJobChain
+                Main._modEntry.Logger.Log("carsForJobChain is clear for job " +  lastJobInChain.ID);
                 return;
             }
 
+            DecideForConsistAfterJobChainCompletion(__instance, ___jobChain, lastJobInChain);
+        }
+
+        public static void DecideForConsistAfterJobChainCompletion(JobChainController __instance, List<StaticJobDefinition> ___jobChain, Job lastJobInChain)
+        {
             try {
                 var lastJobDefinition = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDefinition.job != lastJobInChain) {
@@ -73,7 +79,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
                     Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job for job type {lastJobInChain.jobType} and job definition type {lastJobDefinition.GetType()}.");
                 }
             } catch (Exception e) {
-                Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix));
+                Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix) + " -->" + nameof(DecideForConsistAfterJobChainCompletion));
             }
         }
 
