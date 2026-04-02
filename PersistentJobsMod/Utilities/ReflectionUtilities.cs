@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 
 namespace PersistentJobsMod.Utilities
 {
@@ -76,6 +77,24 @@ namespace PersistentJobsMod.Utilities
             patchRecord.Add((target, patchContainer, patchMethodName));
 
             Main._modEntry.Logger.Log($"Successfully reverse patched {logName}");
+        }
+        
+        public static void UnpatchAll()
+        {
+            StringBuilder s = new();
+            foreach (var (target, patchContainer, patchMethodName) in ReflectionUtilities.patchRecord)
+            {
+                try
+                {
+                    Main.Harmony.Unpatch(target, HarmonyPatchType.All, Main.Harmony.Id);
+                }
+                catch (Exception ex)
+                {
+                    Main._modEntry.Logger.LogException($"Error when unpatching {target.Name}!", ex);
+                    s.AppendLine(target.Name + ": " + ex.Message);
+                }
+            }
+            if (s.Length > 0) HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn("State is not clean, there might be problems. \n" + s);
         }
     }
 }

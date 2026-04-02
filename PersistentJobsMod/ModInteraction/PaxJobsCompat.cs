@@ -4,7 +4,6 @@ using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.RenderTextureSystem.BookletRender;
 using HarmonyLib;
-using MessageBox;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.JobGenerators;
 using PersistentJobsMod.Utilities;
@@ -14,7 +13,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using UnityEngine;
 using static PersistentJobsMod.Utilities.ReflectionUtilities;
 using static PersistentJobsMod.HarmonyPatches.JobGeneration.UnusedTrainCarDeleter_Patches;
@@ -122,6 +120,7 @@ namespace PersistentJobsMod.ModInteraction
         private static FieldInfo _InitialStopField;
         private static FieldInfo _BaseWageScale;
         private static FieldInfo _CustomWagesField;
+        private static FieldInfo _BonusTimeScale;
 
         private static Random _Random;
 
@@ -219,6 +218,7 @@ namespace PersistentJobsMod.ModInteraction
                 _InitialStopField = CompatAccess.Field(_PassengerJobData, "initialStop");
                 _BaseWageScale = CompatAccess.Field(_PassengerJobGenerator, "BASE_WAGE_SCALE");
                 _CustomWagesField = CompatAccess.Field(_PJModSettings, "UseCustomWages");
+                _BonusTimeScale = CompatAccess.Field(_PJModSettings, "TimeScale");
 
                 _RouteTrackCtor = CompatAccess.Ctor(_RouteTrack, new[] { _IPassDestination, typeof(Track) });
                 _PassConsistInfoCtor = CompatAccess.Ctor(_PassConsistInfo, new[] { _RouteTrack, typeof(List<Car>) });
@@ -266,20 +266,7 @@ namespace PersistentJobsMod.ModInteraction
             {
                 Main._modEntry.Logger.LogException("Failed to initilize PaxJobsCompat when resolving types and methods, trying to unpatch", e);
 
-                StringBuilder s = new();
-                foreach (var (target, patchContainer, patchMethodName) in ReflectionUtilities.patchRecord)
-                {
-                    try
-                    {
-                        Main.Harmony.Unpatch(target, HarmonyPatchType.All, Main.Harmony.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        Main._modEntry.Logger.LogException($"Error when unpatching {target.Name}!", ex);
-                        s.AppendLine(target.Name + ": " + ex.Message);
-                    }
-                }
-                if (s.Length > 0) PopupAPI.ShowOk("State is not clean, there might be problems. \n" + s);
+                UnpatchAll();
 
                 return false;
             }
@@ -721,13 +708,13 @@ namespace PersistentJobsMod.ModInteraction
             PaymentCalculationData transportPaymentData = GetJobPaymentData(jobCarTypes);
 
             float haulDistance = GetTotalHaulDistance(startingStation, rrTracksArray);
-            float bonusLimit = JobPaymentCalculator.CalculateHaulBonusTimeLimit(haulDistance, false) * GetTimeMultiplier(jobType);
+            float bonusLimit = JobPaymentCalculator.CalculateHaulBonusTimeLimit(haulDistance, false) * GetTimeMultiplier(jobType) * ((float)_BonusTimeScale.GetValue(_PJMainSettingsProp.GetValue(null) ?? 1));
             bonusLimit += GetTimeForStops(destinations);
             float transportPayment = JobPaymentCalculator.CalculateJobPayment(JobType.Transport, haulDistance, transportPaymentData);
             float? wageScale = 1;
             if (TryGetGenerator(startingStation.logicStation.ID, out object generator))
             {
-                wageScale = (float)((bool)_CustomWagesField?.GetValue(_PJMainSettingsProp.GetValue(null)) ? _BaseWageScale?.GetValue(generator) : 1);
+                wageScale = (float)((bool)_CustomWagesField.GetValue(_PJMainSettingsProp.GetValue(null)) ? _BaseWageScale.GetValue(generator) : 1);
             }
             transportPayment = Mathf.Round((float)(transportPayment * wageScale));
 

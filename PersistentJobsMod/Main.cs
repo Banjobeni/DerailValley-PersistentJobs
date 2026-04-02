@@ -53,6 +53,7 @@ namespace PersistentJobsMod {
                 {
                     PaxJobsPresent = false;
                     _modEntry.Logger.Error("Passanger Jobs compatibility failed to load!");
+                    HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state, but new passenger jobs may not be generated \nand cars will remain jobless.");
                 }
             }
             else
