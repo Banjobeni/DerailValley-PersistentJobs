@@ -2,6 +2,7 @@
 using MessageBox;
 using PersistentJobsMod.Model;
 using PersistentJobsMod.ModInteraction;
+using PersistentJobsMod.Utilities;
 using System;
 using System.IO;
 using System.Linq;
@@ -53,7 +54,7 @@ namespace PersistentJobsMod {
                 {
                     PaxJobsPresent = false;
                     _modEntry.Logger.Error("Passanger Jobs compatibility failed to load!");
-                    HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state, but new passenger jobs may not be generated \nand cars will remain jobless.");
+                    HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state,\n but new passenger jobs may not be generated and cars will remain jobless.");
                 }
             }
             else
@@ -87,16 +88,9 @@ namespace PersistentJobsMod {
             _isModBroken = true;
             _modEntry.Active = false;
 
-            var logMessage = $"Exception thrown at {location}:\n{e}";
-            Debug.LogError(logMessage);
-
-            var exceptionLogFilename = $"PersistentJobsMod_Exception_{DateTime.Now.ToString("O").Replace(':', '.')}.log";
-            var logExceptionFilepath = Path.Combine(Application.persistentDataPath, exceptionLogFilename);
-            File.WriteAllText(logExceptionFilepath, logMessage);
-
             _modEntry.Logger.Critical($"Deactivating mod PersistentJobsMod due to critical exception in {location}:\n{e}");
 
-            PopupAPI.ShowOk($"Persistent Jobs mod encountered a critical failure. The mod will stay inactive until the game is restarted.\n\nSee {exceptionLogFilename} for details.");
+            AddMoreInfoToExceptionHelper.AlertPlayerToExceptionAndCompileDataForBugReport(e, location);
         }
     }
 }
