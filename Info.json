@@ -2,11 +2,11 @@
 	"Id": "PersistentJobsMod",
 	"DisplayName": "Persistent Jobs",
 	"Author": "Banjobeni",
-	"Version": "3.4.0",
+	"Version": "3.5.0",
 	"AssemblyName": "PersistentJobsMod.dll",
 	"EntryMethod": "PersistentJobsMod.Main.Load",
 	"HomePage": "https://www.nexusmods.com/derailvalley/mods/794/",
 	"Repository": "https://raw.githubusercontent.com/Banjobeni/DerailValley-PersistentJobs/master/Repository.json",
 	"Requirements": ["MessageBox"],
-	"LoadAfter": ["MessageBox"]
+	"LoadAfter": ["MessageBox", "PassengerJobs"]
 }

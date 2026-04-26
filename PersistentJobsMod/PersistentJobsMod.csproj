@@ -46,6 +46,9 @@
     <Reference Include="CommandTerminal">
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.Common">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DV.PointSet">
       <Private>False</Private>
     </Reference>
@@ -61,6 +64,9 @@
     <Reference Include="DV.UIFramework">
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.UserManagement">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="MessageBox">
       <Private>False</Private>
     </Reference>
@@ -73,6 +79,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.IO.Compression.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <Private>False</Private>
@@ -102,8 +109,11 @@
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
+    <Compile Include="HarmonyPatches\Save\SaveGameData_RemoveData_Patch.cs" />
+    <Compile Include="HarmonyPatches\Save\StartGameData_FromSaveGame_Patch.cs" />
     <Compile Include="HarmonyPatches\Sleeping\BedSleepingController_Patches.cs" />
     <Compile Include="HarmonyPatches\Trashcan\JobAbandoner_Patches.cs" />
+    <Compile Include="ModInteraction\PaxJobsCompat.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Utilities\AdditionalInformationException.cs" />
     <Compile Include="Utilities\AddMoreInfoToExceptionHelper.cs" />
@@ -114,6 +124,7 @@
     <Compile Include="Extensions\TrackExtension.cs" />
     <Compile Include="Utilities\PaymentAndBonusTimeUtilities.cs" />
     <Compile Include="Utilities\PlayerSpawnedCarUtilities.cs" />
+    <Compile Include="Utilities\ReflectionUtilities.cs" />
     <Compile Include="Utilities\TaskUtilities.cs" />
     <Compile Include="Utilities\TranspilingUtilities.cs" />
     <Compile Include="HarmonyPatches\JobChainControllers\JobChainController_OnLastJobInChainCompleted_Patch.cs" />
@@ -134,7 +145,7 @@
     <Compile Include="Persistence\StationIdCarSpawningPersistence.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="HarmonyPatches\Save\SaveDataConstants.cs" />
-    <Compile Include="HarmonyPatches\Save\CarsSaveManager_Load_Patch.cs" />
+    <Compile Include="HarmonyPatches\Save\CarsSaveManager_Patches.cs" />
     <Compile Include="HarmonyPatches\Save\SaveGameManager_Save_Patch.cs" />
     <Compile Include="JobGenerators\ShuntingLoadJobGenerator.cs" />
     <Compile Include="HarmonyPatches\Distance\StationController_Patches.cs" />
@@ -148,10 +159,20 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
+  <Target Name="PostBuildCopyWithBackup" AfterTargets="Build">
+    <PropertyGroup>
+      <DeployDir>$(DvInstallDir)\Mods\PersistentJobsMod\</DeployDir>
+      <DeployDll>$(DeployDir)$(TargetFileName)</DeployDll>
+      <DeployPdb>$(DeployDir)$(TargetName).pdb</DeployPdb>
+      <BackupDll>$(DeployDll).OLD</BackupDll>
+    </PropertyGroup>
+    <!-- Backup existing DLL -->
+    <Move SourceFiles="$(DeployDll)" DestinationFiles="$(BackupDll)" Condition="Exists('$(DeployDll)')" />
+    <!-- Copy DLL -->
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DeployDll)" />
+    <!-- Copy PDB if present -->
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFiles="$(DeployPdb)" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+  </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

@@ -1,12 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using DV.Logic.Job;
+﻿using DV.Logic.Job;
 using DV.ThingTypes;
 using DV.Utils;
 using HarmonyLib;
 using PersistentJobsMod.JobGenerators;
+using PersistentJobsMod.ModInteraction;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using static PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags;
+using static System.Collections.Specialized.BitVector32;
+using PassengerHaulJobDefinitionRef = PersistentJobsMod.Utilities.ReflectionUtilities.Foreign<PersistentJobsMod.ModInteraction.PaxJobsCompat.Tags.PassengerHaulJobDefinition>;
 
 namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
     /// <summary>
@@ -25,9 +29,15 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
             if (!__instance.carsForJobChain.Any()) {
                 // passenger jobs may generate a subsequent job by themselves, thereby clearing trainCarsForJobChain
+                Main._modEntry.Logger.Log("carsForJobChain is clear for job " +  lastJobInChain.ID);
                 return;
             }
 
+            DecideForConsistAfterJobChainCompletion(__instance, ___jobChain, lastJobInChain);
+        }
+
+        public static void DecideForConsistAfterJobChainCompletion(JobChainController __instance, List<StaticJobDefinition> ___jobChain, Job lastJobInChain)
+        {
             try {
                 var lastJobDefinition = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDefinition.job != lastJobInChain) {
@@ -40,20 +50,36 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
                     FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
                 } else if (lastJobInChain.jobType == JobType.Transport && lastJobDefinition is StaticTransportJobDefinition transportJobDefinition) {
-                    var subsequentJobChainController = CreateSubsequentShuntingUnloadJob(__instance, transportJobDefinition);
-                    
-                    FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
+                    if (Main.PaxJobsPresent && PaxJobsCompat.IsPaxCars(__instance.carsForJobChain.First().TrainCar()))
+                    {
+                        CreateSubsequentPaxJobs(__instance, transportJobDefinition, lastJobInChain);
+                    }
+                    else
+                    {
+                        var subsequentJobChainController = CreateSubsequentShuntingUnloadJob(__instance, transportJobDefinition);
+
+                        FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
+                    }
                 } else if (lastJobInChain.jobType == JobType.ShuntingUnload && lastJobDefinition is StaticShuntingUnloadJobDefinition) {
                     // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
                     Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing a shunting unload job.");
                 } else if (lastJobInChain.jobType == JobType.EmptyHaul && lastJobDefinition is StaticEmptyHaulJobDefinition) {
-                    // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
-                    Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing an empty haul job.");
+                    if (Main.PaxJobsPresent)
+                    {
+                        CreateSubsequentPaxJobs(__instance, lastJobDefinition, lastJobInChain);
+                    }
+                    else
+                    {
+                        // nothing to do. JobChainController will register the cars as jobless and they may then be chosen for further jobs
+                        Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing an empty haul job.");
+                    }
+                } else if (Main.PaxJobsPresent && PaxJobsCompat.IsPaxJobDefinition(lastJobDefinition, out PassengerHaulJobDefinitionRef passengerHaulJobDefinition)) {
+                    CreateSubsequentPaxJobs(__instance, (StaticJobDefinition)passengerHaulJobDefinition.Value, lastJobInChain);
                 } else {
                     Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job for job type {lastJobInChain.jobType} and job definition type {lastJobDefinition.GetType()}.");
                 }
             } catch (Exception e) {
-                Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix));
+                Main.HandleUnhandledException(e, nameof(JobChainController_OnLastJobInChainCompleted_Patch) + "." + nameof(Prefix) + " -->" + nameof(DecideForConsistAfterJobChainCompletion));
             }
         }
 
@@ -79,13 +105,31 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             return ShuntingUnloadJobGenerator.TryGenerateJobChainController(startingStation, startingTrack, destinationStation, trainCars, rng);
         }
 
-        private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob) {
+        private static void CreateSubsequentPaxJobs(JobChainController __instance, StaticJobDefinition preceedingJobDefinition, Job lastJobInChain)
+        {
+            List<JobChainController> subsequentJobChainControllers = new();
+
+            var trainCars = new List<TrainCar>(TrainCar.ExtractTrainCars(__instance.carsForJobChain));
+            if (!(trainCars.Any(tc => !PaxJobsCompat.IsPaxCars(tc))))
+            {
+                var destinationStation = SingletonBehaviour<LogicController>.Instance.YardIdToStationController[(preceedingJobDefinition.chainData.chainDestinationYardId)];
+                subsequentJobChainControllers.AddRange(PaxJobsCompat.DecideForPaxCarGroups((new List<IReadOnlyList<TrainCar>> { trainCars }), destinationStation));
+                if (subsequentJobChainControllers.Any() && !subsequentJobChainControllers.Any(jcc => jcc == null))
+                {
+                    foreach (var subsequentJobChainController in subsequentJobChainControllers) FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain, finalize: false);
+                }
+                else Main._modEntry.Logger.Log($"Could not generate subsequent passanger jobs for {lastJobInChain.ID}");
+            }
+            else Debug.Log($"[PersistentJobsMod] Skipped creating a subsequent job after completing an empty haul job.");
+        }
+
+        private static void FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(JobChainController subsequentJobChainController, JobChainController previousJobChainController, Job previousJob, bool finalize = true) {
             if (subsequentJobChainController != null) {
                 foreach (var tc in subsequentJobChainController.carsForJobChain) {
                     previousJobChainController.carsForJobChain.Remove(tc);
                 }
 
-                subsequentJobChainController.FinalizeSetupAndGenerateFirstJob();
+                if (finalize) subsequentJobChainController.FinalizeSetupAndGenerateFirstJob();
 
                 if (subsequentJobChainController.currentJobInChain is Job job) {
                     Main._modEntry.Logger.Log($"Completion of job {previousJob.ID} generated subsequent {job.jobType} job {job.ID} ({subsequentJobChainController.jobChainGO.name})");

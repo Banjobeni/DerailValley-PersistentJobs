@@ -5,7 +5,7 @@ using HarmonyLib;
 namespace PersistentJobsMod.Utilities {
     public static class PlayerSpawnedCarUtilities {
         public static void ConvertPlayerSpawnedTrainCar(TrainCar trainCar) {
-            if (!trainCar.playerSpawnedCar) {
+            if (!trainCar.playerSpawnedCar || trainCar == null) {
                 return;
             }
 

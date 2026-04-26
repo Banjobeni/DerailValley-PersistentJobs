@@ -14,15 +14,21 @@ namespace PersistentJobsMod.JobGenerators {
                 IReadOnlyList<TrainCar> trainCars,
                 List<CargoType> transportedCargoPerCar,
                 System.Random random,
-                bool forceCorrectCargoStateOnCars = false) {
+                bool forceCorrectCargoStateOnCars = false,
+                Track destinationTrack = null) {
             Main._modEntry.Logger.Log($"transport: attempting to generate {JobType.Transport} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
             var yto = YardTracksOrganizer.Instance;
 
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(trainCars.Select(tc => tc.logicCar).ToList(), true);
-            var destinationTrack = TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
+            destinationTrack ??= TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
                 Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find any TransferInTrack in {destinationStation.logicStation.ID} that is long enough!");
+                return null;
+            }
+            if ((destinationTrack.ID.yardId != destinationStation.stationInfo.YardID) || (startingTrack.ID.yardId != startingStation.stationInfo.YardID))
+            {
+                Main._modEntry.Logger.Error($"Mismatch between track and station, this should not happen!");
                 return null;
             }
 

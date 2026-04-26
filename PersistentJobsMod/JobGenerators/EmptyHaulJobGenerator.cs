@@ -10,14 +10,17 @@ using PersistentJobsMod.Licensing;
 namespace PersistentJobsMod.JobGenerators {
     [HarmonyPatch]
     public static class EmptyHaulJobGenerator {
-        public static JobChainController GenerateEmptyHaulJobWithExistingCarsOrNull(StationController startingStation, StationController destinationStation, Track startingTrack, IReadOnlyList<TrainCar> trainCars, Random random) {
+        public static JobChainController GenerateEmptyHaulJobWithExistingCarsOrNull(StationController startingStation, StationController destinationStation, Track startingTrack, IReadOnlyList<TrainCar> trainCars, Random random, Track targetTrack = null) {
             Main._modEntry.Logger.Log($"empty haul: attempting to generate {JobType.EmptyHaul} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
 
             var trainCarLiveries = trainCars.Select(tc => tc.carLivery).ToList();
 
             var trainLength = CarSpawner.Instance.GetTotalCarLiveriesLength(trainCarLiveries);
-            var targetTrack = GetTargetTrackOrNull(destinationStation, trainLength, random);
-            if (targetTrack == null) {
+            targetTrack ??= GetTargetTrackOrNull(destinationStation, trainLength, random);
+            if (targetTrack == null) return null;
+            if ((targetTrack.ID.yardId != destinationStation.stationInfo.YardID) || (startingTrack.ID.yardId != startingStation.stationInfo.YardID))
+            {
+                Main._modEntry.Logger.Error($"Mismatch between track and station, this should not happen!");
                 return null;
             }
 

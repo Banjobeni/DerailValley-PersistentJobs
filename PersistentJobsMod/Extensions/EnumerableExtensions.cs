@@ -9,7 +9,7 @@ namespace PersistentJobsMod.Extensions {
         }
 
         public static IEnumerable<(TKey Key, IReadOnlyList<TItem> Items)> GroupConsecutiveBy<TKey, TItem>(this IEnumerable<TItem> items, Func<TItem, TKey> getKey, IEqualityComparer<TKey> keyEqualityComparer = null) {
-            keyEqualityComparer = keyEqualityComparer ?? EqualityComparer<TKey>.Default;
+            keyEqualityComparer ??= EqualityComparer<TKey>.Default;
 
             (TKey key, List<TItem> items)? current = null;
 
@@ -35,6 +35,50 @@ namespace PersistentJobsMod.Extensions {
 
         public static IReadOnlyList<T> ToReadOnlyList<T>(this IEnumerable<T> enumerable) {
             return enumerable.ToList();
+        }
+
+        public static (List<T> First, List<T> Second) SplitInHalf<T>(this IEnumerable<T> source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            var list = source as IList<T> ?? source.ToList();
+
+            if (list.Count < 2) return (null, null);
+
+            int mid = (list.Count + 1) / 2;
+            var first = list.Take(mid).ToList();
+            var second = list.Skip(mid).ToList();
+
+            return (first, second);
+        }
+
+        public static bool MultisetEquals<T>(this IEnumerable<T> first, IEnumerable<T> second, IEqualityComparer<T> comparer = null)
+        {
+            if (ReferenceEquals(first, second)) return true;
+            if (first == null || second == null) return false;
+
+            comparer ??= EqualityComparer<T>.Default;
+            var lookup = new Dictionary<T, int>(comparer);
+
+            foreach (var item in first)
+            {
+                if (lookup.TryGetValue(item, out int count))
+                    lookup[item] = count + 1;
+                else
+                    lookup[item] = 1;
+            }
+
+            foreach (var item in second)
+            {
+                if (!lookup.TryGetValue(item, out int count)) return false;
+
+                count--;
+                if (count == 0)
+                    lookup.Remove(item);
+                else
+                    lookup[item] = count;
+            }
+
+            return lookup.Count == 0;
         }
     }
 }
