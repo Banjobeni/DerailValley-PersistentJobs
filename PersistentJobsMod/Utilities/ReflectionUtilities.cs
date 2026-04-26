@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
@@ -25,13 +26,39 @@ namespace PersistentJobsMod.Utilities
             public override string ToString() => $"{typeof(TTag).Name}";
         }
 
+        public static bool IsInCallers(string methodName, string excludeMethodName = "", string specificFrameNumeric = "", int framesToSkip = 0, bool log = false)
+        {
+            bool specific = int.TryParse(specificFrameNumeric, out int intSpecificFrame);
+            StackTrace trace = new(framesToSkip, log);
+            StringBuilder callerNames = new();
+            if (specific)
+            {
+                var method = trace.GetFrame(intSpecificFrame).GetMethod();
+                callerNames.Append($"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name}");
+                if (log) Main._modEntry.Logger.Log($"frame {intSpecificFrame} is {methodName}");
+            }
+            else
+            {
+                if (log) Main._modEntry.Logger.Log("getting all frames");
+                foreach (StackFrame frame in trace.GetFrames())
+                {
+                    var method = frame.GetMethod();
+                    callerNames.Append($"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name} \n");
+                }
+            }
+            if (log) Main._modEntry.Logger.Log(callerNames.ToString());
+            if (excludeMethodName.Length > 1 && ((callerNames.ToString()).Contains(excludeMethodName))) return false;
+            if ((callerNames.ToString()).Contains(methodName)) return true;
+            return false;
+        }
+
         public static List<(MethodInfo target, Type patchContainer, string patchMethodName)> patchRecord = new();
 
-        public static void PatchPrefix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, prefix: hm), (target.DeclaringType.Name + "." + target.Name));
+        public static void PatchPrefix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, prefix: hm), (target.DeclaringType.Namespace + "." + target.DeclaringType.Name + "." + target.Name));
 
-        public static void PatchPostfix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, postfix: hm), (target.DeclaringType.Name + "." + target.Name));
+        public static void PatchPostfix(MethodInfo target, Type patchContainer, string patchMethodName) => PatchMethod(target, patchContainer, patchMethodName, (harmony, t, hm) => harmony.Patch(t, postfix: hm), (target.DeclaringType.Namespace + "." + target.DeclaringType.Name + "." + target.Name));
 
-        public static void PatchReverse(MethodInfo target, Type patchContainer, string patchMethodName) => PatchReverseMethod(target, patchContainer, patchMethodName, target.DeclaringType.Name + "." + target.Name);
+        public static void PatchReverse(MethodInfo target, Type patchContainer, string patchMethodName) => PatchReverseMethod(target, patchContainer, patchMethodName, target.DeclaringType.Namespace + "." + target.DeclaringType.Name + "." + target.Name);
 
         private static void PatchMethod(MethodInfo target, Type patchContainer, string patchMethodName, Action<Harmony, MethodInfo, HarmonyMethod> applyPatch, string logName)
         {
@@ -52,7 +79,7 @@ namespace PersistentJobsMod.Utilities
             applyPatch(Main.Harmony, target, new HarmonyMethod(patchMethod));
 
             patchRecord.Add((target, patchContainer, patchMethodName));
-            
+
             Main._modEntry.Logger.Log($"Successfully patched {logName}");
         }
 
@@ -78,7 +105,7 @@ namespace PersistentJobsMod.Utilities
 
             Main._modEntry.Logger.Log($"Successfully reverse patched {logName}");
         }
-        
+
         public static void UnpatchAll()
         {
             StringBuilder s = new();

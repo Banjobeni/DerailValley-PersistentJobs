@@ -163,7 +163,7 @@ namespace PersistentJobsMod.ModInteraction
                 _PassengerChainSaveData = CompatAccess.Type("PassengerJobs.Generation.PassengerChainSaveData");
                 _PJMain = CompatAccess.Type("PassengerJobs.PJMain");
                 _PJModSettings = CompatAccess.Type("PassengerJobs.PJModSettings");
-                _PJExtensions = CompatAccess.Type("PassengerJobs.Extensions");
+                _PJExtensions = CompatAccess.Type("PassengerJobs.Extensions.Extensions");
                 _CityLoadingTask = CompatAccess.Type("PassengerJobs.Platforms.CityLoadingTask");
                 _RuralLoadingTask = CompatAccess.Type("PassengerJobs.Platforms.RuralLoadingTask");
 

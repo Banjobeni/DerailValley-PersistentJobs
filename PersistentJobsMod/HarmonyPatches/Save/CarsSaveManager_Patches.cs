@@ -1,9 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Collections;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Newtonsoft.Json.Linq;
 using PersistentJobsMod.Persistence;
+using PersistentJobsMod.Utilities;
+using System;
+using System.Collections;
+using System.Diagnostics;
+using System.Linq;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.Save
@@ -17,7 +19,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save
             //if no car data is loaded (eg. game update reset them), expire all jobs and allow new cars to re-spawn 
             if (__result == false)
             {
-                Debug.Log($"No savegame data found, possibly due to game update. Resetting all jobs and stations.");
+                Main._modEntry.Logger.Warning($"CarsSaveManager_Patches.Load.Postfix: No savegame data found, possibly due to game update. Resetting all jobs and stations.");
                 ResetJobsAndCarsState();
             }
             try
@@ -45,6 +47,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save
             catch (Exception e)
             {
                 Main._modEntry.Logger.Warning($"Loading mod data failed with exception:\n{e}");
+                ResetJobsAndCarsState();
             }
         }
 
@@ -61,6 +64,9 @@ namespace PersistentJobsMod.HarmonyPatches.Save
 
         public static void ResetJobsAndCarsState()
         {
+            Main._modEntry.Logger.Warning("Faliure in job loading, reseting all jobs and stations");
+            StackTrace trace = new(true);
+            Main._modEntry.Logger.Log("Callstack: \n" + trace.ToString());
             PersistentJobsMod.Console.ExpireAvailableJobsInAllStations();
             StationIdCarSpawningPersistence.Instance.ClearStationsSpawnedCarsFlagForAllStations();
             SaveGameManager.Instance.StartCoroutine(GenerateJobsCurrentStationCoroutine());
@@ -72,8 +78,12 @@ namespace PersistentJobsMod.HarmonyPatches.Save
     {
         public static void Postfix()
         {
-            Main._modEntry.Logger.Log($"Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
-            CarsSaveManager_Patches.ResetJobsAndCarsState();
+
+            if (ReflectionUtilities.IsInCallers(methodName: "LoadingNonBlockingCoro", excludeMethodName: "Manager.Load_Patch", specificFrameNumeric: "", log: false))
+            {
+                Main._modEntry.Logger.Log($" CarsSaveManager_DeleteAllExistingCars_Patch.Postfix: Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
+                CarsSaveManager_Patches.ResetJobsAndCarsState();
+            }
         }
     }
 }

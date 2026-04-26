@@ -46,6 +46,9 @@
     <Reference Include="CommandTerminal">
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.Common">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DV.PointSet">
       <Private>False</Private>
     </Reference>
@@ -61,6 +64,9 @@
     <Reference Include="DV.UIFramework">
       <Private>False</Private>
     </Reference>
+    <Reference Include="DV.UserManagement">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="MessageBox">
       <Private>False</Private>
     </Reference>
@@ -73,6 +79,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.IO.Compression.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <Private>False</Private>
@@ -102,7 +109,8 @@
     <Compile Include="Console.cs" />
     <Compile Include="CarSpawningJobGenerators\EmptyHaulJobWithCarsGenerator.cs" />
     <Compile Include="HarmonyPatches\Console\Console_Patches.cs" />
-    <Compile Include="HarmonyPatches\Save\SaveGameManager_RemoveData_Patch.cs" />
+    <Compile Include="HarmonyPatches\Save\SaveGameData_RemoveData_Patch.cs" />
+    <Compile Include="HarmonyPatches\Save\StartGameData_FromSaveGame_Patch.cs" />
     <Compile Include="HarmonyPatches\Sleeping\BedSleepingController_Patches.cs" />
     <Compile Include="HarmonyPatches\Trashcan\JobAbandoner_Patches.cs" />
     <Compile Include="ModInteraction\PaxJobsCompat.cs" />
@@ -158,20 +166,12 @@
       <DeployPdb>$(DeployDir)$(TargetName).pdb</DeployPdb>
       <BackupDll>$(DeployDll).OLD</BackupDll>
     </PropertyGroup>
-  
     <!-- Backup existing DLL -->
-    <Move SourceFiles="$(DeployDll)"
-          DestinationFiles="$(BackupDll)"
-          Condition="Exists('$(DeployDll)')" />
-  
+    <Move SourceFiles="$(DeployDll)" DestinationFiles="$(BackupDll)" Condition="Exists('$(DeployDll)')" />
     <!-- Copy DLL -->
-    <Copy SourceFiles="$(TargetPath)"
-          DestinationFiles="$(DeployDll)" />
-  
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DeployDll)" />
     <!-- Copy PDB if present -->
-    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb"
-          DestinationFiles="$(DeployPdb)"
-          Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFiles="$(DeployPdb)" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
   </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
