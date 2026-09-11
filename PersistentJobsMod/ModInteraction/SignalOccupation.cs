@@ -58,8 +58,8 @@ namespace PersistentJobsMod.ModInteraction
             if (trackTokenHolder == null) Main._modEntry.Logger.Log($"No occupying flag holder for {track} present, nothing to free");
             else
             {
-                if (!trackTokenHolder.Unset(carId)) Main._modEntry.Logger.Error($"{track} couldn't be freed by {carId}, something´s wrong!");
-                else holders.Remove(trackTokenHolder);
+                if (trackTokenHolder.Unset(carId)) holders.Remove(trackTokenHolder);
+                //else Main._modEntry.Logger.Error($"{track} couldn't be freed by {carId}, something´s wrong!");
             }
         }
 

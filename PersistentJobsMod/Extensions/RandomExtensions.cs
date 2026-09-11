@@ -6,7 +6,7 @@ namespace PersistentJobsMod.Extensions {
     public static class RandomExtensions {
         public static T GetRandomElement<T>(this Random rng, IReadOnlyList<T> list) {
             var index = rng.Next(0, list.Count);
-            return list[index];
+            return (list.Count < 1 ? default : list[index]);
         }
 
         // taken from StationProcedurationJobGenerator.GetMultipleRandomsFromList
