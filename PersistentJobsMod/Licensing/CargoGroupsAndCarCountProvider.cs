@@ -22,7 +22,7 @@ namespace PersistentJobsMod.Licensing {
 
             if (cargoGroups.Count < 1)
             {
-                UnityEngine.Debug.LogError("[PersistentJobsMod] Station has no cargo groups for selected job type, this shouldn´t happen!");
+                UnityEngine.Debug.LogError("[PersistentJobsMod] Station has no cargo groups for selected job type, this shouldn't happen!");
                 return null;
             }
 

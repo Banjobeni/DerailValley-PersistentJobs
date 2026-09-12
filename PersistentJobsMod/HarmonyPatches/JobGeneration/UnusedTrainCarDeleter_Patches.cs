@@ -198,7 +198,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             if (station is null)
             {
-                Debug.LogWarning($"[PersistentJobsMod] Can´t reassign cars: \n{string.Join(" ,", trainsets.Select(ts => ts.cars.Select(tc => tc.ID)))} \nto jobs as their station is null");
+                Debug.LogWarning($"[PersistentJobsMod] Can't reassign cars: \n{string.Join(" ,", trainsets.Select(ts => ts.cars.Select(tc => tc.ID)))} \nto jobs as their station is null");
                 return result;
             }
 
@@ -210,7 +210,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             if (Main.PaxJobsPresent)
             {
                 paxConsecutiveTrainCarGroups = statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.PaxCar).Select(s => s.Items).ToList();
-                Main._modEntry.Logger.Log($"Found {paxConsecutiveTrainCarGroups.Count} passanger train car groups with a total of {paxConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
+                Main._modEntry.Logger.Log($"Found {paxConsecutiveTrainCarGroups.Count} passenger train car groups with a total of {paxConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
                 result.AddRange(PaxJobsCompat.DecideForPaxCarGroups(paxConsecutiveTrainCarGroups, station));
                 statusTrainCarGroups.RemoveAll(stcg => statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.PaxCar).ToList().Contains(stcg));
             }
@@ -221,7 +221,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             Main._modEntry.Logger.Log($"Found {emptyConsecutiveTrainCarGroups.Count} empty train car groups with a total of {emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             Main._modEntry.Logger.Log($"Found {loadedConsecutiveTrainCarGroups.Count} loaded train car groups with a total of {loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             
-            var (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
+            var (loadableConsecutiveTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
             var (unloadableConsecutiveTrainCarGroups, notUnloadableConsecutiveTrainCarGroups) = DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(station, loadedConsecutiveTrainCarGroups);
 
             // generate empty haul jobs for empty train cars not loadable at this station
@@ -258,7 +258,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
 
             // generate shunting load jobs for empty train cars loadable at this station
-            var shuntingLoadJobChainControllers = GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(station, loadableConsecuteTrainCarGroups, random).ToList();
+            var shuntingLoadJobChainControllers = GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(station, loadableConsecutiveTrainCarGroups, random).ToList();
 
             result.AddRange(shuntingLoadJobChainControllers);
 
@@ -489,7 +489,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         private static (IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>> loadableConsecuteTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination>)>> notLoadableConsecutiveTrainCarGroups) DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> emptyConsecutiveTrainCarGroups) {
             var stationOutgoingCargoGroups = DetailedCargoGroups.GetOutgoingCargoGroups(station);
 
-            var loadableConsecuteTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
+            var loadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
             var notLoadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>>();
 
             foreach (var emptyConsecutiveTrainCars in emptyConsecutiveTrainCarGroups) {
@@ -498,7 +498,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 void FlushCurrentState() {
                     if (currentLoadable != null) {
-                        loadableConsecuteTrainCarGroups.Add(currentLoadable);
+                        loadableConsecutiveTrainCarGroups.Add(currentLoadable);
                         currentLoadable = null;
                     }
                     if (currentNotLoadable != null) {
@@ -536,7 +536,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 FlushCurrentState();
             }
 
-            return (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
+            return (loadableConsecutiveTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
         }
 
         private static (IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<IncomingCargoGroup> IncomingCargoGroups)>> unloadableConsecutiveTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<OutgoingCargoGroupDestination> CargoGroupDestinations)>> notUnloadableConsecutiveTrainCarGroups) DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> loadedConsecutiveTrainCarGroups) {
@@ -602,10 +602,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             PaxCar
         }
 
-        public static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar, bool ingnorePaxCarStatus = true) {
+        public static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar, bool ignorePaxCarStatus = true) {
             if (JobsManager.Instance.GetJobOfCar(trainCar.logicCar) != null) {
                 return TrainCarReassignStatus.HasJob;
-            } else if ((!ingnorePaxCarStatus && Main.PaxJobsPresent) && PaxJobsCompat.IsPaxCar(trainCar)) {              
+            } else if ((!ignorePaxCarStatus && Main.PaxJobsPresent) && PaxJobsCompat.IsPaxCar(trainCar)) {              
                     return TrainCarReassignStatus.PaxCar;
             } else if (CarTypes.IsRegularCar(trainCar.carLivery)) {
                 if (trainCar.LoadedCargoAmount < 0.001f) {

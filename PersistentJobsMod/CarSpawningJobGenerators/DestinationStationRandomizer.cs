@@ -28,7 +28,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
         private static bool DoesStationSupportCargoTypesAndTrainLength(float trainLength, List<CargoType> cargoTypes, StationController destination) {
             var warehouseMachines = destination.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(cargoTypes);
             if (warehouseMachines.Count == 0) {
-                UnityEngine.Debug.LogWarning($"[PersistentJobs] Couldn't find a warehouse machine at destination {destination.logicStation.ID} that supports all cargo types, skipping destination");
+                UnityEngine.Debug.LogWarning($"[PersistentJobsMod] Couldn't find a warehouse machine at destination {destination.logicStation.ID} that supports all cargo types, skipping destination");
                 return false;
             }
 

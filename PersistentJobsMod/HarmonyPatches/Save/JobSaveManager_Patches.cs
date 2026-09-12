@@ -40,7 +40,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
                     var jobChainController = stationJobControllers.SelectMany(sjc => sjc.GetCurrentJobChains()).FirstOrDefault(jcc => jcc.currentJobInChain.ID == chainSaveData.firstJobId);
 
                     if (jobChainController == null) {
-                        Debug.LogWarning($"[PersistentJobs] could not find JobChainController for Job[{chainSaveData.firstJobId}]; skipping track reservation!");
+                        Debug.LogWarning($"[PersistentJobsMod] could not find JobChainController for Job[{chainSaveData.firstJobId}]; skipping track reservation!");
                     } else if (jobChainController.currentJobInChain.jobType == JobType.ShuntingLoad) {
                         Main._modEntry.Logger.Log($"skipping track reservation for job {jobChainController.currentJobInChain.ID} because it's a shunting load job");
                     } else if ((byte)jobChainController.currentJobInChain.jobType > 5) {
@@ -68,7 +68,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
 
             instructions[index] = new CodeInstruction(OpCodes.Newobj, typeof(JobChainController).GetConstructors().Single());
 
-            Debug.Log($"[PersistentJobsMod] Transpiling {originalMethod.DeclaringType.FullName}:{originalMethod.Name} at index {index}: changed instanciated object to {typeof(JobChainController).FullName}");
+            Debug.Log($"[PersistentJobsMod] Transpiling {originalMethod.DeclaringType.FullName}:{originalMethod.Name} at index {index}: changed instantiated object to {typeof(JobChainController).FullName}");
 
             return instructions;
         }

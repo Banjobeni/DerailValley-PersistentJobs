@@ -25,7 +25,7 @@ namespace PersistentJobsMod.JobGenerators {
 
                 if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))
                 {
-                    Debug.LogWarning($"[PersistentJobs] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
+                    Debug.LogWarning($"[PersistentJobsMod] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
                     ret = true;
                 }
             }

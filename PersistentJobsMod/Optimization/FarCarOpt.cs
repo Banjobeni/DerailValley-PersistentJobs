@@ -198,7 +198,7 @@ namespace PersistentJobsMod.Optimization
                 TrainCar trainCar = CarsSaveManager.InstantiateCarFromSavegame(carObj, allTracks);
                 if (trainCar is null)
                 {
-                    UnityEngine.Debug.LogError($"[PersistentJobsMod] Car {oldCarID} (with GUID {carGUID} is already present in the world and thus won´t be resumed. This might be due to something in the resume process breaking or something messed with car IDs. The game is ok to continue running, though you should be vigilant (and potentially report this if it happens again). ");
+                    UnityEngine.Debug.LogError($"[PersistentJobsMod] Car {oldCarID} (with GUID {carGUID} is already present in the world and thus won't be resumed. This might be due to something in the resume process breaking or something messed with car IDs. The game is ok to continue running, though you should be vigilant (and potentially report this if it happens again). ");
                     return true;
                 }
 
@@ -294,7 +294,7 @@ namespace PersistentJobsMod.Optimization
                 }
                 else
                 {
-                    UnityEngine.Debug.LogWarning($"[PersistentJobsMod] JobChainController of car {oldCarID} has a {sjd.GetType().Name} with a null job with apparent id {Traverse.Create(sjd)?.Field("forcedJobId")?.GetValue<string>()} at index {jcc.jobChain.IndexOf(sjd)}, this shouldn´t happen!");
+                    UnityEngine.Debug.LogWarning($"[PersistentJobsMod] JobChainController of car {oldCarID} has a {sjd.GetType().Name} with a null job with apparent id {Traverse.Create(sjd)?.Field("forcedJobId")?.GetValue<string>()} at index {jcc.jobChain.IndexOf(sjd)}, this shouldn't happen!");
                 }
 
                 switch (sjd)
@@ -328,7 +328,7 @@ namespace PersistentJobsMod.Optimization
                                 break;
                             }
                         }
-                        Main._modEntry.Logger.Warning("Unknown StaticJobDefinition type encountered, won´t be updated!");
+                        Main._modEntry.Logger.Warning("Unknown StaticJobDefinition type encountered, won't be updated!");
                         break;
                 }
             }
@@ -509,7 +509,7 @@ namespace PersistentJobsMod.Optimization
             bool waitForResumeToFinish = false;
             void OnResumeCompleted(string id)
             {
-                Main._modEntry.Logger.Log($"Won´t suspend cars in {id} as they just got resumed");
+                Main._modEntry.Logger.Log($"Won't suspend cars in {id} as they just got resumed");
                 viableSCs.RemoveAll(sc => sc.logicStation.ID == id);
                 ResumeCompleted -= OnResumeCompleted;
                 waitForResumeToFinish = false;

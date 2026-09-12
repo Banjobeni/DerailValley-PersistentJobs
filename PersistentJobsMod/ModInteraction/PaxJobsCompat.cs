@@ -314,7 +314,7 @@ namespace PersistentJobsMod.ModInteraction
             var args = new object[] { yardId, null };
             if (!(bool)_TryGetInstance.Invoke(null, args))
             {
-                Main._modEntry.Logger.Error($"Couldn´t get instance of PaxJobsGenerator for {yardId}");
+                Main._modEntry.Logger.Error($"Couldn't get instance of PaxJobsGenerator for {yardId}");
                 return false;
             }
 
@@ -326,7 +326,7 @@ namespace PersistentJobsMod.ModInteraction
         {
             if (!TryGetGenerator(yardId, out object generator))
             {
-                Main._modEntry.Logger.Error($"PaxJobsGenerator for {yardId} was null, this shouldn´t happen!");
+                Main._modEntry.Logger.Error($"PaxJobsGenerator for {yardId} was null, this shouldn't happen!");
                 return;
             }
             _PaxJGeneratorStartGenerationAsync.Invoke(generator, new object[0]);
@@ -342,11 +342,11 @@ namespace PersistentJobsMod.ModInteraction
 
             if (!SetupAndGenerateJob(station, startingRouteTrack, trainCars, jobType, out passengerChainController))
             {
-                Main._modEntry.Logger.Error("Couldn´t generate PaxJob - problem in build-up");
+                Main._modEntry.Logger.Error("Couldn't generate PaxJob - problem in build-up");
                 return false;
             }
 
-            if (passengerChainController == null || passengerChainController.currentJobInChain == null) Main._modEntry.Logger.Error("JobChainController or its job is null, this shouldn´t happen!"); ;
+            if (passengerChainController == null || passengerChainController.currentJobInChain == null) Main._modEntry.Logger.Error("JobChainController or its job is null, this shouldn't happen!"); ;
             return passengerChainController != null;
         }
 
@@ -996,13 +996,13 @@ namespace PersistentJobsMod.ModInteraction
                 }
                 else
                 {
-                    Main._modEntry.Logger.Error($"Loaded consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} can´t be reassigned a FH to any pax station, attempting splitting");
+                    Main._modEntry.Logger.Error($"Loaded consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} can't be reassigned a FH to any pax station, attempting splitting");
                     jobChainControllers.AddRange(HandleSplitOrFail(trainCars, station));
                     return;
                 }
             }
 
-            Main._modEntry.Logger.Error("[HandleLoadedPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
+            Main._modEntry.Logger.Error("[HandleLoadedPaxCars] End of function reached possibly without reassigning, this shouldn't happen!");
         }
 
         private static void HandleEmptyPaxCars(List<TrainCar> trainCars, StationController station, out List<JobChainController> jobChainControllers)
@@ -1022,7 +1022,7 @@ namespace PersistentJobsMod.ModInteraction
                 }
 
                 JobType jobType = PickPassengerJobType(trainCars.Count);
-                if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn´t have any valid outgoing express routes <-- do this dynamically from PaxJobs routes list?
+                if (station.stationInfo.YardID == "CS" && jobType == _PassengerExpress) jobType = _PassengerLocal; //we have to do this since City South doesn't have any valid outgoing express routes <-- do this dynamically from PaxJobs routes list?
                 jobChainControllers.AddRange(TryGeneratePassengerJob(station, trainCars, fittingPlatforms, jobType));
                 return;
             }
@@ -1044,13 +1044,13 @@ namespace PersistentJobsMod.ModInteraction
                 }
                 else
                 {
-                    Main._modEntry.Logger.Error($"Empty consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} can´t be reassigned a LH to any pax station, attempting splitting");
+                    Main._modEntry.Logger.Error($"Empty consist of {trainCars.Count()} pax cars starting with {trainCars.First().ID} can't be reassigned a LH to any pax station, attempting splitting");
                     jobChainControllers.AddRange(HandleSplitOrFail(trainCars, station));
                     return;
                 }
             }
 
-            Main._modEntry.Logger.Error("[HandleEmptyPaxCars] End of function reached possibly without reassigning, this shouldn´t happen!");
+            Main._modEntry.Logger.Error("[HandleEmptyPaxCars] End of function reached possibly without reassigning, this shouldn't happen!");
         }
 
 
@@ -1133,7 +1133,7 @@ namespace PersistentJobsMod.ModInteraction
             }
         }
 
-        //this is very hackish, we can´t patch the constructor for PassengerJobs.Generation.RouteNode which demands unused tracks, so we patch that method to ignore it but only when the call came from us
+        //this is very hackish, we can't patch the constructor for PassengerJobs.Generation.RouteNode which demands unused tracks, so we patch that method to ignore it but only when the call came from us
         private static bool GetUnusedRouteTracks_Prefix(IEnumerable tracks, ref IEnumerable __result)
         {
             if (!BypassUnusedTracksFilter) return true;

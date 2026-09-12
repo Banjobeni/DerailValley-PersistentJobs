@@ -42,7 +42,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             try {
                 var lastJobDefinition = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDefinition.job != lastJobInChain) {
-                    Debug.LogError($"[PersistentJobs] lastJobInChain ({lastJobInChain.ID}) does not match lastJobDef.job ({lastJobDefinition.job.ID})");
+                    Debug.LogError($"[PersistentJobsMod] lastJobInChain ({lastJobInChain.ID}) does not match lastJobDef.job ({lastJobDefinition.job.ID})");
                     return;
                 }
 

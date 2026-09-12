@@ -24,7 +24,7 @@ namespace PersistentJobsMod.JobGenerators {
             destinationTrack ??= TrackUtilities.GetRandomHavingSpaceOrLongEnoughTrackOrNull(yto, destinationStation.logicStation.yard.TransferInTracks, approxTrainLength, random);
 
             if (destinationTrack == null) {
-                Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find any TransferInTrack in {destinationStation.logicStation.ID} that is long enough!");
+                Debug.LogWarning($"[PersistentJobsMod] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find any TransferInTrack in {destinationStation.logicStation.ID} that is long enough!");
                 return null;
             }
             if ((destinationTrack.ID.yardId != destinationStation.stationInfo.YardID) || (startingTrack.ID.yardId != startingStation.stationInfo.YardID))
@@ -43,7 +43,7 @@ namespace PersistentJobsMod.JobGenerators {
 
                 if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))
                 {
-                    Debug.LogWarning($"[PersistentJobs] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
+                    Debug.LogWarning($"[PersistentJobsMod] transport: Could not create ChainJob[{JobType.Transport}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
                     ret = true;
                 }
             }

@@ -36,7 +36,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 {
                     if (!FarCarOpt.ResumeCarsInStation(instance.stationController.logicStation.ID))
                     {
-                        Main._modEntry.Logger.Log($"failiure or not resumed anything");
+                        Main._modEntry.Logger.Log($"failure or not resumed anything");
                         stationDoneResuming = true;
                     }
                     yield return ("waiting for car resume", new WaitUntil(() => stationDoneResuming));
@@ -118,8 +118,8 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             if (generationRuleset.emptyHaulStartingJobSupported) {
                 allowedJobTypes.Add(JobType.EmptyHaul);
             }
-            var unoccuppiedTransferOutTracks = SingletonBehaviour<YardTracksOrganizer>.Instance.FilterOutOccupiedTracks(yard.TransferOutTracks).Count;
-            if (generationRuleset.haulStartingJobSupported && unoccuppiedTransferOutTracks > 0) {
+            var unoccupiedTransferOutTracks = SingletonBehaviour<YardTracksOrganizer>.Instance.FilterOutOccupiedTracks(yard.TransferOutTracks).Count;
+            if (generationRuleset.haulStartingJobSupported && unoccupiedTransferOutTracks > 0) {
                 allowedJobTypes.Add(JobType.Transport);
             }
 
@@ -153,7 +153,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 return null;
             }
 
-            if (allowedJobTypes.Contains(JobType.Transport) && unoccuppiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * yard.TransferOutTracks.Count)) {
+            if (allowedJobTypes.Contains(JobType.Transport) && unoccupiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * yard.TransferOutTracks.Count)) {
                 var jobChainController = GenerateAndFinalizeTransportJob(stationController, false, random);
                 if (jobChainController != null) {
                     return jobChainController;

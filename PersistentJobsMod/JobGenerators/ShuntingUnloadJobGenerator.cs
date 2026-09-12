@@ -32,7 +32,7 @@ namespace PersistentJobsMod.JobGenerators {
 
                 if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))
                 {
-                    Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
+                    Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
                     ret = true;
                 }
             }
@@ -40,7 +40,7 @@ namespace PersistentJobsMod.JobGenerators {
 
             var warehouseMachines = destinationStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(transportedCargoPerCar.Distinct().ToList());
             if (warehouseMachines.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
+                Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
 
@@ -72,7 +72,7 @@ namespace PersistentJobsMod.JobGenerators {
                 }
             } while (destinationTracks.Count < countTracks--);
             if (destinationTracks.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find enough StorageTracks in {destinationStation.logicStation.ID} that are long enough!");
+                Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find enough StorageTracks in {destinationStation.logicStation.ID} that are long enough!");
                 return null;
             }
 
