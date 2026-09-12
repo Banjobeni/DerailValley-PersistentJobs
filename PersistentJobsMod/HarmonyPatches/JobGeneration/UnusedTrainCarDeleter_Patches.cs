@@ -196,6 +196,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             var result = new List<JobChainController>();
             if (Main.yardMasterPresent) return result;
 
+            if (station is null)
+            {
+                Debug.LogWarning($"[PersistentJobsMod] Can´t reassign cars: \n{string.Join(" ,", trainsets.Select(ts => ts.cars.Select(tc => tc.ID)))} \nto jobs as their station is null");
+                return result;
+            }
+
             Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
             var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(tc => GetTrainCarReassignStatus(tc, false))).ToList();

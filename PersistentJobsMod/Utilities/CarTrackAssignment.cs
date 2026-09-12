@@ -77,7 +77,7 @@ namespace PersistentJobsMod.Utilities {
         }
 
         private static string FormatSearchResult(Track trackOrNull, double? distance, int? steps, int totalIterations, Vector3 searchStartPosition) {
-            var stationControllerDistance = (trackOrNull != null && !trackOrNull.ID.IsGeneric()) ? (StationController.GetStationByYardID(trackOrNull.ID.yardId).transform.position - searchStartPosition).magnitude : (float?)null;
+            var stationControllerDistance = (trackOrNull != null && !trackOrNull.ID.IsGeneric()) ? (StationController.GetStationByYardID(trackOrNull.ID.yardId)?.transform?.position ?? Vector3.positiveInfinity - searchStartPosition).magnitude : (float?)null;
 
             return $"{trackOrNull?.ID.FullDisplayID ?? "-"} dist:{stationControllerDistance?.ToString("F2") ?? "-"} path:{distance:F2} steps:{steps?.ToString() ?? "-"} iters:{totalIterations}";
         }
@@ -91,7 +91,7 @@ namespace PersistentJobsMod.Utilities {
                 return false;
             }
 
-            var stationControllerDistance = (StationController.GetStationByYardID(track.ID.yardId).transform.position - searchStartPosition).magnitude;
+            var stationControllerDistance = (StationController.GetStationByYardID(track.ID.yardId)?.transform?.position ?? Vector3.positiveInfinity - searchStartPosition).magnitude;
             if (stationControllerDistance > 1000) {
                 return false;
             }
