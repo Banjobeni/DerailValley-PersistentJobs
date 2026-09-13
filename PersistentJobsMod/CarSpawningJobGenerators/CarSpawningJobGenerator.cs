@@ -6,6 +6,7 @@ using HarmonyLib;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Optimization;
+using PersistentJobsMod.Persistence;
 using PersistentJobsMod.Utilities;
 using System;
 using System.Collections;
@@ -128,42 +129,58 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
             }
 
             var licenseManager = SingletonBehaviour<LicenseManager>.Instance;
+            
+            try
+            {
+                if (forceJobWithLicenseRequirementFulfilled) {
+                    // generate a job that the player can actually take. this flag will not be set after the first licensable job was successfully generated.
 
-            if (forceJobWithLicenseRequirementFulfilled) {
-                // generate a job that the player can actually take. this flag will not be set after the first licensable job was successfully generated.
+                    if (allowedJobTypes.Contains(JobType.Transport) && licenseManager.IsJobLicenseAcquired(JobLicenses.FreightHaul.ToV2())) {
+                        var transportJob = GenerateAndFinalizeTransportJob(stationController, true, random);
+                        if (transportJob != null) {
+                            return transportJob;
+                        }
+                    }
+                    if (allowedJobTypes.Contains(JobType.EmptyHaul) && licenseManager.IsJobLicenseAcquired(JobLicenses.LogisticalHaul.ToV2())) {
+                        var emptyHaulJob = GenerateAndFinalizeEmptyHaulJob(stationController, true, random);
+                        if (emptyHaulJob != null) {
+                            return emptyHaulJob;
+                        }
+                    }
+                    if (allowedJobTypes.Contains(JobType.ShuntingLoad) && licenseManager.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
+                        var shuntingLoadJob = GenerateAndFinalizeShuntingLoadJob(stationController, true, random);
+                        if (shuntingLoadJob != null) {
+                            return shuntingLoadJob;
+                        }
+                    }
+                    return null;
+                }
 
-                if (allowedJobTypes.Contains(JobType.Transport) && licenseManager.IsJobLicenseAcquired(JobLicenses.FreightHaul.ToV2())) {
-                    var transportJob = GenerateAndFinalizeTransportJob(stationController, true, random);
-                    if (transportJob != null) {
-                        return transportJob;
+                if (allowedJobTypes.Contains(JobType.Transport) && unoccupiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * yard.TransferOutTracks.Count)) {
+                    var jobChainController = GenerateAndFinalizeTransportJob(stationController, false, random);
+                    if (jobChainController != null) {
+                        return jobChainController;
+                    }
+                } else {
+                    var jobType = random.GetRandomElement(allowedJobTypes);
+                    if (jobType == JobType.ShuntingLoad) {
+                        return GenerateAndFinalizeShuntingLoadJob(stationController, false, random);
+                    } else if (jobType == JobType.EmptyHaul) {
+                        return GenerateAndFinalizeEmptyHaulJob(stationController, false, random);
                     }
                 }
-                if (allowedJobTypes.Contains(JobType.EmptyHaul) && licenseManager.IsJobLicenseAcquired(JobLicenses.LogisticalHaul.ToV2())) {
-                    var emptyHaulJob = GenerateAndFinalizeEmptyHaulJob(stationController, true, random);
-                    if (emptyHaulJob != null) {
-                        return emptyHaulJob;
-                    }
-                }
-                if (allowedJobTypes.Contains(JobType.ShuntingLoad) && licenseManager.IsJobLicenseAcquired(JobLicenses.Shunting.ToV2())) {
-                    var shuntingLoadJob = GenerateAndFinalizeShuntingLoadJob(stationController, true, random);
-                    if (shuntingLoadJob != null) {
-                        return shuntingLoadJob;
-                    }
-                }
-                return null;
             }
-
-            if (allowedJobTypes.Contains(JobType.Transport) && unoccupiedTransferOutTracks > Mathf.FloorToInt(0.399999976f * yard.TransferOutTracks.Count)) {
-                var jobChainController = GenerateAndFinalizeTransportJob(stationController, false, random);
-                if (jobChainController != null) {
-                    return jobChainController;
+            catch (Exception ex)
+            {                
+                if (ReflectionUtilities.IsInCallers("better_loading", ex, log: true))
+                {
+                    Debug.LogError($"The \"better_loading\" mod caused an exception in job generation, less jobs might be present! \n(It is recommended to uninstall the mod.)");
+                    Debug.LogException(ex);
+                    StationIdCarSpawningPersistence.Instance.SetHasStationSpawnedCarsFlag(stationController, false);
                 }
-            } else {
-                var jobType = random.GetRandomElement(allowedJobTypes);
-                if (jobType == JobType.ShuntingLoad) {
-                    return GenerateAndFinalizeShuntingLoadJob(stationController, false, random);
-                } else if (jobType == JobType.EmptyHaul) {
-                    return GenerateAndFinalizeEmptyHaulJob(stationController, false, random);
+                else
+                {
+                    throw new AdditionalInformationException("Error in normally vanilla part of job generation, either invalid job data or other mod's patches interfere!\n" + ex.Message, ex);
                 }
             }
             return null;

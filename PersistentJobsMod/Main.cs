@@ -4,6 +4,7 @@ using DV.UserManagement;
 using DV.UserManagement.Data;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.HarmonyPatches.Save;
 using PersistentJobsMod.Model;
 using PersistentJobsMod.ModInteraction;
 using PersistentJobsMod.Utilities;
@@ -39,6 +40,7 @@ namespace PersistentJobsMod {
         public static Settings Settings { get; private set; }
 
         public static bool yardMasterPresent = false;
+        public static bool problematicBetterLoading = false;
 
         public static UnityModManager.ModEntry PaxJobs { get; set; }
         public static bool paxJobsPresent = false;
@@ -86,6 +88,7 @@ namespace PersistentJobsMod {
             YardMasterInit();
             InitializeMPShim(_modEntry);
             _modEntry.OnLateUpdate += InitializeMPShim;
+            if (Settings.HideDebugConsole) _modEntry.OnFixedGUI += ((_) => Debug.developerConsoleVisible = false);
 
             Pause = false;
         }
@@ -96,7 +99,7 @@ namespace PersistentJobsMod {
             {
                 Settings.Save(modEntry);
                 (SingletonBehaviour<UserManager>.Instance.CurrentUser.CurrentSession as GameSession).Save();
-                SingletonBehaviour<SaveGameManager>.Instance.Save(SaveType.Auto, null, true);
+                if (WorldStreamingInit.IsLoaded) SingletonBehaviour<SaveGameManager>.Instance.Save(SaveType.Auto, null, true);
                 PaxJobsCompat.Unload();
                 Harmony.UnpatchAll(modEntry.Info.Id);
 
@@ -185,7 +188,7 @@ namespace PersistentJobsMod {
                 {
                     PaxJobsPresent = false;
                     _modEntry.Logger.Error("Passenger Jobs compatibility failed to load!");
-                    HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state,\n but new passenger jobs may not be generated and cars will remain jobless.");
+                    HarmonyPatches.Save.WorldStreamingInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state,\n but new passenger jobs may not be generated and cars will remain jobless.");
                 }
                 else
                 {
@@ -209,6 +212,10 @@ namespace PersistentJobsMod {
         {
             yardMasterPresent = (UnityModManager.FindMod("SelfShunt")?.Active == true);
             if (yardMasterPresent) _modEntry.Logger.Log("Yard Master mod is present, most job-related features will be disabled");
+
+            ModEntry betterLoadingME = UnityModManager.FindMod("better_loading");
+            problematicBetterLoading = (betterLoadingME?.Active == true) && ((betterLoadingME?.Version ?? new Version(0, 0)) <= new Version(0, 0, 2));
+            if (problematicBetterLoading) WorldStreamingInit_Patch.ShowPopupOnPlayerSpawn("You are running a version of the \"Immersive Cargo Loading\" \\ (better_loading) mod that has know internal issues that can cause Persistent Jobs to crash. \nIt is recommended that uninstall the mod (or update to a new version if available) to ensure everything works.");
         }
 
         public static void HandleUnhandledException(Exception e, string location) {

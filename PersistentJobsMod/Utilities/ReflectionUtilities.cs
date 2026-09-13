@@ -28,24 +28,25 @@ namespace PersistentJobsMod.Utilities
             public override string ToString() => $"{typeof(TTag).Name}";
         }
 
-        public static bool IsInCallers(string methodName, string excludeMethodName = "", string specificFrameNumeric = "", int framesToSkip = 0, bool log = false)
+        public static bool IsInCallers(string methodName, Exception fromEx = null, StackTrace trace = null, string excludeMethodName = "", string specificFrameNumeric = "", int framesToSkip = 0, bool log = false)
         {
             bool specific = int.TryParse(specificFrameNumeric, out int intSpecificFrame);
-            StackTrace trace = new(framesToSkip, log);
+            if (fromEx != null) trace = new StackTrace(fromEx, framesToSkip, true);
+            trace ??= new(framesToSkip, log);
             StringBuilder callerNames = new();
             if (specific)
             {
-                var method = trace.GetFrame(intSpecificFrame).GetMethod();
-                callerNames.Append($"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name}");
-                if (log) Main._modEntry.Logger.Log($"frame {intSpecificFrame} is {methodName}");
+                var method = trace.GetFrame(intSpecificFrame)?.GetMethod();
+                callerNames.Append($"{method?.DeclaringType?.Namespace}.{method?.DeclaringType?.Name}.{method?.Name}");
+                if (log) Main._modEntry.Logger.Log($"frame {intSpecificFrame} is {method?.Name}");
             }
             else
             {
                 if (log) Main._modEntry.Logger.Log("getting all frames");
                 foreach (StackFrame frame in trace.GetFrames())
                 {
-                    var method = frame.GetMethod();
-                    callerNames.Append($"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name} \n");
+                    var method = frame?.GetMethod();
+                    callerNames.Append($"{method?.DeclaringType?.Namespace}.{method?.DeclaringType?.Name}.{method?.Name} \n");
                 }
             }
             if (log) Main._modEntry.Logger.Log(callerNames.ToString());
@@ -135,7 +136,7 @@ namespace PersistentJobsMod.Utilities
             {
                 if (!WorldStreamingInit.IsLoaded)
                 {
-                    HarmonyPatches.Save.WorldStreaminInit_Patch.ShowPopupOnPlayerSpawn("State is not clean, there might be problems. \n" + s);
+                    HarmonyPatches.Save.WorldStreamingInit_Patch.ShowPopupOnPlayerSpawn("State is not clean, there might be problems. \n" + s);
                 }
                 else
                 {

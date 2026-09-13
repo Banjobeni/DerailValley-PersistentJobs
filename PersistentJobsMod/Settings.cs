@@ -28,6 +28,10 @@ namespace PersistentJobsMod
 
         [Draw("\"Occupy\" track where cars were suspended by a dummy bogie - for use with signals mods (experimental!)")]
         public bool DummyBogiesForTracksOfSuspendedCars = false;
+#if DEBUG
+        [Draw($"Hides the debug console in \"OnFixedGUI\"")]
+#endif
+        public bool HideDebugConsole = false;
 
         public void DrawButtons()
         {

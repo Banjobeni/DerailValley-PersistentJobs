@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace PersistentJobsMod.HarmonyPatches.Save {
     [HarmonyPatch]
-    public static class WorldStreaminInit_Patch {
+    public static class WorldStreamingInit_Patch {
         [HarmonyPatch(typeof(WorldStreamingInit), "LoadingRoutine")]
         [HarmonyPrefix]
         public static void LoadingRoutine_Prefix() {
@@ -37,6 +37,6 @@ namespace PersistentJobsMod.HarmonyPatches.Save {
             Main._modEntry.Logger.Log($"Message added to queue: \"{message}\" ");
         }
 
-        private static readonly List<string> stringsToShow = new();
+        private static readonly List<string> stringsToShow = [];
     }
 }
