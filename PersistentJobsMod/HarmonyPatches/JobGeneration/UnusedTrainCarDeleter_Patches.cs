@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -175,7 +175,11 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 }
             }
 
-            var stationsAndTrainsets = trainsetsWithTracks.Where(t => t.TrackOrNull != null).GroupBy(t => StationController.GetStationByYardID(t.TrackOrNull.ID.yardId), t => t.Trainset).Select(g => (Station: g.Key, Trainsets: g.ToList())).ToList();
+            var stationsAndTrainsets = trainsetsWithTracks
+                .Where(t => t.TrackOrNull != null && StationController.GetStationByYardID(t.TrackOrNull.ID.yardId) != null)
+                .GroupBy(t => StationController.GetStationByYardID(t.TrackOrNull.ID.yardId), t => t.Trainset)
+                .Select(g => (Station: g.Key, Trainsets: g.ToList()))
+                .ToList();
 
             var jobChainControllers = stationsAndTrainsets.SelectMany(sts => ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(sts.Station, sts.Trainsets, random)).ToList();
 
