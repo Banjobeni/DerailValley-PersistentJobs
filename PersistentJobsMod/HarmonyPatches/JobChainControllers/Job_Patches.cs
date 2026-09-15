@@ -23,42 +23,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers
                 if (jcc != null)
                 {
                     Debug.LogWarning("[PersistentJobsMod] Can't expire a job whose cars are still suspended, will wait for resume");
-
-                    IEnumerator<(string NextStageName, object Result)> WaitAndExpireCoro()
-                    {
-                        string location = "job expiring";
-                        bool stationDoneResuming = false;
-                        bool breakOut = false;
-                        void OnResumeCompleted(string id)
-                        {
-                            if (id == location) stationDoneResuming = true;
-                        }
-
-                        FarCarOpt.ResumeCompleted += OnResumeCompleted;
-                        try
-                        {
-                            if (!FarCarOpt.RunResumeCars(jcc.carsForJobChain?.Select(c => c.carGuid).ToList(), location))
-                            {
-                                Main._modEntry.Logger.Log($"failure or not resumed anything");
-                                breakOut = true;
-                                stationDoneResuming = true;
-                            }
-                            if (!breakOut)
-                            {
-                                yield return ("waiting for car resume", new WaitUntil(() => stationDoneResuming));
-                                yield return ("safety wait", WaitFor.SecondsRealtime(0.5f));
-
-                                if (!ReflectionUtilities.IsInCallers(nameof(WaitAndExpireCoro), log: true)) __instance.ExpireJob();
-                                else Debug.LogError("[PersistentJobsMod] Cars somehow didn't resume before expiring, breaking to avoid recursion loop!");
-                            }
-                        }
-                        finally
-                        {
-                            FarCarOpt.ResumeCompleted -= OnResumeCompleted;
-                        }
-                    }
-
-                    CoroutineManager.Instance.Run(WaitAndExpireCoro());
+                    var carGuids = FarCarOpt.SuspendedCarGUIDToJobChainController.Where(kvp => kvp.Value == jcc).Select(kvp => kvp.Key).ToArray();
+                    _ = FarCarOpt.RunResumeCars(carGuids, "job expiring", (success) => { if (success) __instance.ExpireJob(); else Debug.LogWarning($"[PersistentJobsMod] {__instance.ID} couldn't be expired"); });
                     return false;
                 }
             }

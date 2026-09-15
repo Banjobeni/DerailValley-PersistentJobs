@@ -29,10 +29,10 @@ namespace PersistentJobsMod.Optimization
         public static Stopwatch ResumeStopwatch;
 
         private static (Coroutine, List<StationController>) SuspendCoroutine;
-        private static (Coroutine, List<string>, string) ResumeCoroutine;
+        private static (Coroutine, IEnumerable<string>, string, Action<bool>) ResumeCoroutine;
 
         private static readonly Queue<(List<StationController>, List<TrainCar>)> PendingSuspends = new();
-        private static readonly Queue<(List<string>, string)> PendingResumes = new();
+        private static readonly Queue<(IEnumerable<string>, string, Action<bool>)> PendingResumes = new();
 
         //key is carGUID (not trainCar ID!), value is the save format for a trainCar
         public static readonly Dictionary<string, JObject> SuspendedCarObjects = [];
@@ -49,6 +49,8 @@ namespace PersistentJobsMod.Optimization
 
         public static event Action<string> ResumeCompleted;
         public static event Action SuspendCompleted;
+
+        private static Exception ContextException;
 
         public static bool SuspendCar(TrainCar trainCar, JObject carObj = null)
         {
@@ -160,7 +162,7 @@ namespace PersistentJobsMod.Optimization
                     UnityEngine.Debug.LogError("[PersistentJobsMod] Exception thrown after or while deleting train car, this really should not have happened, inject the car data to the save manually to recover it.");
                     UnityEngine.Debug.Log(carObj);
                     Traverse.Create(ex).Property("Message").SetValue(ex.Message.Insert(0, "Exception thrown after or while deleting train car, this really should not have happened! \n"));
-                    throw ex;
+                    throw new AdditionalInformationException($"Exception thrown after or while deleting car {trainCar.ID} with guid {trainCar.CarGUID}", ex);
                 }
             }
             finally
@@ -262,6 +264,7 @@ namespace PersistentJobsMod.Optimization
             catch (Exception ex)
             {
                 Main._modEntry.Logger.LogException($"Problem when resuming trainCar {carGUID}", ex);
+                ContextException = ex;
                 return false;
             }
             finally
@@ -637,42 +640,47 @@ namespace PersistentJobsMod.Optimization
             return true;
         }
 
-        public static bool RunResumeCars(List<string> guids, string location)
+        public static bool RunResumeCars(IEnumerable<string> guids, string location, Action<bool> OnComplete = null)
         {
             if (!MultiplayerShim.IsHost) return false;
 
             if (ResumeCoroRunning)
             {
-                if (ResumeCoroutine.Item3 != location) PendingResumes.Enqueue((guids, location));
+                if (ResumeCoroutine.Item3 != location || location.Length > 4) PendingResumes.Enqueue((guids, location, OnComplete));
                 return true;
             }
 
             ResumeCoroRunning = true;
             Main.Pause = true;
             ResumeStopwatch = Stopwatch.StartNew();
-            ResumeCoroutine = (SingletonBehaviour<CoroutineManager>.Instance.Run(new ExceptionCatchingCoroutineIterator(ResumeCarsCoro(guids, location), nameof(FarCarOpt) + "." + nameof(ResumeCarsCoro), new StackTrace(true))), guids, location);
+            ResumeCoroutine = (SingletonBehaviour<CoroutineManager>.Instance.Run(new ExceptionCatchingCoroutineIterator(ResumeCarsCoro(guids, location, OnComplete), nameof(FarCarOpt) + "." + nameof(ResumeCarsCoro), new StackTrace(true))), guids, location, OnComplete);
 
             return true;
         }
 
-        private static IEnumerator<(string NextStageName, object Result)> ResumeCarsCoro(List<string> guids, string location)
+        private static IEnumerator<(string NextStageName, object Result)> ResumeCarsCoro(IEnumerable<string> guids, string location, Action<bool> OnComplete = null)
         {
             List<JObject> successfulCars = [];
             if (guids is not null && guids.Any())
             {
                 var fst = Stopwatch.StartNew();
+                var allCars = CarSpawner.Instance.AllCars.Select(tc => tc.CarGUID).ToHashSet();
                 TrainStress.globalIgnoreStressCalculation = true;
                 try
                 {
-                    Main._modEntry.Logger.Log($"about to resume {guids.Count} cars in {location}");
+                    Main._modEntry.Logger.Log($"about to resume {guids.Count()} cars in {location}");
                     foreach (var guid in guids)
                     {
                         if (ResumeStopwatch.Elapsed.TotalMinutes > 8) throw new TimeoutException($"{nameof(ResumeCarsCoro)} has ran for too long!");
 
+                        if (allCars.Contains(guid)) continue;
+
                         if (!ResumeCar(guid, out JObject carData))
                         {
                             TrainStress.globalIgnoreStressCalculation = false;
-                            throw new Exception("Failed to resume trainCar with guid " + guid);
+                            AdditionalInformationException ex = new("Failed to resume trainCar with guid " + guid, ContextException);
+                            ContextException = null;
+                            throw ex;
                         }
                         else successfulCars.Add(carData);
 
@@ -688,6 +696,7 @@ namespace PersistentJobsMod.Optimization
 
                     UnityEngine.Debug.Log($"[PersistentJobsMod] Successfully resumed {successfulCars.Count} cars {(location.Length > 0 ? ("in " + location) : "")} in {ResumeStopwatch.Elapsed}");
                     ResumeStopwatch.Reset();
+                    OnComplete?.Invoke(successfulCars.Count > 0);
                 }
                 finally
                 {
@@ -700,10 +709,17 @@ namespace PersistentJobsMod.Optimization
                     if (PendingResumes.Count > 0)
                     {
                         var next = PendingResumes.Dequeue();
-                        RunResumeCars(next.Item1, next.Item2);
+                        RunResumeCars(next.Item1, next.Item2, next.Item3);
                     }
                 }
             }
+            // call completed immediately even when nothing to resume
+            else
+            {
+                ResumeCompleted?.Invoke(location);
+                OnComplete?.Invoke(false);
+            }
+
             yield break;
         }
 

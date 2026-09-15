@@ -54,10 +54,10 @@ namespace PersistentJobsMod.HarmonyPatches.Optimization
     {
         public static bool Prefix(CarDamageModel carDmg, CargoDamageModel cargoDmg, CarDebtController __instance)
         {
-            return Foo(carDmg, cargoDmg, __instance);
+            return PreSetTracker(carDmg, cargoDmg, __instance);
         }
 
-        public static bool Foo(CarDamageModel carDmg, CargoDamageModel cargoDmg, CarDebtController __instance)
+        public static bool PreSetTracker(CarDamageModel carDmg, CargoDamageModel cargoDmg, CarDebtController __instance)
         {
             if (__instance.ignoreCarDamageDebt && !__instance.trainCar.IsLoco)
             {

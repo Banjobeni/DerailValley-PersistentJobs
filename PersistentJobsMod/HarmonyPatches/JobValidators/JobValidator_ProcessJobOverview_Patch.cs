@@ -25,6 +25,12 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             try {
                 if (!Main._modEntry.Active || !MultiplayerShim.IsHost) return true;
 
+                if (___bookletPrinter.IsOnCooldown)
+                {
+                    ___bookletPrinter.PlayErrorSound();
+                    return false;
+                }
+
                 var job = jobOverview.job;
                 var allStations = StationController.allStations;
                 var stationController = allStations.FirstOrDefault(st => st.logicStation.availableJobs.Contains(job));
@@ -35,42 +41,9 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 if (FarCarOpt.SuspendedCarGUIDToJobChainController.ContainsValue(jobChainController ??= new JobChainController(new()))) //the new is just a fallthrough case instead of null
                 {
                     Debug.LogWarning("[PersistentJobsMod] The cars for the job are still suspended!");
-
-                    IEnumerator<(string NextStageName, object Result)> WaitAndRetryTurnInCoro()
-                    {
-                        string location = "job accept validation";
-                        bool stationDoneResuming = false;
-                        bool breakOut = false;
-                        void OnResumeCompleted(string id)
-                        {
-                            if (id == location) stationDoneResuming = true;
-                        }
-
-                        FarCarOpt.ResumeCompleted += OnResumeCompleted;
-                        try
-                        {
-                            if (!FarCarOpt.RunResumeCars(jobChainController?.carsForJobChain?.Select(c => c.carGuid).ToList(), location))
-                            {
-                                Main._modEntry.Logger.Log($"failure or not resumed anything");
-                                breakOut = true;
-                                stationDoneResuming = true;
-                            }
-                            if (!breakOut)
-                            {
-                                yield return ("waiting for car resume", new WaitUntil(() => stationDoneResuming));
-                                yield return ("safety wait", WaitFor.SecondsRealtime(0.5f));
-
-                                if (!ReflectionUtilities.IsInCallers(nameof(WaitAndRetryTurnInCoro), log: true)) __instance.ProcessJobOverview(jobOverview);
-                                else Debug.LogError("[PersistentJobsMod] Cars somehow didn't resume before job validation reattempt, breaking to avoid recursion loop!");
-                            }
-                        }
-                        finally
-                        {
-                            FarCarOpt.ResumeCompleted -= OnResumeCompleted;
-                        }
-                    }
-
-                    CoroutineManager.Instance.Run(WaitAndRetryTurnInCoro());
+                    ___bookletPrinter.IsOnCooldown = true;
+                    var carGuids = FarCarOpt.SuspendedCarGUIDToJobChainController.Where(kvp => kvp.Value == jobChainController).Select(kvp => kvp.Key).ToArray();
+                    _ = FarCarOpt.RunResumeCars(carGuids, "job validating", (success) => { ___bookletPrinter.IsOnCooldown = false; if (success) __instance.ProcessJobOverview(jobOverview); else { Debug.LogWarning($"[PersistentJobsMod] {job.ID} couldn't be abandoned"); __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, false)); } });
                     return false;
                 }
 

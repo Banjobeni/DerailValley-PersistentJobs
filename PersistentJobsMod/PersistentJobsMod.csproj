@@ -143,6 +143,7 @@
 		<Publicize Include="Assembly-CSharp:JobSaveManager.LoadJobChain" />
 		<Publicize Include="Assembly-CSharp:DV.Logic.Job.TrackID.trackType" />
 		<Publicize Include="Assembly-CSharp:DV.Logic.Job.JobsManager.jobToJobCars" />
+		<Publicize Include="Assembly-CSharp:DV.Printers.PrinterController.IsOnCooldown" />
 		<Publicize Include="Assembly-CSharp:CarsSaveManager.InstantiateCarFromSavegame" />
 		<Publicize Include="Assembly-CSharp:CarsSaveManager.RestoreCarConnections" />
 		<Publicize Include="Assembly-CSharp:CarsSaveManager.IgnoreTrainStressForLoadedCarsUntilCouplingIsSettled" />
