@@ -93,7 +93,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
                 Main._modEntry.Logger.Log($"{instance.stationController.stationInfo.YardID} job generation ended. {instance.stationController.logicStation.availableJobs.Count - alreadyPresentJobsCount} jobs were generated with {generateJobsAttempts} job generation attempts");
 
-                if (Main.PaxJobsPresent && PaxJobsCompat.AllPaxStations().Contains(instance.stationController))
+                if (Main.PaxJobsPresent && PaxJobsCompat.IsPassengerStation(instance.stationController.stationInfo.YardID))
                 {
                     PaxJobsCompat.OverrideSpawnFlagForPaxJ = true;
                     PaxJobsCompat.PaxJobsOrigGenJobsInStation(instance.stationController.stationInfo.YardID);

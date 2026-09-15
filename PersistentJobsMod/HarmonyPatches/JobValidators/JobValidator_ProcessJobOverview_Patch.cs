@@ -18,7 +18,7 @@ using Random = System.Random;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
-    [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
+    [HarmonyPatch(typeof(JobValidator), nameof(JobValidator.ProcessJobOverview))]
     public static class JobValidator_ProcessJobOverview_Patch {
         public static bool Prefix(JobValidator __instance, PrinterController ___bookletPrinter,
             JobOverview jobOverview) {
@@ -26,7 +26,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 if (!Main._modEntry.Active || !MultiplayerShim.IsHost) return true;
 
                 var job = jobOverview.job;
-                var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
+                var allStations = StationController.allStations;
                 var stationController = allStations.FirstOrDefault(st => st.logicStation.availableJobs.Contains(job));
 
                 if (___bookletPrinter.IsOnCooldown || job.State != JobState.Available || stationController == null) return true;
@@ -35,8 +35,42 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 if (FarCarOpt.SuspendedCarGUIDToJobChainController.ContainsValue(jobChainController ??= new JobChainController(new()))) //the new is just a fallthrough case instead of null
                 {
                     Debug.LogWarning("[PersistentJobsMod] The cars for the job are still suspended!");
-                    FarCarOpt.RunResumeCars(jobChainController?.carsForJobChain.Select(c => c.carGuid).ToList(), "job validating");
-                    __instance.StartCoroutine(HandleJobAcceptnceFaliure(___bookletPrinter, false));
+
+                    IEnumerator<(string NextStageName, object Result)> WaitAndRetryTurnInCoro()
+                    {
+                        string location = "job accept validation";
+                        bool stationDoneResuming = false;
+                        bool breakOut = false;
+                        void OnResumeCompleted(string id)
+                        {
+                            if (id == location) stationDoneResuming = true;
+                        }
+
+                        FarCarOpt.ResumeCompleted += OnResumeCompleted;
+                        try
+                        {
+                            if (!FarCarOpt.RunResumeCars(jobChainController?.carsForJobChain?.Select(c => c.carGuid).ToList(), location))
+                            {
+                                Main._modEntry.Logger.Log($"failure or not resumed anything");
+                                breakOut = true;
+                                stationDoneResuming = true;
+                            }
+                            if (!breakOut)
+                            {
+                                yield return ("waiting for car resume", new WaitUntil(() => stationDoneResuming));
+                                yield return ("safety wait", WaitFor.SecondsRealtime(0.5f));
+
+                                if (!ReflectionUtilities.IsInCallers(nameof(WaitAndRetryTurnInCoro), log: true)) __instance.ProcessJobOverview(jobOverview);
+                                else Debug.LogError("[PersistentJobsMod] Cars somehow didn't resume before job validation reattempt, breaking to avoid recursion loop!");
+                            }
+                        }
+                        finally
+                        {
+                            FarCarOpt.ResumeCompleted -= OnResumeCompleted;
+                        }
+                    }
+
+                    CoroutineManager.Instance.Run(WaitAndRetryTurnInCoro());
                     return false;
                 }
 
@@ -57,7 +91,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 // reserve space for job and for shunting (un)load jobs, require cars to not already be on the warehouse track
                 if (!ReserveSpacePJ(job, out bool shuntingJobOnWarehouseTrack))
                 {
-                    __instance.StartCoroutine(HandleJobAcceptnceFaliure(___bookletPrinter, shuntingJobOnWarehouseTrack));
+                    __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, shuntingJobOnWarehouseTrack));
                     return false;
                 }                
 
@@ -408,7 +442,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return null;
         }
 
-        public static IEnumerator HandleJobAcceptnceFaliure(PrinterController printerController, bool shuntingJobOnWarehouseTrack) 
+        public static IEnumerator HandleJobAcceptanceFailure(PrinterController printerController, bool shuntingJobOnWarehouseTrack) 
         {
             printerController.PlayErrorSound();
             if (shuntingJobOnWarehouseTrack) {
