@@ -10,7 +10,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers
         public static void Postfix(ref List<TrackReservation> __result)
         {
             if (!Main._modEntry.Active) return;
-            __result.RemoveAll(tr => tr.track.ID.trackType == "L");
+            __result?.RemoveAll(tr => tr.track.ID.trackType == "L");
         }
     }
 }

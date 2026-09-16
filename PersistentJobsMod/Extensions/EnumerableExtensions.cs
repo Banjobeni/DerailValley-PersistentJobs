@@ -94,8 +94,9 @@ namespace PersistentJobsMod.Extensions {
 
         public static void ReplaceAll<T>(this IList<T> source, T oldValue, T newValue)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            if (EqualityComparer<T>.Default.Equals(oldValue, newValue)) return;
 
             int index = -1;
             do
@@ -113,6 +114,18 @@ namespace PersistentJobsMod.Extensions {
                 throw new ArgumentNullException(nameof(source));
 
             return source.Select(x => EqualityComparer<T>.Default.Equals(x, oldValue) ? newValue : x);
+        }
+
+        public static bool TryRemove<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
+        {
+            if (dictionary.TryGetValue(key, out value!))
+            {
+                dictionary.Remove(key);
+                return true;
+            }
+
+            value = default!;
+            return false;
         }
     }
 }

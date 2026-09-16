@@ -2,27 +2,33 @@
 using CommandTerminal;
 using DV.Utils;
 using HarmonyLib;
+using PersistentJobsMod.Optimization;
 using UnityEngine;
 
 namespace PersistentJobsMod.HarmonyPatches.Console {
     [HarmonyPatch]
-    public sealed class Console_Patches {
+    public sealed class Console_Patches
+    {
         [HarmonyPatch(typeof(DV.Console), "Dev_TeleportTrainToTrack")]
         [HarmonyPrefix]
-        public static bool Dev_TeleportTrainToTrack_Prefix(CommandArg[] args) {
-            if (Terminal.IssuedError) {
+        public static bool Dev_TeleportTrainToTrack_Prefix(CommandArg[] args)
+        {
+            if (Terminal.IssuedError)
+            {
                 return false;
             }
 
             var trackId = args[0].String.ToLower();
             var destinationRailTrack = RailTrackRegistry.Instance.AllTracks.FirstOrDefault(rt => rt.LogicTrack().ID.FullDisplayID.ToLower() == trackId);
 
-            if (destinationRailTrack == null) {
+            if (destinationRailTrack == null)
+            {
                 Debug.LogError("Couldn't find railtrack with id " + trackId);
                 return false;
             }
 
-            if (PlayerManager.Car == null) {
+            if (PlayerManager.Car == null)
+            {
                 Debug.LogError("Player is currently not on any train");
                 return false;
             }
@@ -32,6 +38,15 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
             SingletonBehaviour<CoroutineManager>.Instance.Run(DV.Console.MoveCarsCoro(trainCarsToMove, destinationRailTrack));
 
             return false;
+        }
+
+        [HarmonyPatch(typeof(DV.Console), "Debug_DeleteCarsAndJobsSaveData")]
+        [HarmonyPostfix]
+        public static void Debug_DeleteCarsAndJobsSaveData_Postfix(CommandArg[] args)
+        {
+            if (Terminal.IssuedError) return;
+
+            FarCarOpt.ClearRecords();
         }
     }
 }

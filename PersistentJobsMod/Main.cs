@@ -98,8 +98,8 @@ namespace PersistentJobsMod {
             try
             {
                 Settings.Save(modEntry);
-                (SingletonBehaviour<UserManager>.Instance.CurrentUser.CurrentSession as GameSession).Save();
-                if (WorldStreamingInit.IsLoaded) SingletonBehaviour<SaveGameManager>.Instance.Save(SaveType.Auto, null, true);
+                (SingletonBehaviour<UserManager>.Instance.CurrentUser?.CurrentSession as GameSession)?.Save();
+                if (WorldStreamingInit.IsLoaded) SingletonBehaviour<SaveGameManager>.Instance?.Save(SaveType.Auto, null, true);
                 PaxJobsCompat.Unload();
                 Harmony.UnpatchAll(modEntry.Info.Id);
 
@@ -188,6 +188,7 @@ namespace PersistentJobsMod {
                 {
                     PaxJobsPresent = false;
                     _modEntry.Logger.Error("Passenger Jobs compatibility failed to load!");
+                    PaxJobsCompat.Unload();
                     HarmonyPatches.Save.WorldStreamingInit_Patch.ShowPopupOnPlayerSpawn($"Passenger Jobs mod v{PaxJobs.Version} is present but the Persistent Jobs compatibility layer is not loaded. \nThis is probably due to a recent update (check mod pages or ask on the Altfuture discord). \nThe game should be in a playable state,\n but new passenger jobs may not be generated and cars will remain jobless.");
                 }
                 else

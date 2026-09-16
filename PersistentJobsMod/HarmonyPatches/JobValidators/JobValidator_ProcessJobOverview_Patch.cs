@@ -37,13 +37,13 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
                 if (___bookletPrinter.IsOnCooldown || job.State != JobState.Available || stationController == null) return true;
 
-                var jobChainController = stationController.ProceduralJobsController.GetCurrentJobChains().FirstOrDefault(jcc => jcc.currentJobInChain == job);
+                var jobChainController = stationController?.ProceduralJobsController?.GetCurrentJobChains()?.FirstOrDefault(jcc => jcc.currentJobInChain == job);
                 if (FarCarOpt.SuspendedCarGUIDToJobChainController.ContainsValue(jobChainController ??= new JobChainController(new()))) //the new is just a fallthrough case instead of null
                 {
                     Debug.LogWarning("[PersistentJobsMod] The cars for the job are still suspended!");
                     ___bookletPrinter.IsOnCooldown = true;
                     var carGuids = FarCarOpt.SuspendedCarGUIDToJobChainController.Where(kvp => kvp.Value == jobChainController).Select(kvp => kvp.Key).ToArray();
-                    _ = FarCarOpt.RunResumeCars(carGuids, "job validating", (success) => { ___bookletPrinter.IsOnCooldown = false; if (success) __instance.ProcessJobOverview(jobOverview); else { Debug.LogWarning($"[PersistentJobsMod] {job.ID} couldn't be abandoned"); __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, false)); } });
+                    _ = FarCarOpt.RunResumeCars(carGuids, "job taking", (success) => { ___bookletPrinter.IsOnCooldown = false; if (success) __instance.ProcessJobOverview(jobOverview); else { Debug.LogWarning($"[PersistentJobsMod] {job.ID} couldn't be abandoned"); __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, false)); } });
                     return false;
                 }
 
@@ -248,11 +248,15 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     var message = $"[PersistentJobsMod] Skipping track reservations as {job.ID} is a passenger job";
                     Debug.Log(message);
                 } else {
-                    if (jobChainController.jobDefToCurrentlyReservedTracks[staticJobDefinition].Count > 0)
+                    if (jobChainController.jobDefToCurrentlyReservedTracks.TryGetValue(staticJobDefinition, out var trs))
                     {
-                        Debug.Log($"[PersistentJobsMod] Space already reserved for {job.ID} from a previous attempt. Skipping.");
-                        continue;
+                        if (trs.Count > 0)
+                        {
+                            Debug.Log($"[PersistentJobsMod] Space already reserved for {job.ID} from a previous attempt. Skipping.");
+                            continue;
+                        }
                     }
+                    else jobChainController.jobDefToCurrentlyReservedTracks[staticJobDefinition] = [];
                     List<TrackReservation> trackReservations = staticJobDefinition.GetRequiredTrackReservations();
                     if (trackReservations.Any()) {
                         for (var j = 0; j < trackReservations.Count; j++) {

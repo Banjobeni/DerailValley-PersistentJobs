@@ -84,8 +84,8 @@ namespace PersistentJobsMod.Optimization
 
                 carObj ??= CarsSaveManager.GetCarSaveData(trainCar, allTracks);
 
-                int bog1TrackChildInd = carObj.GetInt("bog1TrackChildInd").Value;
-                int bog2TrackChildInd = carObj.GetInt("bog2TrackChildInd").Value;
+                int bog1TrackChildInd = carObj.GetInt("bog1TrackChildInd") ?? -1;
+                int bog2TrackChildInd = carObj.GetInt("bog2TrackChildInd") ?? -1;
                 if (bog1TrackChildInd == -1 || bog2TrackChildInd == -1)
                 {
                     UnityEngine.Debug.LogError($"[PersistentJobsMod] Car with GUID {carGUID} has invalid track {trainCar.logicCar.CurrentTrack.ID} saved!");
@@ -143,19 +143,14 @@ namespace PersistentJobsMod.Optimization
             }
             catch (Exception ex)
             {
-                UnityEngine.Debug.Log($"[PersistentJobsMod] Problem when suspending trainCar {trainCar.ID} (carGUID: {carGUID})");
+                UnityEngine.Debug.LogError($"[PersistentJobsMod] Problem when suspending trainCar {trainCar.ID} (carGUID: {carGUID})");
                 UnityEngine.Debug.LogException(ex);
                 returnBool = false;
 
                 if (SingletonBehaviour<IdGenerator>.Instance.carGuidToCar.ContainsKey(carGUID))
                 {
-                    Main._modEntry.Logger.Log("Exception thrown before deleting train car, removing residual suspend data from dicts");                    
-                    SuspendedCarObjects.Remove(carGUID);
-                    SuspendedCarIDToCarGUID.Remove(SuspendedCarGUIDToCarID[carGUID]);
-                    SuspendedCarGUIDToCarID.Remove(carGUID);
-                    SuspendedCarGUIDToJobChainController.Remove(carGUID);
-                    SuspendedCarGUIDToDebtTracker.Remove(carGUID);
-                    foreach (var cars in StationIDtoSuspendedCarGUID.Values) if (cars.Remove(carGUID)) break;
+                    Main._modEntry.Logger.Log("Exception thrown before deleting train car, removing residual suspend data from dicts");
+                    RemoveFromDicts(carGUID);
                 }
                 else
                 {
@@ -201,12 +196,14 @@ namespace PersistentJobsMod.Optimization
                 if (trainCar is null)
                 {
                     UnityEngine.Debug.LogError($"[PersistentJobsMod] Car {oldCarID} (with GUID {carGUID} is already present in the world and thus won't be resumed. This might be due to something in the resume process breaking or something messed with car IDs. The game is ok to continue running, though you should be vigilant (and potentially report this if it happens again). ");
+                    RemoveFromDicts(carGUID);
                     return true;
                 }
 
                 Car logicCar = trainCar.logicCar;
                 string newCarGUID = logicCar.carGuid;
                 if (!(oldCarID == logicCar.ID && carGUID == newCarGUID)) throw new Exception("Restored trainCar does not match");
+                IdGenerator.Instance.carGuidToCar[carGUID] = logicCar;
 
                 RemoveFakeBogies(bog1TrackChildInd);
                 RemoveFakeBogies(bog2TrackChildInd);
@@ -247,13 +244,7 @@ namespace PersistentJobsMod.Optimization
                     }
                 }
 
-                SuspendedCarObjects.Remove(carGUID);
-                SuspendedCarIDToCarGUID.Remove(logicCar.ID);
-                SuspendedCarGUIDToCarID.Remove(carGUID);
-                SuspendedCarGUIDToJobChainController.Remove(carGUID);
-                SuspendedCarGUIDToDebtTracker.Remove(carGUID);
-                foreach (var cars in StationIDtoSuspendedCarGUID.Values) if (cars.Remove(carGUID)) break;
-
+                RemoveFromDicts(carGUID);
                 CurrentCarIDToResume = null;
 
                 Main.Pause = false;
@@ -271,6 +262,16 @@ namespace PersistentJobsMod.Optimization
             {
                 CurrentCarIDToResume = null;
             }
+        }
+
+        private static void RemoveFromDicts(string carGUID)
+        {
+            SuspendedCarObjects.TryRemove(carGUID, out var _);
+            SuspendedCarIDToCarGUID.TryRemove(SuspendedCarGUIDToCarID[carGUID], out var _);
+            SuspendedCarGUIDToCarID.TryRemove(carGUID, out var _);
+            SuspendedCarGUIDToJobChainController.TryRemove(carGUID, out var _);
+            SuspendedCarGUIDToDebtTracker.TryRemove(carGUID, out var _);
+            foreach (var cars in StationIDtoSuspendedCarGUID.Values) if (cars.Remove(carGUID)) break;
         }
 
         private static void ReplaceCarInJcc(JobChainController jcc, string oldCarID, Car newLogicCar)
@@ -448,7 +449,7 @@ namespace PersistentJobsMod.Optimization
 
             if (AllTracks == null || AllTracks.Length == 0) AllTracks = SingletonBehaviour<RailTrackRegistryBase>.Instance.OrderedRailtracks;
             //var viableTrainCars = (trainCars.Where(tc => !(tc is null || tc.uniqueCar || tc.IsLoco || tc.IsCaboose || tc.preventDelete || tc.logicCar is null))).ToList();
-            var viableTrainCars = (trainCars.Where(tc => !(tc is null || tc.uniqueCar || CarTypes.IsAnyLocoSlugTender(tc.carLivery) || tc.IsCaboose))).ToList();
+            var viableTrainCars = (trainCars.Where(tc => !(tc is null || tc.uniqueCar || CarTypes.IsAnyLocoSlugTender(tc.carLivery) || tc.IsCaboose || tc.derailed))).ToList();
             var trainCarObjects = viableTrainCars.Select(tc => CarsSaveManager.GetCarSaveData(tc, AllTracks)).ToList();
             var diff = trainCars.Except(viableTrainCars).ToList();
             if (diff.Any()) Main._modEntry.Logger.Warning($"cars excepted from suspend {string.Join(", ", diff)}");
@@ -617,7 +618,7 @@ namespace PersistentJobsMod.Optimization
             return true;
         }
 
-        public static bool ResumeCarsInStation(string stationID)
+        public static bool ResumeCarsInStation(string stationID, Action<bool> OnComplete = null)
         {
             if (!MultiplayerShim.IsHost || stationID is null || stationID == string.Empty) return false;
             if (!WorldStreamingInit.IsLoaded) return false;
@@ -631,7 +632,7 @@ namespace PersistentJobsMod.Optimization
             if (carGUIDS is null || !carGUIDS.Any()) return false;
 
             //SingletonBehaviour<CoroutineManager>.Instance.Run(CarsSaveManager.IgnoreTrainStressForLoadedCarsUntilCouplingIsSettled());
-            if (!RunResumeCars(carGUIDS.ToList(), stationID))
+            if (!RunResumeCars(carGUIDS.ToList(), stationID, OnComplete))
             {
                 UnityEngine.Debug.LogWarning($"[PersistentJobsMod] Car resuming in {stationID} failed");
                 if (Debugger.IsAttached) Debugger.Break();
@@ -680,9 +681,10 @@ namespace PersistentJobsMod.Optimization
                             TrainStress.globalIgnoreStressCalculation = false;
                             AdditionalInformationException ex = new("Failed to resume trainCar with guid " + guid, ContextException);
                             ContextException = null;
+                            OnComplete?.Invoke(false);
                             throw ex;
                         }
-                        else successfulCars.Add(carData);
+                        else if (carData != null) successfulCars.Add(carData);
 
                         if (fst.ElapsedMilliseconds > 8)
                         {

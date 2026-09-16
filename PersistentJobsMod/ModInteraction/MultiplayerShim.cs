@@ -17,7 +17,7 @@ namespace PersistentJobsMod.ModInteraction
         const string IS_HOST_PROPERTY = "IsHost";
 
         private static object? _mpApiInstance;
-        private static PropertyInfo? _isHost;
+        public static PropertyInfo? _isHost;
 
         internal static bool IsInitialized { get; private set; } = false;
 

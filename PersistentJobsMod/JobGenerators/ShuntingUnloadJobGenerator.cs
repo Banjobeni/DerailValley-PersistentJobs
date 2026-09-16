@@ -23,11 +23,12 @@ namespace PersistentJobsMod.JobGenerators {
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(trainCars), true);
 
             var transportedCargoPerCar = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
+            var transportedCarLiveries = trainCars.Select(tc => tc.carLivery).ToArray();
 
             bool ret = false;
             for (int i = 0; i < trainCars.Count; i++)
             {
-                TrainCarLivery tcl = trainCars.Select(tc => tc.carLivery).ToArray()[i];
+                TrainCarLivery tcl = transportedCarLiveries[i];
                 CargoType ct = transportedCargoPerCar[i];
 
                 if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))

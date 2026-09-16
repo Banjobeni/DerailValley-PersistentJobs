@@ -17,10 +17,12 @@ namespace PersistentJobsMod.JobGenerators {
                 List<CargoType> transportedCargoPerCar,
                 bool forceCorrectCargoStateOnCars = false)
         {
+            var transportedCarLiveries = trainCars.Select(tc => tc.carLivery).ToArray();
+
             bool ret = false;
-            for (int i = 0; i < trainCars.Count; i++)
+            for (int i = 0; i < transportedCarLiveries.Count(); i++)
             {
-                TrainCarLivery tcl = trainCars.Select(tc => tc.carLivery).ToArray()[i];
+                TrainCarLivery tcl = transportedCarLiveries[i];
                 CargoType ct = transportedCargoPerCar[i];
 
                 if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))

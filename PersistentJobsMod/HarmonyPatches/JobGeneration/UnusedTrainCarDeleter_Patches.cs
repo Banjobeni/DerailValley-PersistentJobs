@@ -198,7 +198,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
             if (station is null)
             {
-                Debug.LogWarning($"[PersistentJobsMod] Can't reassign cars: \n{string.Join(" ,", trainsets.Select(ts => ts.cars.Select(tc => tc.ID)))} \nto jobs as their station is null");
+                Debug.LogWarning($"[PersistentJobsMod] Can't reassign cars: \n{string.Join(", ", trainsets.SelectMany(ts => ts.cars).Select(tc => tc.ID))} \nto jobs as their station is null");
                 return result;
             }
 

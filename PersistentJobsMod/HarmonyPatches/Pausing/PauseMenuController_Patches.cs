@@ -16,7 +16,7 @@ namespace PersistentJobsMod.HarmonyPatches.Pausing
         [HarmonyPostfix]
         public static void SetupListeners_Postfix(bool on)
         {
-            if (!MultiplayerShim.IsHost)
+            if (MultiplayerShim._isHost != null)
             {
                 if (on)
                 {
