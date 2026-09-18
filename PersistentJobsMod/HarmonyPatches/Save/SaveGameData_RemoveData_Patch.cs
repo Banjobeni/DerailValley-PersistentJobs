@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using PersistentJobsMod.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,11 @@ namespace PersistentJobsMod.HarmonyPatches.Save
         {
             if ((key != "Tutorial_just_finished") && (key == SaveGameKeys.Cars || key == SaveGameKeys.Jobs))
             {
-                Main._modEntry.Logger.Log($"SaveGameData_RemoveData_Patch.Postfix: Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
-                CarsSaveManager_Load_Patches.ResetJobsAndCarsState();
+                if (!ReflectionUtilities.IsInCallers(methodName: "CommandTerminal"))
+                {
+                    Main._modEntry.Logger.Log($"SaveGameData_RemoveData_Patch.Postfix: Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
+                    CarsSaveManager_Load_Patches.ResetJobsAndCarsState();
+                }
             }
         }
     }

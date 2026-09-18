@@ -39,14 +39,5 @@ namespace PersistentJobsMod.HarmonyPatches.Console {
 
             return false;
         }
-
-        [HarmonyPatch(typeof(DV.Console), "Debug_DeleteCarsAndJobsSaveData")]
-        [HarmonyPostfix]
-        public static void Debug_DeleteCarsAndJobsSaveData_Postfix(CommandArg[] args)
-        {
-            if (Terminal.IssuedError) return;
-
-            FarCarOpt.ClearRecords();
-        }
     }
 }

@@ -88,12 +88,13 @@ namespace PersistentJobsMod.HarmonyPatches.Save
     {
         public static void Postfix()
         {
-
             if (ReflectionUtilities.IsInCallers(methodName: "LoadingNonBlockingCoro", excludeMethodName: "Manager.Load_Patch", specificFrameNumeric: "", log: false))
             {
                 Main._modEntry.Logger.Log($" CarsSaveManager_DeleteAllExistingCars_Patch.Postfix: Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
                 CarsSaveManager_Load_Patches.ResetJobsAndCarsState();
             }
+
+            FarCarOpt.ClearRecords();
         }
     }
 

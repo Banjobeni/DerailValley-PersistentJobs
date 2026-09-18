@@ -22,6 +22,8 @@ namespace PersistentJobsMod.Optimization
         public static RailTrack[] AllTracks;
         private static int SuspendIteration;
 
+        private static GameObject CollidersParent;
+
         public static TrainCar CurrentTrainCarToSuspend;
         public static string CurrentCarIDToResume;
         public static bool SuspendCoroRunning;
@@ -41,6 +43,7 @@ namespace PersistentJobsMod.Optimization
         public static readonly Dictionary<string, JobChainController> SuspendedCarGUIDToJobChainController = [];
         public static readonly Dictionary<string, (DebtTrackerBase, CarDebtData)> SuspendedCarGUIDToDebtTracker = [];
         public static readonly Dictionary<string, List<string>> StationIDtoSuspendedCarGUID = [];
+        public static readonly Dictionary<string, GameObject> SuspendedCarGUIDToCollider = [];
 
         public static readonly Dictionary<int, Bogie> OccupiedRailTrackIndexesToFakeBogies = [];
 
@@ -133,9 +136,27 @@ namespace PersistentJobsMod.Optimization
                     else TracksToSpaceOccupiedBySuspendedCars.Add(logicTrack, carLength);
                 }
 
+                GameObject colGO = null;
+                if (Main.Settings.TempCarColliders)
+                {
+                    if (CollidersParent is null)
+                    {
+                        CollidersParent = new("SuspendedCarsColliderHolder");
+                        CollidersParent.transform.parent = WorldMover.OriginShiftParent;
+                        WorldMover.Instance.AddObjectToMove(CollidersParent.transform);
+                    }
+                    colGO = CreateCollider(carID, trainCar.transform.TransformPoint(trainCar.Bounds.center), trainCar.Bounds.size, trainCar.transform.rotation);
+                }
+
                 SingletonBehaviour<IdGenerator>.Instance.carGuidToCar.Remove(carGUID);
                 SingletonBehaviour<CarSpawner>.Instance.DeleteCar(trainCar);
                 SingletonBehaviour<UnusedTrainCarDeleter>.Instance.ClearInvalidCarReferencesAfterManualDelete();
+                
+                if (Main.Settings.TempCarColliders)
+                {
+                    colGO?.SetActive(true);
+                    SuspendedCarGUIDToCollider.Add(carGUID, colGO);
+                }
 
                 st.Stop();
                 Main._modEntry.Logger.Log($"Suspended trainCar {carID} (carGUID: {carGUID}) in {st.Elapsed}");
@@ -189,6 +210,8 @@ namespace PersistentJobsMod.Optimization
                     UnityEngine.Debug.LogError($"[PersistentJobsMod] Car with GUID {carGUID} has invalid track saved!");
                     return false;
                 }
+
+                if (Main.Settings.TempCarColliders && SuspendedCarGUIDToCollider.TryGetValue(carGUID, out var obj)) UnityEngine.Object.Destroy(obj);
 
                 string oldCarID = SuspendedCarGUIDToCarID[carGUID];
                 CurrentCarIDToResume = oldCarID;
@@ -272,6 +295,23 @@ namespace PersistentJobsMod.Optimization
             SuspendedCarGUIDToJobChainController.TryRemove(carGUID, out var _);
             SuspendedCarGUIDToDebtTracker.TryRemove(carGUID, out var _);
             foreach (var cars in StationIDtoSuspendedCarGUID.Values) if (cars.Remove(carGUID)) break;
+            if (SuspendedCarGUIDToCollider.TryRemove(carGUID, out var col)) UnityEngine.Object.Destroy(col);
+        }
+
+        private static GameObject CreateCollider(string carID, Vector3 centre, Vector3 size, Quaternion rotation)
+        {
+            GameObject go = new($"{carID}_temp_collider");
+            go.SetActive(false);
+            go.transform.SetParent(CollidersParent.transform);
+
+            go.transform.position = centre;
+            go.transform.rotation = rotation;
+
+            BoxCollider collider = go.AddComponent<BoxCollider>();
+            collider.center = new(0, 0, 0);
+            collider.size = size;
+
+            return go;
         }
 
         private static void ReplaceCarInJcc(JobChainController jcc, string oldCarID, Car newLogicCar)
@@ -735,6 +775,10 @@ namespace PersistentJobsMod.Optimization
             StationIDtoSuspendedCarGUID.Clear();
             OccupiedRailTrackIndexesToFakeBogies.Clear();
             TracksToSpaceOccupiedBySuspendedCars.Clear();
+            SuspendedCarGUIDToCollider.Values.Do(o => UnityEngine.Object.Destroy(o));
+            SuspendedCarGUIDToCollider.Clear();
+            UnityEngine.Object.Destroy(CollidersParent);
+            CollidersParent = null;
             SuspendIteration = 0;
             AllTracks = null;
         }

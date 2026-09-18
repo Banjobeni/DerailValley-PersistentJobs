@@ -26,12 +26,15 @@ namespace PersistentJobsMod
         [Draw("Suspend cars in far away stations in order to improve performance")]
         public bool SuspendFarAwayCars = true;
 
-        [Draw("\"Occupy\" track where cars were suspended by a dummy bogie - for use with signals mods (experimental!)")]
+        [Draw("\"Occupy\" track where cars were suspended by a dummy bogie - for use with signals mods (experimental!)", VisibleOn = "SuspendFarAwayCars|true")]
         public bool DummyBogiesForTracksOfSuspendedCars = false;
 #if DEBUG
         [Draw($"Hides the debug console in \"OnFixedGUI\"")]
 #endif
         public bool HideDebugConsole = false;
+
+        [Draw("Block cars of suspended cars with dummy colliders", VisibleOn = "SuspendFarAwayCars|true")]
+        public bool TempCarColliders = false;
 
         public void DrawButtons()
         {

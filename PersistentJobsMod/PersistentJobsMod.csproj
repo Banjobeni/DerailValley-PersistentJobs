@@ -60,13 +60,13 @@
 		<Reference Include="DV.UIFramework">
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="DV.OriginShiftInfo">
-			<Private>False</Private>
-		</Reference>
 		<Reference Include="DV.UI">
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="DV.UserManagement">
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="WorldStreamer">
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="MessageBox">

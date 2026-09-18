@@ -204,6 +204,7 @@ namespace PersistentJobsMod {
 
         private static bool CheckHost()
         {
+            if (!WorldStreamingInit.IsLoaded) return false;
             if (MultiplayerShim.IsHost) return true;
             Debug.LogWarning($"Only the host is able to execute commands");
             return false;
