@@ -26,21 +26,21 @@ namespace PersistentJobsMod
         [Draw("Suspend cars in far away stations in order to improve performance")]
         public bool SuspendFarAwayCars = true;
 
-        [Draw("\"Occupy\" track where cars were suspended by a dummy bogie - for use with signals mods (experimental!)", VisibleOn = "SuspendFarAwayCars|true")]
+        [Draw("\"Occupy\" track where cars were suspended by a dummy bogie - for use with older signals mods ver. (experimental!)", VisibleOn = "SuspendFarAwayCars|true")]
         public bool DummyBogiesForTracksOfSuspendedCars = false;
 #if DEBUG
         [Draw($"Hides the debug console in \"OnFixedGUI\"")]
 #endif
         public bool HideDebugConsole = false;
 
-        [Draw("Block cars of suspended cars with dummy colliders", VisibleOn = "SuspendFarAwayCars|true")]
+        [Draw("Block space occupied by suspended cars with dummy colliders", VisibleOn = "SuspendFarAwayCars|true")]
         public bool TempCarColliders = false;
 
         public void DrawButtons()
         {
             if (SuspendFarAwayCars && WorldStreamingInit.IsLoaded)
             {
-                var stations = StationController.allStations?.Where(sc => sc.stationRange.IsPlayerInJobGenerationZone(sc.stationRange.PlayerSqrDistanceFromStationCenter))?.Select(sc => sc.stationInfo.YardID);
+                var stations = StationController.allStations?.Where(sc => sc?.stationRange.IsPlayerInJobGenerationZone(sc.stationRange.PlayerSqrDistanceFromStationCenter) == true)?.Select(sc => sc.stationInfo.YardID);
                 stations ??= [];
 
                 GUILayout.BeginVertical();

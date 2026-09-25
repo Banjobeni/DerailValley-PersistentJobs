@@ -2,7 +2,7 @@
 	"Id": "PersistentJobsMod",
 	"DisplayName": "Persistent Jobs",
 	"Author": "Banjobeni, 8029",
-	"Version": "4.0.0t",
+	"Version": "4.0.0.0",
 	"AssemblyName": "PersistentJobsMod.dll",
 	"EntryMethod": "PersistentJobsMod.Main.Load",
 	"HomePage": "https://www.nexusmods.com/derailvalley/mods/794/",

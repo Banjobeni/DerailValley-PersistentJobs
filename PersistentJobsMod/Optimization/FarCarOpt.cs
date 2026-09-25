@@ -142,8 +142,7 @@ namespace PersistentJobsMod.Optimization
                     if (CollidersParent is null)
                     {
                         CollidersParent = new("SuspendedCarsColliderHolder");
-                        CollidersParent.transform.parent = WorldMover.OriginShiftParent;
-                        WorldMover.Instance.AddObjectToMove(CollidersParent.transform);
+                        CollidersParent.transform.SetParent(WorldMover.OriginShiftParent);
                     }
                     colGO = CreateCollider(carID, trainCar.transform.TransformPoint(trainCar.Bounds.center), trainCar.Bounds.size, trainCar.transform.rotation);
                 }
@@ -193,11 +192,17 @@ namespace PersistentJobsMod.Optimization
         {
             carObject = null;
             CurrentCarIDToResume = null;
+            ContextException = null;
             try
             {
                 if (carGUID == null) return false;
                 SuspendedCarObjects.TryGetValue(carGUID, out var carObj);
-                if (carObj is null) return false;
+                if (carObj is null)
+                {
+                    UnityEngine.Debug.LogError($"[PersistentJobsMod] Data for car with guid {carGUID} could not be found!");
+                    return false;
+                }
+
                 Stopwatch st = Stopwatch.StartNew();
 
                 if (AllTracks == null || AllTracks.Length == 0) AllTracks = SingletonBehaviour<RailTrackRegistryBase>.Instance.OrderedRailtracks;
@@ -211,7 +216,7 @@ namespace PersistentJobsMod.Optimization
                     return false;
                 }
 
-                if (Main.Settings.TempCarColliders && SuspendedCarGUIDToCollider.TryGetValue(carGUID, out var obj)) UnityEngine.Object.Destroy(obj);
+                if (SuspendedCarGUIDToCollider.TryGetValue(carGUID, out var obj)) UnityEngine.Object.Destroy(obj);
 
                 string oldCarID = SuspendedCarGUIDToCarID[carGUID];
                 CurrentCarIDToResume = oldCarID;

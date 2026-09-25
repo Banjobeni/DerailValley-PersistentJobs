@@ -197,8 +197,7 @@ namespace PersistentJobsMod {
         public static void ListSuspendedCars(CommandArg[] args)
         {
             if (!CheckHost()) return;
-            var suspendedCars = FarCarOpt.SuspendedCarIDToCarGUID.Keys;
-            var dict = FarCarOpt.StationIDtoSuspendedCarGUID.Select(kvp => $"{kvp.Key} ({kvp.Value.Count}):\n{string.Join(", ", kvp.Value)}");
+            var dict = FarCarOpt.StationIDtoSuspendedCarGUID.Select(kvp => $"{kvp.Key} ({kvp.Value.Count}):\n{string.Join(", ", kvp.Value.Select(guid => FarCarOpt.SuspendedCarGUIDToCarID[guid]))}");
             Debug.Log(string.Join(" \n", dict));
         }
 
