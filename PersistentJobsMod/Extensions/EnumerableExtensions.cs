@@ -80,5 +80,52 @@ namespace PersistentJobsMod.Extensions {
 
             return lookup.Count == 0;
         }
+
+        public static int Replace<T>(this IList<T> source, T oldValue, T newValue)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            var index = source.IndexOf(oldValue);
+            if (index != -1)
+                source[index] = newValue;
+            return index;
+        }
+
+        public static void ReplaceAll<T>(this IList<T> source, T oldValue, T newValue)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            if (EqualityComparer<T>.Default.Equals(oldValue, newValue)) return;
+
+            int index = -1;
+            do
+            {
+                index = source.IndexOf(oldValue);
+                if (index != -1)
+                    source[index] = newValue;
+            } while (index != -1);
+        }
+
+
+        public static IEnumerable<T> Replace<T>(this IEnumerable<T> source, T oldValue, T newValue)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            return source.Select(x => EqualityComparer<T>.Default.Equals(x, oldValue) ? newValue : x);
+        }
+
+        public static bool TryRemove<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
+        {
+            if (dictionary.TryGetValue(key, out value!))
+            {
+                dictionary.Remove(key);
+                return true;
+            }
+
+            value = default!;
+            return false;
+        }
     }
 }

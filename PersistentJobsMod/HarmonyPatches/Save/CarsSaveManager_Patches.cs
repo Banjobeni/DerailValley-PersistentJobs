@@ -1,5 +1,9 @@
-﻿using HarmonyLib;
+﻿using DV.JObjectExtstensions;
+using DV.Logic.Job;
+using DV.Utils;
+using HarmonyLib;
 using Newtonsoft.Json.Linq;
+using PersistentJobsMod.Optimization;
 using PersistentJobsMod.Persistence;
 using PersistentJobsMod.Utilities;
 using System;
@@ -12,7 +16,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save
 {
     /// <summary>patch CarsSaveManager.Load to ensure CarsSaveManager.TracksHash exists</summary>
     [HarmonyPatch(typeof(CarsSaveManager), "Load")]
-    public static class CarsSaveManager_Patches
+    public static class CarsSaveManager_Load_Patches
     {
         public static void Postfix(ref bool __result)
         {
@@ -21,7 +25,7 @@ namespace PersistentJobsMod.HarmonyPatches.Save
             //if no car data is loaded (eg. game update reset them), expire all jobs and allow new cars to re-spawn 
             if (__result == false)
             {
-                Main._modEntry.Logger.Warning($"CarsSaveManager_Patches.Load.Postfix: No savegame data found, possibly due to game update. Resetting all jobs and stations.");
+                Main._modEntry.Logger.Warning($"CarsSaveManager_Load_Patches.Load.Postfix: No savegame data found, possibly due to game update. Resetting all jobs and stations.");
                 ResetJobsAndCarsState();
             }
         }
@@ -84,12 +88,43 @@ namespace PersistentJobsMod.HarmonyPatches.Save
     {
         public static void Postfix()
         {
-
             if (ReflectionUtilities.IsInCallers(methodName: "LoadingNonBlockingCoro", excludeMethodName: "Manager.Load_Patch", specificFrameNumeric: "", log: false))
             {
                 Main._modEntry.Logger.Log($" CarsSaveManager_DeleteAllExistingCars_Patch.Postfix: Savegame data reset, possibly due to mod or game update. Resetting all jobs and stations.");
-                CarsSaveManager_Patches.ResetJobsAndCarsState();
+                CarsSaveManager_Load_Patches.ResetJobsAndCarsState();
             }
+
+            FarCarOpt.ClearRecords();
+        }
+    }
+
+    [HarmonyPatch(typeof(CarsSaveManager), "GetCarsSaveData")]
+    public static class CarsSaveManager_GetCarsSaveData_Patch
+    {
+        public static void Postfix(ref JObject __result)
+        {
+            JArray carData = (JArray)__result["carsData"];
+            foreach (JObject carObj in FarCarOpt.SuspendedCarObjects.Values)
+            {
+                carData.Add(carObj);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(CarsSaveManager), "InstantiateCarFromSavegame")]
+    public static class CarsSaveManager_InstantiateCarFromSavegame
+    {
+        public static bool Prefix(JObject carData, RailTrack[] tracks)
+        {
+            if (tracks == null || tracks.Length == 0) tracks = SingletonBehaviour<RailTrackRegistryBase>.Instance.OrderedRailtracks;
+
+            if (SingletonBehaviour<IdGenerator>.Instance.carGuidToCar.ContainsKey(carData.GetString("carGuid")))
+            {
+                UnityEngine.Debug.LogError($"Car {carData.GetString("id")} with guid {carData.GetString("carGuid")} already present, skipping entry");
+                return false;
+            }
+
+            return true;
         }
     }
 }

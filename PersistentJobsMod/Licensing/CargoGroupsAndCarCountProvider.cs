@@ -10,13 +10,19 @@ namespace PersistentJobsMod.Licensing {
             Cars,
         }
 
-        public static (List<CargoGroup> availableCargoGroups, int countTrainCars)? GetOrNull(List<CargoGroup> cargoGroups, StationProceduralJobsRuleset carCountRuleset, bool requirePlayerLicensesCompatible, CargoGroupLicenseKind licenseKind, Random rng) {
+        public static (List<CargoGroup> availableCargoGroups, int countTrainCars)? GetOrNull(List<CargoGroup> cargoGroups, StationProceduralJobsRuleset carCountRuleset, bool requirePlayerLicensesCompatible, CargoGroupLicenseKind licenseKind, System.Random rng) {
             var maxCarsPerJob = requirePlayerLicensesCompatible ? Math.Min(carCountRuleset.maxCarsPerJob, LicenseManager.Instance.GetMaxNumberOfCarsPerJobWithAcquiredJobLicenses()) : carCountRuleset.maxCarsPerJob;
 
             var trainCarCount = rng.Next(carCountRuleset.minCarsPerJob, maxCarsPerJob + 1);
 
             if (trainCarCount < 1) {
                 // really shouldn't happen, but just in case
+                return null;
+            }
+
+            if (cargoGroups.Count < 1)
+            {
+                UnityEngine.Debug.LogError("[PersistentJobsMod] Station has no cargo groups for selected job type, this shouldn't happen!");
                 return null;
             }
 

@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using DV.Logic.Job;
+﻿using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
@@ -22,10 +23,25 @@ namespace PersistentJobsMod.JobGenerators {
             var approxTrainLength = CarSpawner.Instance.GetTotalTrainCarsLength(TrainCar.ExtractLogicCars(trainCars), true);
 
             var transportedCargoPerCar = trainCars.Select(tc => tc.logicCar.CurrentCargoTypeInCar).ToList();
+            var transportedCarLiveries = trainCars.Select(tc => tc.carLivery).ToArray();
+
+            bool ret = false;
+            for (int i = 0; i < trainCars.Count; i++)
+            {
+                TrainCarLivery tcl = transportedCarLiveries[i];
+                CargoType ct = transportedCargoPerCar[i];
+
+                if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))
+                {
+                    Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
+                    ret = true;
+                }
+            }
+            if (ret) return null;
 
             var warehouseMachines = destinationStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(transportedCargoPerCar.Distinct().ToList());
             if (warehouseMachines.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
+                Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Found no supported WarehouseMachine!");
                 return null;
             }
 
@@ -57,7 +73,7 @@ namespace PersistentJobsMod.JobGenerators {
                 }
             } while (destinationTracks.Count < countTracks--);
             if (destinationTracks.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find enough StorageTracks in {destinationStation.logicStation.ID} that are long enough!");
+                Debug.LogWarning($"[PersistentJobsMod] unload: Could not create ChainJob[{JobType.ShuntingUnload}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Could not find enough StorageTracks in {destinationStation.logicStation.ID} that are long enough!");
                 return null;
             }
 

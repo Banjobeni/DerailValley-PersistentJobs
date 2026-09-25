@@ -35,5 +35,18 @@ namespace PersistentJobsMod.Utilities {
             }
             return predicate(task) ? task : null;
         }
+
+        public static void TaskDoLeafDfs(Task task, Action<Task> action)
+        {
+            if (task is ParallelTasks || task is SequentialTasks)
+            {
+                Traverse.Create(task)
+                    .Field("tasks")
+                    .GetValue<IEnumerable<Task>>()
+                    .Do(t => TaskDoLeafDfs(t, action));
+                return;
+            }
+            action(task);
+        }
     }
 }

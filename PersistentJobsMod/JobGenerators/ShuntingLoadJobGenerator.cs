@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using DV.Logic.Job;
+﻿using DV.Logic.Job;
 using DV.ThingTypes;
+using DV.ThingTypes.TransitionHelpers;
 using PersistentJobsMod.Utilities;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace PersistentJobsMod.JobGenerators {
@@ -14,7 +15,24 @@ namespace PersistentJobsMod.JobGenerators {
                 StationController destinationStation,
                 List<TrainCar> trainCars,
                 List<CargoType> transportedCargoPerCar,
-                bool forceCorrectCargoStateOnCars = false) {
+                bool forceCorrectCargoStateOnCars = false)
+        {
+            var transportedCarLiveries = trainCars.Select(tc => tc.carLivery).ToArray();
+
+            bool ret = false;
+            for (int i = 0; i < transportedCarLiveries.Count(); i++)
+            {
+                TrainCarLivery tcl = transportedCarLiveries[i];
+                CargoType ct = transportedCargoPerCar[i];
+
+                if (!ct.ToV2().IsLoadableOnCarType(tcl.parentType))
+                {
+                    Debug.LogWarning($"[PersistentJobsMod] load: Could not create ChainJob[{JobType.ShuntingLoad}]: {startingStation.logicStation.ID} - {destinationStation.logicStation.ID}. Car {trainCars[i].ID} cannot carry {ct} cargo!");
+                    ret = true;
+                }
+            }
+            if (ret) return null;
+
             Main._modEntry.Logger.Log($"load: attempting to generate {JobType.ShuntingLoad} job from {startingStation.logicStation.ID} to {destinationStation.logicStation.ID} for {trainCars.Count} cars");
 
             float bonusTimeLimit;

@@ -69,7 +69,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 true);
 
             if (jobChainController == null) {
-                Debug.LogWarning("[PersistentJobs] transport: Couldn't generate job chain. Deleting spawned trainCars!");
+                Debug.LogWarning("[PersistentJobsMod] transport: Couldn't generate job chain. Deleting spawned trainCars!");
                 SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                 return null;
             }

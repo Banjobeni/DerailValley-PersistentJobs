@@ -60,7 +60,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
 
             var startingStationWarehouseMachines = startingStation.logicStation.yard.GetWarehouseMachinesThatSupportCargoTypes(distinctCargoTypes);
             if (startingStationWarehouseMachines.Count == 0) {
-                Debug.LogWarning($"[PersistentJobs] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
+                Debug.LogWarning($"[PersistentJobsMod] load: Couldn't find a warehouse machine at {startingStation.logicStation.ID} that supports all cargo types!!");
                 return null;
             }
 
@@ -129,7 +129,7 @@ namespace PersistentJobsMod.CarSpawningJobGenerators {
                 true);
 
             if (jobChainController == null) {
-                Debug.LogWarning("[PersistentJobs] load: Couldn't generate job chain. Deleting spawned trainCars!");
+                Debug.LogWarning("[PersistentJobsMod] load: Couldn't generate job chain. Deleting spawned trainCars!");
                 SingletonBehaviour<CarSpawner>.Instance.DeleteTrainCars(orderedTrainCars, true);
                 return null;
             }

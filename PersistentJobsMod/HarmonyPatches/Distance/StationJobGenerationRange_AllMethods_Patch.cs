@@ -16,15 +16,21 @@ namespace PersistentJobsMod.HarmonyPatches.Distance {
                 if (Main._initialDistanceAnyJobTaken < 1f) {
                     Main._initialDistanceAnyJobTaken = __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
                 }
+                if (Main._initialGenerateJobsSqrDistance < 1f) {
+                    Main._initialGenerateJobsSqrDistance = __instance.generateJobsSqrDistance;
+                }
 
                 if (Main._modEntry.Active) {
                     if (__instance.destroyGeneratedJobsSqrDistanceAnyJobTaken < 4000000f) {
                         __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = 4000000f;
                     }
                     __instance.destroyGeneratedJobsSqrDistanceRegular = __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken;
+                    __instance.generateJobsSqrDistance = 300000f;
+
                 } else {
                     __instance.destroyGeneratedJobsSqrDistanceRegular = Main._initialDistanceRegular;
                     __instance.destroyGeneratedJobsSqrDistanceAnyJobTaken = Main._initialDistanceAnyJobTaken;
+                    __instance.generateJobsSqrDistance = Main._initialGenerateJobsSqrDistance;
                 }
             } catch (Exception e) {
                 Main.HandleUnhandledException(e, nameof(StationJobGenerationRange_AllMethods_Patch) + "." + nameof(Prefix) + " of " + __originalMethod.Name);

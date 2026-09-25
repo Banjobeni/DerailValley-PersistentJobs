@@ -1,6 +1,8 @@
 ﻿using DV.Damage;
 using DV.Logic.Job;
+using DV.ServicePenalty;
 using HarmonyLib;
+using UnityEngine;
 
 namespace PersistentJobsMod.Utilities {
     public static class PlayerSpawnedCarUtilities {
@@ -26,7 +28,11 @@ namespace PersistentJobsMod.Utilities {
 
             var cargoDamageModelOrNull = GetOrCreateCargoDamageModelOrNull(trainCar, trainPlatesController);
 
-            var carDebtController = trainCar.carDebtController;
+            var carDebtController = trainCar.gameObject.GetComponent<CarDebtController>();
+            UnityEngine.Object.DestroyImmediate(carDebtController as Object, true);
+            carDebtController = trainCar.gameObject.AddComponent<CarDebtController>();
+            carDebtController.OnCreated(trainCar, false);
+            carDebtController.ignoreCarDamageDebt = false;
             carDebtController.SetDebtTracker(carDamageModel, cargoDamageModelOrNull);
 
             carStateSave.Initialize(carDamageModel, cargoDamageModelOrNull);

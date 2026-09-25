@@ -24,7 +24,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
         public static void Prefix(JobChainController __instance,
                 List<StaticJobDefinition> ___jobChain,
                 Job lastJobInChain) {
-            if (!Main._modEntry.Active) {
+            if (!Main._modEntry.Active || !MultiplayerShim.IsHost) {
                 return;
             }
 
@@ -42,7 +42,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             try {
                 var lastJobDefinition = ___jobChain[___jobChain.Count - 1];
                 if (lastJobDefinition.job != lastJobInChain) {
-                    Debug.LogError($"[PersistentJobs] lastJobInChain ({lastJobInChain.ID}) does not match lastJobDef.job ({lastJobDefinition.job.ID})");
+                    Debug.LogError($"[PersistentJobsMod] lastJobInChain ({lastJobInChain.ID}) does not match lastJobDef.job ({lastJobDefinition.job.ID})");
                     return;
                 }
 
@@ -51,7 +51,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
 
                     FinishSubsequentJobChainControllerAndRemoveTrainCarsFromCurrentJobChain(subsequentJobChainController, __instance, lastJobInChain);
                 } else if (lastJobInChain.jobType == JobType.Transport && lastJobDefinition is StaticTransportJobDefinition transportJobDefinition) {
-                    if (Main.PaxJobsPresent && PaxJobsCompat.IsPaxCars(__instance.carsForJobChain.First().TrainCar()))
+                    if (Main.PaxJobsPresent && PaxJobsCompat.IsPaxCar(__instance.carsForJobChain.First().TrainCar()))
                     {
                         CreateSubsequentPaxJobs(__instance, transportJobDefinition, lastJobInChain);
                     }
@@ -108,7 +108,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobChainControllers {
             List<JobChainController> subsequentJobChainControllers = new();
 
             var trainCars = new List<TrainCar>(TrainCar.ExtractTrainCars(__instance.carsForJobChain));
-            if (!(trainCars.Any(tc => !PaxJobsCompat.IsPaxCars(tc))))
+            if (!(trainCars.Any(tc => !PaxJobsCompat.IsPaxCar(tc))))
             {
                 var destinationStation = SingletonBehaviour<LogicController>.Instance.YardIdToStationController[(preceedingJobDefinition.chainData.chainDestinationYardId)];
                 subsequentJobChainControllers.AddRange(PaxJobsCompat.DecideForPaxCarGroups((new List<IReadOnlyList<TrainCar>> { trainCars }), destinationStation));

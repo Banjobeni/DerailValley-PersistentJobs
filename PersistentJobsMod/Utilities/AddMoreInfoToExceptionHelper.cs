@@ -54,6 +54,7 @@ namespace PersistentJobsMod.Utilities {
             {
                 var logMessage = $"Exception thrown at {location}:\n{e}";
                 Debug.LogError(logMessage);
+                Main.Pause = true;
 
                 var dataDir = Application.persistentDataPath;
 

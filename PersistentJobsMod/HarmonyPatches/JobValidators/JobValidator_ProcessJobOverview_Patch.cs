@@ -5,6 +5,7 @@ using HarmonyLib;
 using MessageBox;
 using PersistentJobsMod.Extensions;
 using PersistentJobsMod.ModInteraction;
+using PersistentJobsMod.Optimization;
 using PersistentJobsMod.Utilities;
 using System;
 using System.Collections;
@@ -12,22 +13,42 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Jobs;
 using UnityEngine;
+using UnityModManagerNet;
 using Random = System.Random;
 
 namespace PersistentJobsMod.HarmonyPatches.JobValidators {
     /// <summary>expires a job if none of its cars are in range of the starting station on job start attempt</summary>
-    [HarmonyPatch(typeof(JobValidator), "ProcessJobOverview")]
+    [HarmonyPatch(typeof(JobValidator), nameof(JobValidator.ProcessJobOverview))]
     public static class JobValidator_ProcessJobOverview_Patch {
         public static bool Prefix(JobValidator __instance, PrinterController ___bookletPrinter,
             JobOverview jobOverview) {
             try {
-                if (!Main._modEntry.Active) return true;
+                if (!Main._modEntry.Active || !MultiplayerShim.IsHost) return true;
+
+                if (___bookletPrinter.IsOnCooldown)
+                {
+                    ___bookletPrinter.PlayErrorSound();
+                    return false;
+                }
 
                 var job = jobOverview.job;
-                var allStations = UnityEngine.Object.FindObjectsOfType<StationController>();
+                var allStations = StationController.allStations;
                 var stationController = allStations.FirstOrDefault(st => st.logicStation.availableJobs.Contains(job));
 
                 if (___bookletPrinter.IsOnCooldown || job.State != JobState.Available || stationController == null) return true;
+
+                var jobChainController = stationController?.ProceduralJobsController?.GetCurrentJobChains()?.FirstOrDefault(jcc => jcc.currentJobInChain == job);
+                if (FarCarOpt.SuspendedCarGUIDToJobChainController.ContainsValue(jobChainController ??= new JobChainController(new()))) //the new is just a fallthrough case instead of null
+                {
+                    Debug.LogWarning("[PersistentJobsMod] The cars for the job are still suspended!");
+                    ___bookletPrinter.IsOnCooldown = true;
+                    var carGuids = FarCarOpt.SuspendedCarGUIDToJobChainController.Where(kvp => kvp.Value == jobChainController).Select(kvp => kvp.Key).ToArray();
+                    _ = FarCarOpt.RunResumeCars(carGuids, "job taking", (success) => { ___bookletPrinter.IsOnCooldown = false; if (success) __instance.ProcessJobOverview(jobOverview); else { Debug.LogWarning($"[PersistentJobsMod] {job.ID} couldn't be abandoned"); __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, false)); } });
+                    return false;
+                }
+
+                //let the mod handle it on its own
+                if (Main.yardMasterPresent) return true;
 
                 // expire the job if all associated cars are outside the job destruction range
                 // the base method's logic will handle generating the expired report
@@ -43,7 +64,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 // reserve space for job and for shunting (un)load jobs, require cars to not already be on the warehouse track
                 if (!ReserveSpacePJ(job, out bool shuntingJobOnWarehouseTrack))
                 {
-                    __instance.StartCoroutine(HandleJobAcceptnceFaliure(___bookletPrinter, shuntingJobOnWarehouseTrack));
+                    __instance.StartCoroutine(HandleJobAcceptanceFailure(___bookletPrinter, shuntingJobOnWarehouseTrack));
                     return false;
                 }                
 
@@ -73,7 +94,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
 
                 if (jobChainController == null)
                 {
-                    Debug.LogWarning($"[PersistentJobs] could not find JobChainController for Job[{job.ID}]");
+                    Debug.LogWarning($"[PersistentJobsMod] could not find JobChainController for Job[{job.ID}]");
                 }
                 else if (job.jobType == JobType.ShuntingLoad)
                 {
@@ -213,7 +234,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             for (var i = 0; i < jobChain.Count; i++) {
                 var staticJobDefinition = jobChain[i];
                 if (staticJobDefinition == null) {
-                    var message = $"[PersistentJobs] The jobChain of a JobChainController contains a null value at index {i}. List of jobs in the jobChain: {string.Join(", ", jobChain.Select(sjd => sjd?.job?.ID ?? "null"))}";
+                    var message = $"[PersistentJobsMod] The jobChain of a JobChainController contains a null value at index {i}. List of jobs in the jobChain: {string.Join(", ", jobChain.Select(sjd => sjd?.job?.ID ?? "null"))}";
                     Debug.LogError(message);
                     throw new InvalidOperationException(message);
                 }
@@ -221,17 +242,21 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                 var job = staticJobDefinition.job;
 
                 if (job == null) {
-                    var message = $"[PersistentJobs] The job of a StaticJobDefinition ({staticJobDefinition.GetType()}) at index {i} in the jobChain of a JobChainController is null. List of jobs in the jobChain: {string.Join(", ", jobChain.Select(sjd => sjd?.job?.ID ?? "null"))}";
+                    var message = $"[PersistentJobsMod] The job of a StaticJobDefinition ({staticJobDefinition.GetType()}) at index {i} in the jobChain of a JobChainController is null. List of jobs in the jobChain: {string.Join(", ", jobChain.Select(sjd => sjd?.job?.ID ?? "null"))}";
                     Debug.LogWarning(message);
                 } else if (Main.PaxJobsPresent && ((job.jobType == PaxJobsCompat._PassengerExpress) || (job.jobType == PaxJobsCompat._PassengerLocal))) {
-                    var message = $"[PersistentJobs] Skipping track reservations as {job.ID} is a passenger job";
+                    var message = $"[PersistentJobsMod] Skipping track reservations as {job.ID} is a passenger job";
                     Debug.Log(message);
                 } else {
-                    if (jobChainController.jobDefToCurrentlyReservedTracks[staticJobDefinition].Count > 0)
+                    if (jobChainController.jobDefToCurrentlyReservedTracks.TryGetValue(staticJobDefinition, out var trs))
                     {
-                        Debug.Log($"[PersistentJobs] Space already reserved for {job.ID} from a previous attempt. Skipping.");
-                        continue;
+                        if (trs.Count > 0)
+                        {
+                            Debug.Log($"[PersistentJobsMod] Space already reserved for {job.ID} from a previous attempt. Skipping.");
+                            continue;
+                        }
                     }
+                    else jobChainController.jobDefToCurrentlyReservedTracks[staticJobDefinition] = [];
                     List<TrackReservation> trackReservations = staticJobDefinition.GetRequiredTrackReservations();
                     if (trackReservations.Any()) {
                         for (var j = 0; j < trackReservations.Count; j++) {
@@ -245,7 +270,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                                     // not enough space to reserve; find a different track with enough space & update job data
                                     var replacementTrack = GetReplacementTrack(intendedDestinationTrack, lengthToBeReserved, random);
                                     if (replacementTrack == null) {
-                                        Debug.LogWarning($"[PersistentJobs] Can't find track with enough free space for Job[{job.ID}]. Skipping track reservation!");
+                                        Debug.LogWarning($"[PersistentJobsMod] Can't find track with enough free space for Job[{job.ID}]. Skipping track reservation!");
                                     } else {
                                         jobChainController.jobDefToCurrentlyReservedTracks[staticJobDefinition].Add(new (replacementTrack, lengthToBeReserved));
                                         YardTracksOrganizer.Instance.ReserveSpace(replacementTrack, lengthToBeReserved, false);
@@ -264,7 +289,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                             }
                         }
                     } else {                        
-                        Debug.LogWarning($"[PersistentJobs] No reservation data for jobChain[{i}] gotten! Job either doesn´t reserve anything, or something has broken");
+                        Debug.LogWarning($"[PersistentJobsMod] No reservation data for jobChain[{i}] gotten! Job either doesn't reserve anything, or something has broken");
                     }
                 }
             }
@@ -304,7 +329,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     Debug.LogError(e);
                 }
                 if (!replacedDestination) {
-                    Debug.LogError($"[PersistentJobs] Unaccounted for JobType[{staticJobDefinition.job.jobType}] encountered while reserving track space for Job[{staticJobDefinition.job.ID}].");
+                    Debug.LogError($"[PersistentJobsMod] Unaccounted for JobType[{staticJobDefinition.job.jobType}] encountered while reserving track space for Job[{staticJobDefinition.job.ID}].");
                 }
             }
 
@@ -363,7 +388,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
                     stationYard.TransferInTracks
                 };
             } else {
-                Debug.LogError($"[PersistentJobs] Cant't find track group for Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
+                Debug.LogError($"[PersistentJobsMod] Cant't find track group for Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
                 return null;
             }
 
@@ -376,7 +401,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             }
 
             if (targetTrack == null) {
-                Debug.LogWarning($"[PersistentJobs] Cant't find any track to replace Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
+                Debug.LogWarning($"[PersistentJobsMod] Cant't find any track to replace Track[{oldTrack.ID}] in Station[{stationController.logicStation.ID}]. Skipping reservation!");
             }
 
             return targetTrack;
@@ -394,7 +419,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobValidators {
             return null;
         }
 
-        private static IEnumerator HandleJobAcceptnceFaliure(PrinterController printerController, bool shuntingJobOnWarehouseTrack) 
+        public static IEnumerator HandleJobAcceptanceFailure(PrinterController printerController, bool shuntingJobOnWarehouseTrack) 
         {
             printerController.PlayErrorSound();
             if (shuntingJobOnWarehouseTrack) {

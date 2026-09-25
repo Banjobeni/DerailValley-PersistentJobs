@@ -12,6 +12,7 @@ using PersistentJobsMod.Extensions;
 using PersistentJobsMod.JobGenerators;
 using PersistentJobsMod.Model;
 using PersistentJobsMod.ModInteraction;
+using PersistentJobsMod.Optimization;
 using PersistentJobsMod.Utilities;
 using UnityEngine;
 using Random = System.Random;
@@ -20,7 +21,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
     /// <summary>tries to generate new jobs for the train cars marked for deletion</summary>
     [HarmonyPatch]
     static class UnusedTrainCarDeleter_Patches {
-        private const double TrainCarJobRegenerationSquareDistance = 640000.0;
+        private const double TrainCarJobRegenerationSquareDistance = 1000000.0;
         private const float COROUTINE_INTERVAL = 60f;
 
         [HarmonyPatch(typeof(UnusedTrainCarDeleter), "TrainCarsDeleteCheck")]
@@ -29,7 +30,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 UnusedTrainCarDeleter __instance,
                 ref IEnumerator __result,
                 List<TrainCar> ___unusedTrainCarsMarkedForDelete) {
-            if (!Main._modEntry.Active) {
+            if (!Main._modEntry.Active || !MultiplayerShim.IsHost) {
                 return true;
             } else {
                 __result = TrainCarsCreateJobOrDeleteCheck(__instance, COROUTINE_INTERVAL, ___unusedTrainCarsMarkedForDelete);
@@ -40,7 +41,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         private static IEnumerator TrainCarsCreateJobOrDeleteCheck(UnusedTrainCarDeleter unusedTrainCarDeleter, float interval, List<TrainCar> ___unusedTrainCarsMarkedForDelete) {
             for (; ; ) {
                 if (Main.Stop) yield break;
-                if (Main.Pause) yield return null;
+                while (Main.Pause) yield return null;
                 yield return WaitFor.SecondsRealtime(interval);
 
                 try {
@@ -50,6 +51,8 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 } catch (Exception e) {
                     Main.HandleUnhandledException(e, nameof(UnusedTrainCarDeleter_Patches) + "." + nameof(TrainCarsCreateJobOrDeleteCheck));
                 }
+
+                FarCarOpt.RunSuspendCars();
             }
             // ReSharper disable once IteratorNeverReturns
         }
@@ -77,7 +80,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 return;
             }
 
-            if (StationController.allStations.Any(sc => sc?.gameObject == null)) {
+            if (StationController.allStations?.Any(sc => sc?.gameObject == null) is true) {
                 return;
             }
 
@@ -190,9 +193,16 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         }
 
         private static IReadOnlyList<JobChainController> ReassignJoblessRegularTrainCarsToJobsInStationAndCreateJobChainControllers(StationController station, List<Trainset> trainsets, Random random) {
-            Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
-
             var result = new List<JobChainController>();
+            if (Main.yardMasterPresent) return result;
+
+            if (station is null)
+            {
+                Debug.LogWarning($"[PersistentJobsMod] Can't reassign cars: \n{string.Join(", ", trainsets.SelectMany(ts => ts.cars).Select(tc => tc.ID))} \nto jobs as their station is null");
+                return result;
+            }
+
+            Main._modEntry.Logger.Log($"Reassigning train cars to jobs in station {station.logicStation.ID}: {trainsets.SelectMany(ts => ts.cars).Count()} cars in {trainsets.Count} trainsets need to be reassigned.");
 
             var statusTrainCarGroups = trainsets.SelectMany(s => s.cars.GroupConsecutiveBy(tc => GetTrainCarReassignStatus(tc, false))).ToList();
 
@@ -200,7 +210,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             if (Main.PaxJobsPresent)
             {
                 paxConsecutiveTrainCarGroups = statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.PaxCar).Select(s => s.Items).ToList();
-                Main._modEntry.Logger.Log($"Found {paxConsecutiveTrainCarGroups.Count} passanger train car groups with a total of {paxConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
+                Main._modEntry.Logger.Log($"Found {paxConsecutiveTrainCarGroups.Count} passenger train car groups with a total of {paxConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
                 result.AddRange(PaxJobsCompat.DecideForPaxCarGroups(paxConsecutiveTrainCarGroups, station));
                 statusTrainCarGroups.RemoveAll(stcg => statusTrainCarGroups.Where(s => s.Key == TrainCarReassignStatus.PaxCar).ToList().Contains(stcg));
             }
@@ -211,7 +221,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             Main._modEntry.Logger.Log($"Found {emptyConsecutiveTrainCarGroups.Count} empty train car groups with a total of {emptyConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             Main._modEntry.Logger.Log($"Found {loadedConsecutiveTrainCarGroups.Count} loaded train car groups with a total of {loadedConsecutiveTrainCarGroups.SelectMany(g => g).Count()} cars");
             
-            var (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
+            var (loadableConsecutiveTrainCarGroups, notLoadableConsecutiveTrainCarGroups) = DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(station, emptyConsecutiveTrainCarGroups);
             var (unloadableConsecutiveTrainCarGroups, notUnloadableConsecutiveTrainCarGroups) = DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(station, loadedConsecutiveTrainCarGroups);
 
             // generate empty haul jobs for empty train cars not loadable at this station
@@ -248,7 +258,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             }
 
             // generate shunting load jobs for empty train cars loadable at this station
-            var shuntingLoadJobChainControllers = GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(station, loadableConsecuteTrainCarGroups, random).ToList();
+            var shuntingLoadJobChainControllers = GroupShuntingLoadIntoMultiplePickupsAndCreateAndFinalizeJobChainControllers(station, loadableConsecutiveTrainCarGroups, random).ToList();
 
             result.AddRange(shuntingLoadJobChainControllers);
 
@@ -479,7 +489,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
         private static (IReadOnlyList<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>> loadableConsecuteTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination>)>> notLoadableConsecutiveTrainCarGroups) DivideEmptyConsecutiveTrainCarGroupsIntoLoadableAndNotLoadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> emptyConsecutiveTrainCarGroups) {
             var stationOutgoingCargoGroups = DetailedCargoGroups.GetOutgoingCargoGroups(station);
 
-            var loadableConsecuteTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
+            var loadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCarType_v2 TrainCarType, IReadOnlyList<TrainCar> TrainCars, IReadOnlyList<OutgoingCargoGroup> CargoGroupsWithCargoTypes)>>();
             var notLoadableConsecutiveTrainCarGroups = new List<IReadOnlyList<(TrainCar, IReadOnlyList<EmptyTrainCarTypeDestination> Destinations)>>();
 
             foreach (var emptyConsecutiveTrainCars in emptyConsecutiveTrainCarGroups) {
@@ -488,7 +498,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
 
                 void FlushCurrentState() {
                     if (currentLoadable != null) {
-                        loadableConsecuteTrainCarGroups.Add(currentLoadable);
+                        loadableConsecutiveTrainCarGroups.Add(currentLoadable);
                         currentLoadable = null;
                     }
                     if (currentNotLoadable != null) {
@@ -526,7 +536,7 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
                 FlushCurrentState();
             }
 
-            return (loadableConsecuteTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
+            return (loadableConsecutiveTrainCarGroups, notLoadableConsecutiveTrainCarGroups);
         }
 
         private static (IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<IncomingCargoGroup> IncomingCargoGroups)>> unloadableConsecutiveTrainCarGroups, IReadOnlyList<IReadOnlyList<(TrainCar, IReadOnlyList<OutgoingCargoGroupDestination> CargoGroupDestinations)>> notUnloadableConsecutiveTrainCarGroups) DivideLoadedConsecutiveTrainCarGroupsIntoUnloadableAndNotUnloadable(StationController station, IReadOnlyList<IReadOnlyList<TrainCar>> loadedConsecutiveTrainCarGroups) {
@@ -592,10 +602,10 @@ namespace PersistentJobsMod.HarmonyPatches.JobGeneration {
             PaxCar
         }
 
-        public static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar, bool ingnorePaxCarStatus = true) {
+        public static TrainCarReassignStatus GetTrainCarReassignStatus(TrainCar trainCar, bool ignorePaxCarStatus = true) {
             if (JobsManager.Instance.GetJobOfCar(trainCar.logicCar) != null) {
                 return TrainCarReassignStatus.HasJob;
-            } else if ((!ingnorePaxCarStatus && Main.PaxJobsPresent) && PaxJobsCompat.IsPaxCars(trainCar)) {              
+            } else if ((!ignorePaxCarStatus && Main.PaxJobsPresent) && PaxJobsCompat.IsPaxCar(trainCar)) {              
                     return TrainCarReassignStatus.PaxCar;
             } else if (CarTypes.IsRegularCar(trainCar.carLivery)) {
                 if (trainCar.LoadedCargoAmount < 0.001f) {
