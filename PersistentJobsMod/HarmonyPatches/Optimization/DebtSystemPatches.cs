@@ -44,8 +44,18 @@ namespace PersistentJobsMod.HarmonyPatches.Optimization
     {
         public static bool Prefix(DebtTrackerCar __instance)
         {
-            if (FarCarOpt.SuspendedCarGUIDToDebtTracker.Values.Any(t => t.Item1 == __instance as DebtTrackerBase)) return false;
-            else return true;
+            // We deliberately do not use Linq here, as it causes significant overhead
+            // from emitting write barriers on heap copies on enumeration
+            // (80-90% of the fee reading logic, at the time of writing).
+            foreach (var t in FarCarOpt.SuspendedCarGUIDToDebtTracker.Values)
+            {
+                if (t.Item1 == __instance)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 
